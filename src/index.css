@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans;
+  }
+  
+  .glass {
+    @apply bg-white/70 backdrop-blur-lg border border-white/20;
+  }
+  
+  .glass-hover {
+    @apply hover:bg-white/80 transition-all duration-300;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-300 
+           focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700 
+           focus:ring-primary-500;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary-600 text-white hover:bg-secondary-700 
+           focus:ring-secondary-500;
+  }
+  
+  .btn-accent {
+    @apply bg-accent-500 text-white hover:bg-accent-600 
+           focus:ring-accent-400;
+  }
+  
+  .btn-outline {
+    @apply border border-gray-300 bg-white text-gray-700 
+           hover:bg-gray-50 focus:ring-gray-500;
+  }
+  
+  .card {
+    @apply glass rounded-xl shadow-lg overflow-hidden transition-all duration-300;
+  }
+  
+  .card-hover {
+    @apply glass-hover hover:shadow-xl hover:-translate-y-1;
+  }
+  
+  .tab-item {
+    @apply flex flex-col items-center justify-center py-2 px-4
+           text-sm font-medium transition-colors duration-200;
+  }
+  
+  .tab-active {
+    @apply text-primary-600;
+  }
+  
+  .tab-inactive {
+    @apply text-gray-500 hover:text-gray-700;
+  }
+  
+  .fade-in {
+    @apply animate-fade-in;
+  }
+  
+  .slide-up {
+    @apply animate-slide-up;
+  }
+  
+  .slide-down {
+    @apply animate-slide-down;
+  }
+}
