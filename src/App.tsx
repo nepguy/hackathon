@@ -24,7 +24,7 @@ function App() {
   return (
     <AuthProvider>
       <UserDestinationProvider>
-        <LocationProvider autoStart={true} enableHighAccuracy={true}>
+        <LocationProvider autoStart={false} enableHighAccuracy={true}>
           <Router
             future={{
               v7_startTransition: true,

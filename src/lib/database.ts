@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { SafetyAlert, TravelPlan, User } from '../types';
+import { SafetyAlert, TravelPlan } from '../types';
 
 export interface DatabaseSafetyAlert {
   id: string;
@@ -86,6 +86,43 @@ class DatabaseService {
     } catch (error) {
       console.error('Error creating safety alert:', error);
       return null;
+    }
+  }
+
+  async markAlertAsRead(alertId: string, userId?: string): Promise<boolean> {
+    try {
+      // For now, we'll store read status in localStorage since we don't have a user_alert_reads table
+      // In a production app, you'd want to create a proper table for this
+      const readAlerts = JSON.parse(localStorage.getItem('readAlerts') || '[]');
+      if (!readAlerts.includes(alertId)) {
+        readAlerts.push(alertId);
+        localStorage.setItem('readAlerts', JSON.stringify(readAlerts));
+      }
+      
+      // In the future, this would be:
+      // const { error } = await supabase
+      //   .from('user_alert_reads')
+      //   .upsert([{ user_id: userId, alert_id: alertId, read_at: new Date().toISOString() }]);
+      // if (error) throw error;
+      
+      // Log userId for future implementation
+      if (userId) {
+        console.log(`Alert ${alertId} marked as read for user ${userId}`);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error marking alert as read:', error);
+      return false;
+    }
+  }
+
+  async getReadAlerts(): Promise<string[]> {
+    try {
+      return JSON.parse(localStorage.getItem('readAlerts') || '[]');
+    } catch (error) {
+      console.error('Error getting read alerts:', error);
+      return [];
     }
   }
 

@@ -122,6 +122,7 @@ const AuthPage: React.FC = () => {
                     onChange={handleInputChange}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors glass"
                     placeholder="Enter your full name"
+                    autoComplete="name"
                     required={isSignUp}
                   />
                 </div>
@@ -141,6 +142,7 @@ const AuthPage: React.FC = () => {
                   onChange={handleInputChange}
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors glass"
                   placeholder="Enter your email"
+                  autoComplete="email"
                   required
                 />
               </div>
@@ -159,6 +161,7 @@ const AuthPage: React.FC = () => {
                   onChange={handleInputChange}
                   className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors glass"
                   placeholder="Enter your password"
+                  autoComplete={isSignUp ? "new-password" : "current-password"}
                   required
                 />
                 <button
@@ -185,6 +188,7 @@ const AuthPage: React.FC = () => {
                     onChange={handleInputChange}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors glass"
                     placeholder="Confirm your password"
+                    autoComplete="new-password"
                     required={isSignUp}
                   />
                 </div>

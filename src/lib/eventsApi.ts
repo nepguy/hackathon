@@ -84,9 +84,16 @@ class EventsService {
   private baseUrl = 'https://www.eventbriteapi.com/v3';
 
   constructor() {
-    this.apiKey = import.meta.env.VITE_EVENTBRITE_API_KEY;
+    // Use Private Token for API access, not the API Key
+    this.apiKey = import.meta.env.VITE_EVENTBRITE_PRIVATE_TOKEN || 'MZCEHLD5PGN2HAKXCLCO';
+    console.log('Eventbrite Private Token:', this.apiKey ? `${this.apiKey.substring(0, 8)}...` : 'NOT FOUND');
+    console.log('Environment variables:', {
+      hasPrivateToken: !!import.meta.env.VITE_EVENTBRITE_PRIVATE_TOKEN,
+      hasApiKey: !!import.meta.env.VITE_EVENTBRITE_API_KEY,
+      allEnvKeys: Object.keys(import.meta.env).filter(key => key.startsWith('VITE_'))
+    });
     if (!this.apiKey) {
-      console.warn('Eventbrite API key not found in environment variables');
+      console.warn('Eventbrite Private Token not found in environment variables');
     }
   }
 
@@ -95,21 +102,38 @@ class EventsService {
       throw new Error('Eventbrite API key not configured');
     }
 
-    const queryParams = new URLSearchParams(params);
+    // Add token to params instead of using Bearer auth for better compatibility
+    const allParams = {
+      ...params,
+      token: this.apiKey
+    };
+    
+    const queryParams = new URLSearchParams(allParams);
 
     try {
-      const response = await fetch(`${this.baseUrl}${endpoint}?${queryParams}`, {
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
-        }
+      const url = `${this.baseUrl}${endpoint}?${queryParams}`;
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      console.log('Eventbrite API Request:', {
+        url: url.replace(this.apiKey, `${this.apiKey.substring(0, 8)}...`),
+        headers
       });
       
+      const response = await fetch(url, { headers });
+      
+      console.log('Eventbrite API Response Status:', response.status, response.statusText);
+      
       if (!response.ok) {
-        throw new Error(`Eventbrite API error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('Eventbrite API Error Response:', errorText);
+        throw new Error(`Eventbrite API error: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
-      return await response.json();
+      const jsonData = await response.json();
+      console.log('Eventbrite API Success Response:', jsonData);
+      return jsonData;
     } catch (error) {
       console.error('Error fetching events:', error);
       throw error;
@@ -178,58 +202,127 @@ class EventsService {
   }
 
   private getFallbackEvents(location?: string, query?: string): EventsApiResponse {
-    const fallbackEvents: TravelEvent[] = [
-      {
-        id: 'fallback-1',
-        title: 'Local Cultural Festival',
-        description: 'Experience local culture and traditions in a vibrant festival setting.',
-        startDate: new Date(Date.now() + 86400000 * 3).toISOString(), // 3 days from now
-        endDate: new Date(Date.now() + 86400000 * 4).toISOString(),
-        location: {
-          name: location || 'City Center',
-          address: location || 'Downtown Area',
-          coordinates: { lat: 0, lng: 0 }
+    // Customize fallback events based on query
+    const isBusinessQuery = query?.toLowerCase().includes('business') || query?.toLowerCase().includes('networking');
+    const isFoodQuery = query?.toLowerCase().includes('food') || query?.toLowerCase().includes('culinary');
+    const isCultureQuery = query?.toLowerCase().includes('culture') || query?.toLowerCase().includes('art');
+    
+    let fallbackEvents: TravelEvent[] = [];
+    
+    if (isBusinessQuery) {
+      fallbackEvents = [
+        {
+          id: 'fallback-business-1',
+          title: 'Networking Breakfast',
+          description: `Professional networking event for business travelers${location ? ` in ${location}` : ''}.`,
+          startDate: new Date(Date.now() + 86400000 * 2).toISOString(),
+          endDate: new Date(Date.now() + 86400000 * 2 + 7200000).toISOString(),
+          location: {
+            name: location || 'Business Center',
+            address: location || 'Downtown Business District',
+            coordinates: { lat: 0, lng: 0 }
+          },
+          category: 'Business & Professional',
+          isFree: false,
+          price: '$35.00',
+          eventUrl: '#',
+          source: 'eventbrite'
+        }
+      ];
+    } else if (isFoodQuery) {
+      fallbackEvents = [
+        {
+          id: 'fallback-food-1',
+          title: 'Local Food Tour',
+          description: `Discover authentic local cuisine and hidden culinary gems${location ? ` in ${location}` : ''}.`,
+          startDate: new Date(Date.now() + 86400000 * 3).toISOString(),
+          endDate: new Date(Date.now() + 86400000 * 3 + 10800000).toISOString(),
+          location: {
+            name: location || 'Food Market',
+            address: location || 'Local Food District',
+            coordinates: { lat: 0, lng: 0 }
+          },
+          category: 'Food & Drink',
+          isFree: false,
+          price: '$55.00',
+          eventUrl: '#',
+          source: 'eventbrite'
+        }
+      ];
+    } else if (isCultureQuery) {
+      fallbackEvents = [
+        {
+          id: 'fallback-culture-1',
+          title: 'Cultural Heritage Walk',
+          description: `Explore the rich cultural heritage and historical landmarks${location ? ` of ${location}` : ''}.`,
+          startDate: new Date(Date.now() + 86400000 * 4).toISOString(),
+          endDate: new Date(Date.now() + 86400000 * 4 + 7200000).toISOString(),
+          location: {
+            name: location || 'Cultural Center',
+            address: location || 'Historic District',
+            coordinates: { lat: 0, lng: 0 }
+          },
+          category: 'Culture & Arts',
+          isFree: true,
+          eventUrl: '#',
+          source: 'eventbrite'
+        }
+      ];
+    } else {
+      // Default travel events
+      fallbackEvents = [
+        {
+          id: 'fallback-1',
+          title: 'Local Cultural Festival',
+          description: `Experience local culture and traditions in a vibrant festival setting${location ? ` in ${location}` : ''}.`,
+          startDate: new Date(Date.now() + 86400000 * 3).toISOString(),
+          endDate: new Date(Date.now() + 86400000 * 4).toISOString(),
+          location: {
+            name: location || 'City Center',
+            address: location || 'Downtown Area',
+            coordinates: { lat: 0, lng: 0 }
+          },
+          category: 'Culture & Arts',
+          isFree: false,
+          price: '$25.00',
+          eventUrl: '#',
+          source: 'eventbrite'
         },
-        category: 'Culture & Arts',
-        isFree: false,
-        price: '$25.00',
-        eventUrl: '#',
-        source: 'eventbrite'
-      },
-      {
-        id: 'fallback-2',
-        title: 'Food & Wine Tasting',
-        description: 'Discover local flavors and culinary traditions.',
-        startDate: new Date(Date.now() + 86400000 * 7).toISOString(), // 1 week from now
-        endDate: new Date(Date.now() + 86400000 * 7 + 10800000).toISOString(), // +3 hours
-        location: {
-          name: location || 'Local Venue',
-          address: location || 'Restaurant District',
-          coordinates: { lat: 0, lng: 0 }
+        {
+          id: 'fallback-2',
+          title: 'Food & Wine Tasting',
+          description: `Discover local flavors and culinary traditions${location ? ` in ${location}` : ''}.`,
+          startDate: new Date(Date.now() + 86400000 * 7).toISOString(),
+          endDate: new Date(Date.now() + 86400000 * 7 + 10800000).toISOString(),
+          location: {
+            name: location || 'Local Venue',
+            address: location || 'Restaurant District',
+            coordinates: { lat: 0, lng: 0 }
+          },
+          category: 'Food & Drink',
+          isFree: false,
+          price: '$45.00',
+          eventUrl: '#',
+          source: 'eventbrite'
         },
-        category: 'Food & Drink',
-        isFree: false,
-        price: '$45.00',
-        eventUrl: '#',
-        source: 'eventbrite'
-      },
-      {
-        id: 'fallback-3',
-        title: 'Free Walking Tour',
-        description: 'Explore the city with a knowledgeable local guide.',
-        startDate: new Date(Date.now() + 86400000 * 2).toISOString(), // 2 days from now
-        endDate: new Date(Date.now() + 86400000 * 2 + 7200000).toISOString(), // +2 hours
-        location: {
-          name: location || 'Meeting Point',
-          address: location || 'Tourist Information Center',
-          coordinates: { lat: 0, lng: 0 }
-        },
-        category: 'Tours & Travel',
-        isFree: true,
-        eventUrl: '#',
-        source: 'eventbrite'
-      }
-    ];
+        {
+          id: 'fallback-3',
+          title: 'Free Walking Tour',
+          description: `Explore the city with a knowledgeable local guide${location ? ` around ${location}` : ''}.`,
+          startDate: new Date(Date.now() + 86400000 * 2).toISOString(),
+          endDate: new Date(Date.now() + 86400000 * 2 + 7200000).toISOString(),
+          location: {
+            name: location || 'Meeting Point',
+            address: location || 'Tourist Information Center',
+            coordinates: { lat: 0, lng: 0 }
+          },
+          category: 'Tours & Travel',
+          isFree: true,
+          eventUrl: '#',
+          source: 'eventbrite'
+        }
+      ];
+    }
 
     return { events: fallbackEvents };
   }

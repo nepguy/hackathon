@@ -32,7 +32,8 @@ class NewsService {
 
   private async fetchNews(params: Record<string, string>): Promise<NewsApiResponse> {
     if (!this.apiKey) {
-      throw new Error('GNews API key not configured');
+      console.warn('GNews API key not configured, using fallback news');
+      return this.getFallbackNews();
     }
 
     const queryParams = new URLSearchParams({
@@ -43,13 +44,25 @@ class NewsService {
     });
 
     try {
+      console.log('Fetching news with params:', params);
       const response = await fetch(`${this.baseUrl}/search?${queryParams}`);
       
+      console.log('News API response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error(`News API error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('News API error response:', errorText);
+        
+        if (response.status === 403) {
+          console.warn('News API access forbidden (403), using fallback news');
+          return this.getFallbackNews();
+        }
+        
+        throw new Error(`News API error: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('News API success response:', data);
       
       return {
         totalArticles: data.totalArticles || 0,
@@ -57,8 +70,55 @@ class NewsService {
       };
     } catch (error) {
       console.error('Error fetching news:', error);
-      throw error;
+      console.warn('Falling back to mock news data');
+      return this.getFallbackNews();
     }
+  }
+
+  private getFallbackNews(): NewsApiResponse {
+    const fallbackArticles: NewsArticle[] = [
+      {
+        title: 'Travel Safety Advisory: General Guidelines for International Travel',
+        description: 'Stay informed about current travel conditions and safety recommendations.',
+        content: 'Travel safety remains a top priority for international travelers. Stay updated with local conditions.',
+        url: '#',
+        image: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400',
+        publishedAt: new Date(Date.now() - 86400000).toISOString(),
+        source: { name: 'Travel Safety Network', url: '#' },
+        category: 'safety',
+        severity: 'medium',
+        location: 'Global'
+      },
+      {
+        title: 'Weather Update: Monitor Conditions Before Traveling',
+        description: 'Check weather conditions and forecasts for your destination.',
+        content: 'Weather conditions can significantly impact travel plans. Always check forecasts before departure.',
+        url: '#',
+        image: 'https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?w=400',
+        publishedAt: new Date(Date.now() - 172800000).toISOString(),
+        source: { name: 'Weather Central', url: '#' },
+        category: 'weather',
+        severity: 'low',
+        location: 'Global'
+      },
+      {
+        title: 'Travel Tips: Essential Safety Measures for Modern Travelers',
+        description: 'Important safety tips and best practices for international travel.',
+        content: 'Modern travel requires awareness of various safety considerations and preventive measures.',
+        url: '#',
+        image: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400',
+        publishedAt: new Date(Date.now() - 259200000).toISOString(),
+        source: { name: 'Travel Guide Network', url: '#' },
+        category: 'travel',
+        severity: 'low',
+        location: 'Global'
+      }
+    ];
+
+    return {
+      totalArticles: fallbackArticles.length,
+      articles: fallbackArticles
+    };
   }
 
   private transformArticles(articles: any[]): NewsArticle[] {

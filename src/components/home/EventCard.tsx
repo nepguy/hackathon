@@ -49,7 +49,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, showExternalLink = false }
         date: event.startDate,
         time: formatTime(event.startDate),
         location: typeof event.location === 'object' ? event.location.address : event.location,
-        imageUrl: event.imageUrl || '/default-event.jpg',
+        imageUrl: event.imageUrl || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&h=200&fit=crop',
         category: event.category,
         price: event.isFree ? 'Free' : event.price || 'Paid',
         eventUrl: event.eventUrl
@@ -77,9 +77,9 @@ const EventCard: React.FC<EventCardProps> = ({ event, showExternalLink = false }
           src={eventData.imageUrl}
           alt={eventData.title}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={(e) => {
-            e.currentTarget.src = '/default-event.jpg';
-          }}
+                      onError={(e) => {
+              e.currentTarget.src = 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&h=200&fit=crop';
+            }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">

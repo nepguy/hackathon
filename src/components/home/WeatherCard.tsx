@@ -126,7 +126,7 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
           {getWeatherIcon(weatherData.current.condition.text, 32)}
-          <div>
+        <div>
             <h3 className="font-semibold text-slate-900">Weather</h3>
             <p className="text-sm text-slate-600">
               {weatherData.location.name}, {weatherData.location.country}

@@ -36,10 +36,19 @@ const AlertsPage: React.FC = () => {
   };
   
   const handleMarkAsRead = async (id: string) => {
-    // Update in database - this would need to be implemented in the database service
-    // For now, we'll just update the local state
-    // await databaseService.markAlertAsRead(id);
-    await refreshData();
+    try {
+      // Mark alert as read in database
+      const success = await databaseService.markAlertAsRead(id);
+      if (success) {
+        console.log(`Alert ${id} marked as read`);
+        // Refresh data to update UI
+        await refreshData();
+      } else {
+        console.error(`Failed to mark alert ${id} as read`);
+      }
+    } catch (error) {
+      console.error('Error marking alert as read:', error);
+    }
   };
   
   // Filter alerts based on user's current destination and active filters

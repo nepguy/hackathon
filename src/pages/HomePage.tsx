@@ -17,7 +17,7 @@ import {
 const HomePage: React.FC = () => {
   const { user } = useAuth();
   const { currentDestination, destinations } = useUserDestinations();
-  const { userLocation } = useLocationContext();
+  const { userLocation, locationPermission, getCurrentLocation } = useLocationContext();
   const { safetyAlerts, travelPlans, recentActivity, isLoading, error, refreshData } = useRealTimeData();
   const navigate = useNavigate();
   const [events, setEvents] = useState<TravelEvent[]>([]);
@@ -105,17 +105,26 @@ const HomePage: React.FC = () => {
       if (currentDestination) {
         // Use destination location
         const location = `${currentDestination.name}, ${currentDestination.country}`;
+        console.log('Fetching events for destination:', location);
         eventsData = await eventsService.getTravelEvents(location);
       } else if (userLocation?.latitude && userLocation?.longitude) {
         // Use current GPS location
+        console.log('Fetching events for GPS location:', userLocation.latitude, userLocation.longitude);
         eventsData = await eventsService.getEventsNearLocation(
           userLocation.latitude, 
           userLocation.longitude, 
           25 // 25km radius
         );
       } else {
-        // Fallback to general travel events
-        eventsData = await eventsService.getTravelEvents();
+        // Try to get location if not available
+        if (locationPermission === 'granted' || locationPermission === 'prompt') {
+          console.log('Attempting to get current location...');
+          getCurrentLocation();
+        }
+        
+        // Fallback to general travel events with a default location
+        console.log('Using fallback location for events');
+        eventsData = await eventsService.getTravelEvents('New York, NY'); // Default fallback
       }
       
       setEvents(eventsData.events.slice(0, 6)); // Limit to 6 events
@@ -231,18 +240,18 @@ const HomePage: React.FC = () => {
             location={currentDestination ? `${currentDestination.name}, ${currentDestination.country}` : undefined}
             coordinates={userLocation ? { lat: userLocation.latitude, lng: userLocation.longitude } : undefined}
           />
-          
-          {/* Stats Grid */}
-          <div className="grid grid-cols-3 gap-4">
-            {stats.map((stat, index) => (
-              <div key={index} className="card p-4 text-center">
-                <div className={`w-12 h-12 ${stat.bg} rounded-xl flex items-center justify-center mx-auto mb-3`}>
-                  <stat.icon className={`w-6 h-6 ${stat.color}`} />
-                </div>
-                <div className="text-2xl font-bold text-slate-900 mb-1">{stat.value}</div>
-                <div className="text-sm text-slate-600">{stat.label}</div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-3 gap-4">
+          {stats.map((stat, index) => (
+            <div key={index} className="card p-4 text-center">
+              <div className={`w-12 h-12 ${stat.bg} rounded-xl flex items-center justify-center mx-auto mb-3`}>
+                <stat.icon className={`w-6 h-6 ${stat.color}`} />
               </div>
-            ))}
+              <div className="text-2xl font-bold text-slate-900 mb-1">{stat.value}</div>
+              <div className="text-sm text-slate-600">{stat.label}</div>
+            </div>
+          ))}
           </div>
         </div>
 
@@ -335,13 +344,13 @@ const HomePage: React.FC = () => {
               </div>
             ) : (
               recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-start space-x-4 p-3 rounded-xl hover:bg-slate-50 transition-colors duration-200">
-                  <div className={`w-2 h-2 rounded-full mt-2 ${
+              <div key={index} className="flex items-start space-x-4 p-3 rounded-xl hover:bg-slate-50 transition-colors duration-200">
+                <div className={`w-2 h-2 rounded-full mt-2 ${
                     activity.type === 'alert' ? 'bg-amber-500' :
                     activity.type === 'plan' ? 'bg-blue-500' : 'bg-emerald-500'
-                  }`}></div>
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-900">{activity.title}</p>
+                }`}></div>
+                <div className="flex-1">
+                  <p className="font-medium text-slate-900">{activity.title}</p>
                     <p className="text-sm text-slate-600">{activity.description}</p>
                     <p className="text-xs text-slate-500 mt-1">
                       {new Date(activity.timestamp).toLocaleDateString()}
