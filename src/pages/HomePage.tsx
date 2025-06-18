@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserDestinations } from '../contexts/UserDestinationContext';
+import { useNavigate } from 'react-router-dom';
 import PageContainer from '../components/layout/PageContainer';
 import { 
   MapPin, Calendar, Shield, TrendingUp, Clock, 
@@ -10,12 +11,24 @@ import {
 const HomePage: React.FC = () => {
   const { user } = useAuth();
   const { currentDestination, destinations } = useUserDestinations();
+  const navigate = useNavigate();
   const [greeting] = useState(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
     if (hour < 18) return 'Good afternoon';
     return 'Good evening';
   });
+
+  // Get user's display name
+  const getUserName = () => {
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name;
+    }
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return 'Traveler';
+  };
 
   const stats = [
     { label: 'Active Alerts', value: '3', icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-100' },
@@ -24,9 +37,24 @@ const HomePage: React.FC = () => {
   ];
 
   const quickActions = [
-    { label: 'View Alerts', icon: AlertTriangle, color: 'from-red-500 to-orange-500', path: '/alerts' },
-    { label: 'Explore Map', icon: MapPin, color: 'from-blue-500 to-indigo-500', path: '/map' },
-    { label: 'Add Destination', icon: Plus, color: 'from-emerald-500 to-teal-500', path: '/explore' },
+    { 
+      label: 'View Alerts', 
+      icon: AlertTriangle, 
+      color: 'from-red-500 to-orange-500', 
+      action: () => navigate('/alerts')
+    },
+    { 
+      label: 'Explore Map', 
+      icon: MapPin, 
+      color: 'from-blue-500 to-indigo-500', 
+      action: () => navigate('/map')
+    },
+    { 
+      label: 'Add Destination', 
+      icon: Plus, 
+      color: 'from-emerald-500 to-teal-500', 
+      action: () => navigate('/explore')
+    },
   ];
 
   const recentActivity = [
@@ -37,7 +65,7 @@ const HomePage: React.FC = () => {
 
   return (
     <PageContainer 
-      title={`${greeting}, ${user?.user_metadata?.full_name || 'Traveler'}!`}
+      title={`${greeting}, ${getUserName()}!`}
       subtitle="Stay safe and informed on your journey"
     >
       <div className="space-y-8 stagger-children">
@@ -98,6 +126,7 @@ const HomePage: React.FC = () => {
             {quickActions.map((action, index) => (
               <button
                 key={index}
+                onClick={action.action}
                 className={`card p-4 bg-gradient-to-r ${action.color} text-white hover:shadow-xl transition-all duration-300 group`}
               >
                 <div className="flex items-center justify-between">
