@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { SafetyAlert } from '../../types';
 import { 
-  AlertTriangle, CloudRain, Stethoscope, Bus, Shield, ShieldAlert, ChevronDown, ChevronUp, Info
+  AlertTriangle, CloudRain, Stethoscope, Bus, Shield, ShieldAlert, 
+  ChevronDown, ChevronUp, Info, ExternalLink, Clock, MapPin
 } from 'lucide-react';
 
 interface AlertItemProps {
@@ -15,118 +16,164 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onMarkAsRead }) => {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'weather':
-        return <CloudRain size={18} className="text-blue-500" />;
+        return <CloudRain className="w-5 h-5 text-blue-500" />;
       case 'security':
-        return <Shield size={18} className="text-red-500" />;
+        return <Shield className="w-5 h-5 text-red-500" />;
       case 'health':
-        return <Stethoscope size={18} className="text-green-500" />;
+        return <Stethoscope className="w-5 h-5 text-green-500" />;
       case 'transportation':
-        return <Bus size={18} className="text-purple-500" />;
+        return <Bus className="w-5 h-5 text-purple-500" />;
       case 'scam':
-        return <AlertTriangle size={18} className="text-orange-500" />;
+        return <AlertTriangle className="w-5 h-5 text-orange-500" />;
       case 'safety':
-        return <ShieldAlert size={18} className="text-indigo-500" />;
+        return <ShieldAlert className="w-5 h-5 text-indigo-500" />;
       default:
-        return <AlertTriangle size={18} className="text-red-500" />;
+        return <AlertTriangle className="w-5 h-5 text-red-500" />;
     }
   };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'low':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-emerald-50 border-emerald-200 text-emerald-800';
       case 'medium':
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-amber-50 border-amber-200 text-amber-800';
+      case 'high':
+        return 'bg-red-50 border-red-200 text-red-800';
+      default:
+        return 'bg-slate-50 border-slate-200 text-slate-800';
+    }
+  };
+
+  const getSeverityBadge = (severity: string) => {
+    switch (severity) {
+      case 'low':
+        return 'bg-emerald-100 text-emerald-800';
+      case 'medium':
+        return 'bg-amber-100 text-amber-800';
       case 'high':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-slate-100 text-slate-800';
     }
   };
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleString('en-US', {
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true,
     });
   };
 
   return (
-    <div 
-      className={`bg-white rounded-lg shadow-sm border p-4 mb-3 border-l-4 ${
-        !alert.read ? 'border-l-blue-500' : 'border-l-gray-200'
-      }`}
-    >
-      <div className="flex items-start">
-        <div className="mt-1 mr-3">
-          {getTypeIcon(alert.type)}
-        </div>
-        <div className="flex-grow">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="font-semibold text-gray-900">{alert.title}</h3>
-            <span className={`text-xs px-2 py-1 rounded-full ${getSeverityColor(alert.severity)}`}>
-              {alert.severity}
-            </span>
-          </div>
-          <p className="text-sm text-gray-600 mb-2">{alert.description}</p>
-          
-          {/* Source information */}
-          {alert.source && (
-            <div className="flex items-center text-xs text-gray-500 mb-2">
-              <Info size={12} className="mr-1" />
-              <span>Source: {alert.source}</span>
+    <div className={`card p-0 overflow-hidden transition-all duration-300 ${
+      !alert.read ? 'ring-2 ring-blue-200 shadow-lg' : ''
+    }`}>
+      <div className={`p-6 ${getSeverityColor(alert.severity)}`}>
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-start space-x-4">
+            <div className="flex-shrink-0 mt-1">
+              {getTypeIcon(alert.type)}
             </div>
-          )}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center space-x-3 mb-2">
+                <h3 className="text-lg font-bold text-slate-900 truncate">
+                  {alert.title}
+                </h3>
+                <span className={`px-3 py-1 text-xs font-medium rounded-full ${getSeverityBadge(alert.severity)}`}>
+                  {alert.severity.toUpperCase()}
+                </span>
+                {!alert.read && (
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                )}
+              </div>
+              
+              <p className="text-slate-700 leading-relaxed mb-4">
+                {alert.description}
+              </p>
+              
+              {/* Meta Information */}
+              <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
+                <div className="flex items-center space-x-1">
+                  <MapPin className="w-4 h-4" />
+                  <span>{alert.location}</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Clock className="w-4 h-4" />
+                  <span>{formatTime(alert.timestamp)}</span>
+                </div>
+                {alert.source && (
+                  <div className="flex items-center space-x-1">
+                    <Info className="w-4 h-4" />
+                    <span>Source: {alert.source}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Prevention Tips */}
+        {alert.tips && alert.tips.length > 0 && (
+          <div className="border-t border-slate-200 pt-4">
+            <button
+              onClick={() => setShowTips(!showTips)}
+              className="flex items-center space-x-2 text-slate-700 hover:text-slate-900 font-medium transition-colors"
+            >
+              <Shield className="w-4 h-4" />
+              <span>Safety Tips</span>
+              {showTips ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+            </button>
+            
+            {showTips && (
+              <div className="mt-3 space-y-2 animate-slide-down">
+                {alert.tips.map((tip, index) => (
+                  <div key={index} className="flex items-start space-x-3 p-3 bg-white/80 rounded-xl">
+                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <span className="text-sm text-slate-700">{tip}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Actions */}
+        <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+          <div className="flex items-center space-x-3">
+            {!alert.read && (
+              <button 
+                onClick={() => onMarkAsRead(alert.id)}
+                className="btn-ghost text-sm"
+              >
+                Mark as read
+              </button>
+            )}
+            {alert.source && (
+              <button className="btn-ghost text-sm flex items-center space-x-1">
+                <ExternalLink className="w-3 h-3" />
+                <span>View source</span>
+              </button>
+            )}
+          </div>
           
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-500">{alert.location}</span>
-            <span className="text-gray-500">{formatTime(alert.timestamp)}</span>
+          <div className="text-xs text-slate-500 capitalize">
+            {alert.type} alert
           </div>
         </div>
       </div>
-      
-      {/* Prevention Tips */}
-      {alert.tips && alert.tips.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          <button
-            onClick={() => setShowTips(!showTips)}
-            className="flex items-center text-sm font-medium text-blue-600 hover:text-blue-700 mb-2"
-          >
-            <span>Prevention Tips</span>
-            {showTips ? (
-              <ChevronUp size={16} className="ml-1" />
-            ) : (
-              <ChevronDown size={16} className="ml-1" />
-            )}
-          </button>
-          
-          {showTips && (
-            <ul className="space-y-1 text-sm text-gray-600">
-              {alert.tips.map((tip, index) => (
-                <li key={index} className="flex items-start">
-                  <span className="text-blue-500 mr-2">•</span>
-                  <span>{tip}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-      
-      {!alert.read && (
-        <div className="mt-3 pt-3 border-t border-gray-100 text-right">
-          <button 
-            onClick={() => onMarkAsRead(alert.id)}
-            className="text-xs font-medium text-blue-600 hover:text-blue-700"
-          >
-            Mark as read
-          </button>
-        </div>
-      )}
     </div>
   );
 };

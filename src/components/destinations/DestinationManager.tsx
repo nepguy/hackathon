@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useUserDestinations, UserDestination } from '../../contexts/UserDestinationContext';
-import { MapPin, Calendar, Plus, Trash2, Settings, Bell, BellOff } from 'lucide-react';
+import { 
+  MapPin, Calendar, Plus, Trash2, Settings, Bell, BellOff, 
+  Edit2, Check, X, Globe, Plane, Clock
+} from 'lucide-react';
 
 const DestinationManager: React.FC = () => {
   const { 
@@ -13,6 +16,7 @@ const DestinationManager: React.FC = () => {
   } = useUserDestinations();
   
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [newDestination, setNewDestination] = useState({
     name: '',
     country: '',
@@ -62,126 +66,150 @@ const DestinationManager: React.FC = () => {
     });
   };
 
-  const isUpcoming = (startDate: string) => {
-    return new Date(startDate) > new Date();
-  };
-
-  const isCurrent = (startDate: string, endDate: string) => {
+  const getDestinationStatus = (startDate: string, endDate: string) => {
     const now = new Date();
-    return new Date(startDate) <= now && now <= new Date(endDate);
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (now < start) return { status: 'upcoming', color: 'bg-blue-100 text-blue-800' };
+    if (now >= start && now <= end) return { status: 'current', color: 'bg-emerald-100 text-emerald-800' };
+    return { status: 'past', color: 'bg-slate-100 text-slate-600' };
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-2">
-          <MapPin className="h-5 w-5 text-blue-600" />
-          <h2 className="text-lg font-semibold text-gray-900">My Travel Destinations</h2>
+    <div className="space-y-6 stagger-children">
+      
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 flex items-center">
+            <Globe className="w-6 h-6 mr-3 text-blue-600" />
+            My Destinations
+          </h2>
+          <p className="text-slate-600 mt-1">
+            Manage your travel destinations and alert preferences
+          </p>
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="btn-primary flex items-center space-x-2"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="w-4 h-4" />
           <span>Add Destination</span>
         </button>
       </div>
 
       {/* Current Active Destination */}
       {currentDestination && (
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-center space-x-2 mb-2">
-            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-sm font-medium text-blue-800">Currently Active</span>
+        <div className="card p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <Plane className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <div className="flex items-center space-x-2 mb-1">
+                  <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium text-blue-800">Currently Active</span>
+                </div>
+                <h3 className="text-xl font-bold text-blue-900">
+                  {currentDestination.name}, {currentDestination.country}
+                </h3>
+                <p className="text-blue-700">
+                  {formatDate(currentDestination.startDate)} - {formatDate(currentDestination.endDate)}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-blue-600 font-medium">Alerts Active</div>
+              <div className="text-xs text-blue-500">Real-time monitoring</div>
+            </div>
           </div>
-          <h3 className="text-lg font-semibold text-blue-900">
-            {currentDestination.name}, {currentDestination.country}
-          </h3>
-          <p className="text-sm text-blue-700">
-            {formatDate(currentDestination.startDate)} - {formatDate(currentDestination.endDate)}
-          </p>
         </div>
       )}
 
       {/* Add Destination Form */}
       {showAddForm && (
-        <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Destination</h3>
+        <div className="card p-6 animate-slide-down">
+          <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center">
+            <Plus className="w-5 h-5 mr-2 text-blue-600" />
+            Add New Destination
+          </h3>
+          
           <form onSubmit={handleAddDestination} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   City/Destination
                 </label>
                 <input
                   type="text"
                   value={newDestination.name}
                   onChange={(e) => setNewDestination({ ...newDestination, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input"
                   placeholder="e.g., Bangkok, Tokyo, Paris"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   Country
                 </label>
                 <input
                   type="text"
                   value={newDestination.country}
                   onChange={(e) => setNewDestination({ ...newDestination, country: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input"
                   placeholder="e.g., Thailand, Japan, France"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   Start Date
                 </label>
                 <input
                   type="date"
                   value={newDestination.startDate}
                   onChange={(e) => setNewDestination({ ...newDestination, startDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   End Date
                 </label>
                 <input
                   type="date"
                   value={newDestination.endDate}
                   onChange={(e) => setNewDestination({ ...newDestination, endDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input"
                   required
                 />
               </div>
             </div>
+            
             <div className="flex items-center space-x-4">
-              <label className="flex items-center space-x-2">
+              <label className="flex items-center space-x-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={newDestination.isActive}
                   onChange={(e) => setNewDestination({ ...newDestination, isActive: e.target.checked })}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
                 />
-                <span className="text-sm text-gray-700">Set as active destination</span>
+                <span className="text-sm text-slate-700">Set as active destination</span>
               </label>
             </div>
+            
             <div className="flex space-x-3">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
+              <button type="submit" className="btn-primary">
                 Add Destination
               </button>
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                className="btn-outline"
               >
                 Cancel
               </button>
@@ -191,90 +219,101 @@ const DestinationManager: React.FC = () => {
       )}
 
       {/* Destinations List */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {destinations.length === 0 ? (
-          <div className="text-center py-8">
-            <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">No destinations added yet.</p>
-            <p className="text-sm text-gray-400">Add your travel destinations to get personalized alerts.</p>
+          <div className="card p-12 text-center">
+            <MapPin className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-slate-900 mb-2">No destinations yet</h3>
+            <p className="text-slate-600 mb-6">
+              Add your travel destinations to get personalized safety alerts and insights.
+            </p>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="btn-primary"
+            >
+              Add Your First Destination
+            </button>
           </div>
         ) : (
-          destinations.map((destination) => (
-            <div
-              key={destination.id}
-              className={`p-4 border rounded-lg transition-all ${
-                destination.isActive
-                  ? 'border-blue-300 bg-blue-50'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3">
-                    <h3 className="font-medium text-gray-900">
-                      {destination.name}, {destination.country}
-                    </h3>
-                    <div className="flex items-center space-x-2">
-                      {isCurrent(destination.startDate, destination.endDate) && (
-                        <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-                          Current
-                        </span>
-                      )}
-                      {isUpcoming(destination.startDate) && (
-                        <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-                          Upcoming
-                        </span>
-                      )}
+          destinations.map((destination) => {
+            const status = getDestinationStatus(destination.startDate, destination.endDate);
+            
+            return (
+              <div
+                key={destination.id}
+                className={`card p-6 transition-all duration-300 ${
+                  destination.isActive ? 'ring-2 ring-blue-200 shadow-lg' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-3">
+                      <h3 className="text-lg font-bold text-slate-900">
+                        {destination.name}, {destination.country}
+                      </h3>
+                      <span className={`px-3 py-1 text-xs font-medium rounded-full ${status.color}`}>
+                        {status.status}
+                      </span>
                       {destination.isActive && (
-                        <span className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">
-                          Active Alerts
+                        <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                          Active
                         </span>
                       )}
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-                    <div className="flex items-center space-x-1">
-                      <Calendar className="h-4 w-4" />
-                      <span>{formatDate(destination.startDate)} - {formatDate(destination.endDate)}</span>
+                    
+                    <div className="flex items-center space-x-6 text-sm text-slate-600 mb-4">
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="w-4 h-4" />
+                        <span>{formatDate(destination.startDate)} - {formatDate(destination.endDate)}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Clock className="w-4 h-4" />
+                        <span>
+                          {Math.ceil((new Date(destination.endDate).getTime() - new Date(destination.startDate).getTime()) / (1000 * 60 * 60 * 24))} days
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => toggleAlerts(destination)}
-                    className={`p-2 rounded-lg transition-colors ${
-                      destination.alertsEnabled
-                        ? 'text-green-600 hover:bg-green-50'
-                        : 'text-gray-400 hover:bg-gray-50'
-                    }`}
-                    title={destination.alertsEnabled ? 'Alerts enabled' : 'Alerts disabled'}
-                  >
-                    {destination.alertsEnabled ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
-                  </button>
-                  {!destination.isActive && (
+                  
+                  <div className="flex items-center space-x-2">
                     <button
-                      onClick={() => setAsActive(destination)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Set as active destination"
+                      onClick={() => toggleAlerts(destination)}
+                      className={`p-2 rounded-xl transition-all duration-300 ${
+                        destination.alertsEnabled
+                          ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'
+                          : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                      }`}
+                      title={destination.alertsEnabled ? 'Alerts enabled' : 'Alerts disabled'}
                     >
-                      <Settings className="h-4 w-4" />
+                      {destination.alertsEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
                     </button>
-                  )}
-                  <button
-                    onClick={() => removeDestination(destination.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Remove destination"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                    
+                    {!destination.isActive && (
+                      <button
+                        onClick={() => setAsActive(destination)}
+                        className="p-2 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-xl transition-all duration-300"
+                        title="Set as active destination"
+                      >
+                        <Settings className="w-4 h-4" />
+                      </button>
+                    )}
+                    
+                    <button
+                      onClick={() => removeDestination(destination.id)}
+                      className="p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-xl transition-all duration-300"
+                      title="Remove destination"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
   );
 };
 
-export default DestinationManager; 
+export default DestinationManager;
