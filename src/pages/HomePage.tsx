@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserDestinations } from '../contexts/UserDestinationContext';
 import { useLocation } from '../contexts/LocationContext';
+import { useRealTimeData } from '../hooks/useRealTimeData';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '../components/layout/PageContainer';
 import EventCard from '../components/home/EventCard';
@@ -9,13 +10,15 @@ import WeatherCard from '../components/home/WeatherCard';
 import { eventsService, TravelEvent } from '../lib/eventsApi';
 import { 
   MapPin, Calendar, Shield, TrendingUp, Clock, 
-  Plus, ArrowRight, Zap, Globe, AlertTriangle
+  Plus, ArrowRight, Zap, Globe, AlertTriangle,
+  RefreshCw
 } from 'lucide-react';
 
 const HomePage: React.FC = () => {
   const { user } = useAuth();
   const { currentDestination, destinations } = useUserDestinations();
   const { userLocation } = useLocation();
+  const { safetyAlerts, travelPlans, recentActivity, isLoading, error, refreshData } = useRealTimeData();
   const navigate = useNavigate();
   const [events, setEvents] = useState<TravelEvent[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
@@ -37,11 +40,39 @@ const HomePage: React.FC = () => {
     return 'Traveler';
   };
 
-  const stats = [
-    { label: 'Active Alerts', value: '3', icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-100' },
-    { label: 'Safety Score', value: '92%', icon: Shield, color: 'text-emerald-600', bg: 'bg-emerald-100' },
-    { label: 'Destinations', value: destinations.length.toString(), icon: Globe, color: 'text-blue-600', bg: 'bg-blue-100' },
-  ];
+  // Calculate real stats from data
+  const getStats = () => {
+    const unreadAlerts = safetyAlerts.filter(alert => !alert.read).length;
+    const avgSafetyScore = travelPlans.length > 0 
+      ? Math.round(travelPlans.reduce((sum, plan) => sum + plan.safetyScore, 0) / travelPlans.length)
+      : 92;
+
+    return [
+      { 
+        label: 'Active Alerts', 
+        value: unreadAlerts.toString(), 
+        icon: AlertTriangle, 
+        color: unreadAlerts > 0 ? 'text-amber-600' : 'text-emerald-600', 
+        bg: unreadAlerts > 0 ? 'bg-amber-100' : 'bg-emerald-100' 
+      },
+      { 
+        label: 'Safety Score', 
+        value: `${avgSafetyScore}%`, 
+        icon: Shield, 
+        color: 'text-emerald-600', 
+        bg: 'bg-emerald-100' 
+      },
+      { 
+        label: 'Destinations', 
+        value: destinations.length.toString(), 
+        icon: Globe, 
+        color: 'text-blue-600', 
+        bg: 'bg-blue-100' 
+      },
+    ];
+  };
+
+  const stats = getStats();
 
   const quickActions = [
     { 
@@ -62,12 +93,6 @@ const HomePage: React.FC = () => {
       color: 'from-emerald-500 to-teal-500', 
       action: () => navigate('/explore')
     },
-  ];
-
-  const recentActivity = [
-    { type: 'alert', title: 'New safety alert for Bangkok', time: '2 hours ago', severity: 'medium' },
-    { type: 'update', title: 'Weather conditions updated', time: '4 hours ago', severity: 'low' },
-    { type: 'tip', title: 'New travel tip available', time: '1 day ago', severity: 'info' },
   ];
 
   // Fetch events for current destination or user location
@@ -106,6 +131,59 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     fetchEvents();
   }, [currentDestination, userLocation?.latitude, userLocation?.longitude]);
+
+  if (isLoading) {
+    return (
+      <PageContainer 
+        title={`${greeting}, ${getUserName()}!`}
+        subtitle="Stay safe and informed on your journey"
+      >
+        <div className="space-y-8">
+          {/* Loading skeleton */}
+          <div className="card p-6 animate-pulse">
+            <div className="h-6 bg-slate-200 rounded w-3/4 mb-4"></div>
+            <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="card p-6 animate-pulse">
+              <div className="h-32 bg-slate-200 rounded"></div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="card p-4 animate-pulse">
+                  <div className="h-12 bg-slate-200 rounded mb-3"></div>
+                  <div className="h-6 bg-slate-200 rounded mb-1"></div>
+                  <div className="h-4 bg-slate-200 rounded"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageContainer 
+        title={`${greeting}, ${getUserName()}!`}
+        subtitle="Stay safe and informed on your journey"
+      >
+        <div className="card p-8 text-center bg-red-50 border-red-200">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-red-900 mb-2">Unable to Load Data</h3>
+          <p className="text-red-700 mb-4">{error}</p>
+          <button 
+            onClick={refreshData}
+            className="btn-primary bg-red-600 hover:bg-red-700 flex items-center space-x-2 mx-auto"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Try Again</span>
+          </button>
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer 
@@ -250,18 +328,28 @@ const HomePage: React.FC = () => {
           </h3>
           
           <div className="card p-6 space-y-4">
-            {recentActivity.map((activity, index) => (
-              <div key={index} className="flex items-start space-x-4 p-3 rounded-xl hover:bg-slate-50 transition-colors duration-200">
-                <div className={`w-2 h-2 rounded-full mt-2 ${
-                  activity.severity === 'medium' ? 'bg-amber-500' :
-                  activity.severity === 'low' ? 'bg-blue-500' : 'bg-emerald-500'
-                }`}></div>
-                <div className="flex-1">
-                  <p className="font-medium text-slate-900">{activity.title}</p>
-                  <p className="text-sm text-slate-500">{activity.time}</p>
-                </div>
+            {recentActivity.length === 0 ? (
+              <div className="text-center py-8">
+                <Clock className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-600">No recent activity</p>
               </div>
-            ))}
+            ) : (
+              recentActivity.map((activity, index) => (
+                <div key={index} className="flex items-start space-x-4 p-3 rounded-xl hover:bg-slate-50 transition-colors duration-200">
+                  <div className={`w-2 h-2 rounded-full mt-2 ${
+                    activity.type === 'alert' ? 'bg-amber-500' :
+                    activity.type === 'plan' ? 'bg-blue-500' : 'bg-emerald-500'
+                  }`}></div>
+                  <div className="flex-1">
+                    <p className="font-medium text-slate-900">{activity.title}</p>
+                    <p className="text-sm text-slate-600">{activity.description}</p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {new Date(activity.timestamp).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 

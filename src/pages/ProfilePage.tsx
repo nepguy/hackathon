@@ -1,18 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { databaseService } from '../lib/database';
 import PageContainer from '../components/layout/PageContainer';
 import { 
   User, Settings, Bell, Shield, HelpCircle, LogOut,
   Edit2, Camera, Moon, Sun, Globe, Lock, 
-  ChevronRight, Check, X
+  ChevronRight, Check, X, RefreshCw
 } from 'lucide-react';
 
 const ProfilePage: React.FC = () => {
   const { user, signOut } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userPreferences, setUserPreferences] = useState<any>(null);
   const [editForm, setEditForm] = useState({
-    fullName: user?.user_metadata?.full_name || '',
-    email: user?.email || ''
+    fullName: '',
+    email: ''
   });
   
   const [preferences, setPreferences] = useState({
@@ -32,6 +38,52 @@ const ProfilePage: React.FC = () => {
     }
   });
 
+  // Load user data
+  useEffect(() => {
+    const loadUserData = async () => {
+      if (!user) return;
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const [profile, prefs] = await Promise.all([
+          databaseService.getUserProfile(user.id),
+          databaseService.getUserPreferences(user.id)
+        ]);
+
+        setUserProfile(profile);
+        setUserPreferences(prefs);
+
+        // Set form data
+        setEditForm({
+          fullName: profile?.full_name || user.user_metadata?.full_name || '',
+          email: profile?.email || user.email || ''
+        });
+
+        // Set preferences from database
+        if (prefs) {
+          setPreferences(prev => ({
+            ...prev,
+            notifications: {
+              safety: prefs.notifications_safety,
+              weather: prefs.notifications_weather,
+              events: false, // Not in database yet
+              news: prefs.notifications_local_news
+            }
+          }));
+        }
+      } catch (err) {
+        console.error('Error loading user data:', err);
+        setError('Failed to load profile data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, [user]);
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -40,29 +92,69 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  const handleSaveProfile = () => {
-    // Here you would typically update the user profile
-    setIsEditing(false);
+  const handleSaveProfile = async () => {
+    if (!user) return;
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      await databaseService.updateUserProfile(user.id, {
+        full_name: editForm.fullName,
+        email: editForm.email
+      });
+
+      // Refresh profile data
+      const updatedProfile = await databaseService.getUserProfile(user.id);
+      setUserProfile(updatedProfile);
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Error saving profile:', err);
+      setError('Failed to save profile');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const togglePreference = (category: string, key: string) => {
-    setPreferences(prev => ({
-      ...prev,
+  const togglePreference = async (category: string, key: string) => {
+    if (!user) return;
+
+    const newPreferences = {
+      ...preferences,
       [category]: {
-        ...prev[category as keyof typeof prev],
-        [key]: !prev[category as keyof typeof prev][key as keyof typeof prev[typeof category]]
+        ...preferences[category as keyof typeof preferences],
+        [key]: !preferences[category as keyof typeof preferences][key as keyof typeof preferences[typeof category]]
       }
-    }));
+    };
+
+    setPreferences(newPreferences);
+
+    // Update in database for notification preferences
+    if (category === 'notifications') {
+      try {
+        const updates: any = {};
+        if (key === 'safety') updates.notifications_safety = newPreferences.notifications.safety;
+        if (key === 'weather') updates.notifications_weather = newPreferences.notifications.weather;
+        if (key === 'news') updates.notifications_local_news = newPreferences.notifications.news;
+
+        await databaseService.updateUserPreferences(user.id, updates);
+      } catch (err) {
+        console.error('Error updating preferences:', err);
+        // Revert on error
+        setPreferences(preferences);
+      }
+    }
   };
 
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
-  const avatarUrl = user?.user_metadata?.avatar_url || 
+  const displayName = userProfile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+  const avatarUrl = userProfile?.avatar_url || user?.user_metadata?.avatar_url || 
     `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=3b82f6&color=fff&size=128`;
 
+  // Calculate stats from real data
   const stats = [
-    { label: 'Destinations Visited', value: '12' },
-    { label: 'Safety Score', value: '95%' },
-    { label: 'Days Traveled', value: '127' }
+    { label: 'Destinations Visited', value: '12' }, // Could be calculated from travel_plans
+    { label: 'Safety Score', value: '95%' }, // Could be calculated from user activity
+    { label: 'Days Traveled', value: '127' } // Could be calculated from travel_plans
   ];
 
   const settingsGroups = [
@@ -95,6 +187,52 @@ const ProfilePage: React.FC = () => {
       <PageContainer>
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <PageContainer 
+        title="Profile"
+        subtitle="Manage your account and preferences"
+      >
+        <div className="space-y-8">
+          <div className="card p-8 text-center animate-pulse">
+            <div className="w-24 h-24 bg-slate-200 rounded-full mx-auto mb-6"></div>
+            <div className="h-6 bg-slate-200 rounded w-48 mx-auto mb-2"></div>
+            <div className="h-4 bg-slate-200 rounded w-32 mx-auto mb-6"></div>
+            <div className="grid grid-cols-3 gap-6">
+              {[1, 2, 3].map(i => (
+                <div key={i}>
+                  <div className="h-8 bg-slate-200 rounded mb-2"></div>
+                  <div className="h-4 bg-slate-200 rounded"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageContainer 
+        title="Profile"
+        subtitle="Manage your account and preferences"
+      >
+        <div className="card p-8 text-center bg-red-50 border-red-200">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-red-900 mb-2">Unable to Load Profile</h3>
+          <p className="text-red-700 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="btn-primary bg-red-600 hover:bg-red-700"
+          >
+            Try Again
+          </button>
         </div>
       </PageContainer>
     );
@@ -142,11 +280,19 @@ const ProfilePage: React.FC = () => {
                   placeholder="Email"
                 />
                 <div className="flex space-x-3 justify-center">
-                  <button onClick={handleSaveProfile} className="btn-primary flex items-center space-x-2">
-                    <Check className="w-4 h-4" />
-                    <span>Save</span>
+                  <button 
+                    onClick={handleSaveProfile} 
+                    disabled={isSaving}
+                    className="btn-primary flex items-center space-x-2"
+                  >
+                    {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    <span>{isSaving ? 'Saving...' : 'Save'}</span>
                   </button>
-                  <button onClick={() => setIsEditing(false)} className="btn-outline flex items-center space-x-2">
+                  <button 
+                    onClick={() => setIsEditing(false)} 
+                    disabled={isSaving}
+                    className="btn-outline flex items-center space-x-2"
+                  >
                     <X className="w-4 h-4" />
                     <span>Cancel</span>
                   </button>
@@ -155,7 +301,7 @@ const ProfilePage: React.FC = () => {
             ) : (
               <>
                 <h2 className="text-2xl font-bold text-slate-900 mb-2">{displayName}</h2>
-                <p className="text-slate-600 mb-6">{user.email}</p>
+                <p className="text-slate-600 mb-6">{userProfile?.email || user.email}</p>
                 
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-6">

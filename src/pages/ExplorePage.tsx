@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import PageContainer from '../components/layout/PageContainer';
-import { popularDestinations } from '../data/mockData';
+import { useDestinationData } from '../hooks/useRealTimeData';
 import { 
   Search, Filter, MapPin, Shield, Star, TrendingUp,
   X, ChevronRight, Globe, Users, Award
@@ -10,6 +10,7 @@ const ExplorePage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
+  const { destinations } = useDestinationData();
   
   const categories = ['All', 'Popular', 'Beach', 'Mountain', 'City', 'Cultural', 'Adventure'];
   
@@ -22,7 +23,7 @@ const ExplorePage: React.FC = () => {
   };
   
   // Filter destinations based on search and category
-  const filteredDestinations = popularDestinations.filter((destination) => {
+  const filteredDestinations = destinations.filter((destination) => {
     const matchesSearch = searchQuery === '' || 
       destination.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       destination.country.toLowerCase().includes(searchQuery.toLowerCase());
@@ -125,7 +126,7 @@ const ExplorePage: React.FC = () => {
           </div>
           <div className="flex items-center space-x-2 text-sm text-slate-600">
             <TrendingUp className="w-4 h-4" />
-            <span>Sorted by popularity</span>
+            <span>Sorted by safety score</span>
           </div>
         </div>
 
@@ -149,7 +150,9 @@ const ExplorePage: React.FC = () => {
           </div>
         ) : (
           <div className="grid gap-6">
-            {filteredDestinations.map((destination) => (
+            {filteredDestinations
+              .sort((a, b) => b.safetyScore - a.safetyScore) // Sort by safety score
+              .map((destination) => (
               <div key={destination.id} className="card p-0 overflow-hidden group">
                 <div className="md:flex">
                   {/* Image */}
@@ -207,7 +210,7 @@ const ExplorePage: React.FC = () => {
                     {/* Action Button */}
                     <div className="flex items-center justify-between">
                       <div className="text-sm text-slate-500">
-                        Popular destination
+                        Safety Score: {destination.safetyScore}%
                       </div>
                       <button className="btn-primary flex items-center space-x-2 group">
                         <span>Explore</span>

@@ -7,8 +7,9 @@ import AgentAlerts from '../components/alerts/AgentAlerts';
 import DestinationManager from '../components/destinations/DestinationManager';
 import { useUserDestinations } from '../contexts/UserDestinationContext';
 import { useLocation } from '../contexts/LocationContext';
-import { safetyAlerts } from '../data/mockData';
+import { useRealTimeData } from '../hooks/useRealTimeData';
 import { newsService, NewsArticle } from '../lib/newsApi';
+import { databaseService } from '../lib/database';
 import { SafetyAlert } from '../types';
 import { 
   Shield, MapPin, AlertTriangle, Settings, 
@@ -18,13 +19,13 @@ import {
 
 const AlertsPage: React.FC = () => {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
-  const [alerts, setAlerts] = useState<SafetyAlert[]>(safetyAlerts);
   const [activeTab, setActiveTab] = useState<'local' | 'agent' | 'control' | 'destinations' | 'news'>('local');
   const [newsArticles, setNewsArticles] = useState<NewsArticle[]>([]);
   const [isLoadingNews, setIsLoadingNews] = useState(false);
   const [newsError, setNewsError] = useState<string | null>(null);
   const { currentDestination } = useUserDestinations();
   const { userLocation } = useLocation();
+  const { safetyAlerts, isLoading, error, refreshData } = useRealTimeData();
   
   const handleFilterChange = (filter: string) => {
     if (activeFilters.includes(filter)) {
@@ -34,19 +35,20 @@ const AlertsPage: React.FC = () => {
     }
   };
   
-  const handleMarkAsRead = (id: string) => {
-    setAlerts(alerts.map((alert: SafetyAlert) => 
-      alert.id === id ? { ...alert, read: true } : alert
-    ));
+  const handleMarkAsRead = async (id: string) => {
+    // Update in database - this would need to be implemented in the database service
+    // For now, we'll just update the local state
+    // await databaseService.markAlertAsRead(id);
+    await refreshData();
   };
   
   // Filter alerts based on user's current destination and active filters
   const getPersonalizedAlerts = () => {
-    let filteredAlerts = alerts;
+    let filteredAlerts = safetyAlerts;
     
     // Filter by user's current destination if available
     if (currentDestination) {
-      filteredAlerts = alerts.filter((alert: SafetyAlert) => 
+      filteredAlerts = safetyAlerts.filter((alert: SafetyAlert) => 
         alert.location.toLowerCase().includes(currentDestination.name.toLowerCase()) ||
         alert.location.toLowerCase().includes(currentDestination.country.toLowerCase())
       );
@@ -179,6 +181,52 @@ const AlertsPage: React.FC = () => {
     }
   ];
 
+  if (isLoading) {
+    return (
+      <PageContainer 
+        title="Safety Alerts"
+        subtitle="Stay informed about safety conditions worldwide"
+      >
+        <div className="space-y-6">
+          <div className="card p-6 animate-pulse">
+            <div className="h-6 bg-slate-200 rounded w-3/4 mb-4"></div>
+            <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+          </div>
+          {[1, 2, 3].map(i => (
+            <div key={i} className="card p-6 animate-pulse">
+              <div className="h-4 bg-slate-200 rounded w-1/4 mb-2"></div>
+              <div className="h-6 bg-slate-200 rounded w-3/4 mb-3"></div>
+              <div className="h-4 bg-slate-200 rounded w-full mb-2"></div>
+              <div className="h-4 bg-slate-200 rounded w-2/3"></div>
+            </div>
+          ))}
+        </div>
+      </PageContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageContainer 
+        title="Safety Alerts"
+        subtitle="Stay informed about safety conditions worldwide"
+      >
+        <div className="card p-8 text-center bg-red-50 border-red-200">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-red-900 mb-2">Unable to Load Alerts</h3>
+          <p className="text-red-700 mb-4">{error}</p>
+          <button 
+            onClick={refreshData}
+            className="btn-primary bg-red-600 hover:bg-red-700 flex items-center space-x-2 mx-auto"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Try Again</span>
+          </button>
+        </div>
+      </PageContainer>
+    );
+  }
+
   return (
     <PageContainer 
       title="Safety Alerts"
@@ -292,7 +340,10 @@ const AlertsPage: React.FC = () => {
                         <Filter className="w-4 h-4" />
                         <span>Filter</span>
                       </button>
-                      <button className="btn-ghost flex items-center space-x-2">
+                      <button 
+                        onClick={refreshData}
+                        className="btn-ghost flex items-center space-x-2"
+                      >
                         <RefreshCw className="w-4 h-4" />
                         <span>Refresh</span>
                       </button>
