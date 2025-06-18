@@ -25,7 +25,12 @@ function App() {
     <AuthProvider>
       <UserDestinationProvider>
         <LocationProvider autoStart={true} enableHighAccuracy={true}>
-          <Router>
+          <Router
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true,
+            }}
+          >
           <div className="min-h-screen bg-gray-50">
             <Routes>
               {/* Public Routes */}

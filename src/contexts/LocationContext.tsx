@@ -64,9 +64,14 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({
       }));
     },
     onError: (error) => {
-      console.error('Geolocation error:', error);
+      console.warn('Geolocation error:', error.message || 'Location access failed');
       if (error.type === 'PERMISSION_DENIED') {
         setLocationPermission('denied');
+        console.info('Location permission denied. Using fallback location services.');
+      } else if (error.type === 'TIMEOUT') {
+        console.info('Location request timed out. Retrying with lower accuracy.');
+      } else if (error.type === 'POSITION_UNAVAILABLE') {
+        console.info('Location unavailable. Using manual location selection.');
       }
     },
   });

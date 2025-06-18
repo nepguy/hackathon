@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserDestinations } from '../contexts/UserDestinationContext';
-import { useLocation } from '../contexts/LocationContext';
+import { useLocation as useLocationContext } from '../contexts/LocationContext';
 import { useRealTimeData } from '../hooks/useRealTimeData';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '../components/layout/PageContainer';
@@ -17,7 +17,7 @@ import {
 const HomePage: React.FC = () => {
   const { user } = useAuth();
   const { currentDestination, destinations } = useUserDestinations();
-  const { userLocation } = useLocation();
+  const { userLocation } = useLocationContext();
   const { safetyAlerts, travelPlans, recentActivity, isLoading, error, refreshData } = useRealTimeData();
   const navigate = useNavigate();
   const [events, setEvents] = useState<TravelEvent[]>([]);
