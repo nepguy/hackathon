@@ -4,6 +4,7 @@
 Successfully integrated real data APIs into the Travel Safety App:
 - **GNews.io API**: Real-time news and safety alerts
 - **Eventbrite API**: Live events and activities
+- **Weather API**: Current weather, forecasts, and weather alerts
 - **OpenRouter API**: AI-powered travel insights (prepared for future use)
 
 ## 🔧 API Keys Configuration
@@ -22,6 +23,9 @@ VITE_EVENTBRITE_API_KEY=DJFXRNX5OKNKC3CD5G
 VITE_EVENTBRITE_CLIENT_SECRET=VZPWVX5Y4TUZ6MNL2W5YE5QQSW7CE45MK24X5RRGKITEASMWHO
 VITE_EVENTBRITE_PRIVATE_TOKEN=MZCEHLD5PGN2HAKXCLCO
 VITE_EVENTBRITE_PUBLIC_TOKEN=RNHQHVCAT7LDJ4OGPB24
+
+# Weather API Configuration
+VITE_WEATHER_API_KEY=0f0174b1af5541cfba8113204251806
 ```
 
 ## 📰 GNews.io Integration
@@ -75,6 +79,31 @@ eventsService.getEventsByDateRange(start, end, location?)
 - **Enhanced EventCard**: Supports both mock and real data
 - **Smart location targeting**: Uses destination or GPS coordinates
 - **External links**: Direct booking links to Eventbrite
+
+## 🌤️ Weather API Integration
+
+### Features Implemented:
+- **Current weather** - Real-time temperature, humidity, wind, UV index
+- **3-day forecasts** - Daily temperature and precipitation predictions
+- **Weather alerts** - Heat warnings, UV alerts, precipitation notices
+- **Location-aware** - Uses destination or GPS coordinates
+- **Smart alerts** - Automatic alert generation based on conditions
+
+### API Service: `src/lib/weatherApi.ts`
+```typescript
+// Available methods:
+weatherService.getCurrentWeather(location)
+weatherService.getWeatherForecast(location, days)
+weatherService.getWeatherByCoordinates(lat, lng, days)
+weatherService.getWeatherAlerts(location)
+weatherService.searchLocations(query)
+```
+
+### UI Integration:
+- **HomePage**: Interactive WeatherCard with real-time data
+- **Weather alerts**: Automatic warnings for extreme conditions
+- **Responsive design**: Mobile-optimized weather display
+- **Visual indicators**: Color-coded temperatures and weather icons
 
 ## 🔄 Component Updates
 
