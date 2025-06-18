@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserDestinations } from '../contexts/UserDestinationContext';
 import { useLocation } from '../contexts/LocationContext';
+import { useNavigate } from 'react-router-dom';
 import PageContainer from '../components/layout/PageContainer';
 import EventCard from '../components/home/EventCard';
+import WeatherCard from '../components/home/WeatherCard';
 import { eventsService, TravelEvent } from '../lib/eventsApi';
 import { 
   MapPin, Calendar, Shield, TrendingUp, Clock, 
@@ -14,6 +16,7 @@ const HomePage: React.FC = () => {
   const { user } = useAuth();
   const { currentDestination, destinations } = useUserDestinations();
   const { userLocation } = useLocation();
+  const navigate = useNavigate();
   const [events, setEvents] = useState<TravelEvent[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [greeting] = useState(() => {
@@ -23,6 +26,17 @@ const HomePage: React.FC = () => {
     return 'Good evening';
   });
 
+  // Get user's display name
+  const getUserName = () => {
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name;
+    }
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return 'Traveler';
+  };
+
   const stats = [
     { label: 'Active Alerts', value: '3', icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-100' },
     { label: 'Safety Score', value: '92%', icon: Shield, color: 'text-emerald-600', bg: 'bg-emerald-100' },
@@ -30,9 +44,24 @@ const HomePage: React.FC = () => {
   ];
 
   const quickActions = [
-    { label: 'View Alerts', icon: AlertTriangle, color: 'from-red-500 to-orange-500', path: '/alerts' },
-    { label: 'Explore Map', icon: MapPin, color: 'from-blue-500 to-indigo-500', path: '/map' },
-    { label: 'Add Destination', icon: Plus, color: 'from-emerald-500 to-teal-500', path: '/explore' },
+    { 
+      label: 'View Alerts', 
+      icon: AlertTriangle, 
+      color: 'from-red-500 to-orange-500', 
+      action: () => navigate('/alerts')
+    },
+    { 
+      label: 'Explore Map', 
+      icon: MapPin, 
+      color: 'from-blue-500 to-indigo-500', 
+      action: () => navigate('/map')
+    },
+    { 
+      label: 'Add Destination', 
+      icon: Plus, 
+      color: 'from-emerald-500 to-teal-500', 
+      action: () => navigate('/explore')
+    },
   ];
 
   const recentActivity = [
@@ -80,7 +109,7 @@ const HomePage: React.FC = () => {
 
   return (
     <PageContainer 
-      title={`${greeting}, ${user?.user_metadata?.full_name || 'Traveler'}!`}
+      title={`${greeting}, ${getUserName()}!`}
       subtitle="Stay safe and informed on your journey"
     >
       <div className="space-y-8 stagger-children">
@@ -117,17 +146,26 @@ const HomePage: React.FC = () => {
           </div>
         )}
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-4">
-          {stats.map((stat, index) => (
-            <div key={index} className="card p-4 text-center">
-              <div className={`w-12 h-12 ${stat.bg} rounded-xl flex items-center justify-center mx-auto mb-3`}>
-                <stat.icon className={`w-6 h-6 ${stat.color}`} />
+        {/* Weather & Stats Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Weather Card */}
+          <WeatherCard 
+            location={currentDestination ? `${currentDestination.name}, ${currentDestination.country}` : undefined}
+            coordinates={userLocation ? { lat: userLocation.latitude, lng: userLocation.longitude } : undefined}
+          />
+          
+          {/* Stats Grid */}
+          <div className="grid grid-cols-3 gap-4">
+            {stats.map((stat, index) => (
+              <div key={index} className="card p-4 text-center">
+                <div className={`w-12 h-12 ${stat.bg} rounded-xl flex items-center justify-center mx-auto mb-3`}>
+                  <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                </div>
+                <div className="text-2xl font-bold text-slate-900 mb-1">{stat.value}</div>
+                <div className="text-sm text-slate-600">{stat.label}</div>
               </div>
-              <div className="text-2xl font-bold text-slate-900 mb-1">{stat.value}</div>
-              <div className="text-sm text-slate-600">{stat.label}</div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Quick Actions */}
@@ -141,6 +179,7 @@ const HomePage: React.FC = () => {
             {quickActions.map((action, index) => (
               <button
                 key={index}
+                onClick={action.action}
                 className={`card p-4 bg-gradient-to-r ${action.color} text-white hover:shadow-xl transition-all duration-300 group`}
               >
                 <div className="flex items-center justify-between">

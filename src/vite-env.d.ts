@@ -11,6 +11,7 @@ interface ImportMetaEnv {
   readonly VITE_EVENTBRITE_CLIENT_SECRET: string
   readonly VITE_EVENTBRITE_PRIVATE_TOKEN: string
   readonly VITE_EVENTBRITE_PUBLIC_TOKEN: string
+  readonly VITE_WEATHER_API_KEY: string
   readonly VITE_APP_NAME: string
   readonly VITE_APP_VERSION: string
 }
