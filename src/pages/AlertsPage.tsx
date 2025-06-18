@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PageContainer from '../components/layout/PageContainer';
 import AlertItem from '../components/alerts/AlertItem';
 import AlertFilters from '../components/alerts/AlertFilters';
@@ -6,18 +6,25 @@ import AgentControl from '../components/alerts/AgentControl';
 import AgentAlerts from '../components/alerts/AgentAlerts';
 import DestinationManager from '../components/destinations/DestinationManager';
 import { useUserDestinations } from '../contexts/UserDestinationContext';
+import { useLocation } from '../contexts/LocationContext';
 import { safetyAlerts } from '../data/mockData';
+import { newsService, NewsArticle } from '../lib/newsApi';
 import { SafetyAlert } from '../types';
 import { 
   Shield, MapPin, AlertTriangle, Settings, 
-  Globe, Bell, BellOff, Filter, RefreshCw
+  Globe, Bell, BellOff, Filter, RefreshCw, 
+  ExternalLink, Clock, Newspaper
 } from 'lucide-react';
 
 const AlertsPage: React.FC = () => {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [alerts, setAlerts] = useState<SafetyAlert[]>(safetyAlerts);
-  const [activeTab, setActiveTab] = useState<'local' | 'agent' | 'control' | 'destinations'>('local');
+  const [activeTab, setActiveTab] = useState<'local' | 'agent' | 'control' | 'destinations' | 'news'>('local');
+  const [newsArticles, setNewsArticles] = useState<NewsArticle[]>([]);
+  const [isLoadingNews, setIsLoadingNews] = useState(false);
+  const [newsError, setNewsError] = useState<string | null>(null);
   const { currentDestination } = useUserDestinations();
+  const { userLocation } = useLocation();
   
   const handleFilterChange = (filter: string) => {
     if (activeFilters.includes(filter)) {
@@ -65,6 +72,78 @@ const AlertsPage: React.FC = () => {
 
   const unreadCount = sortedAlerts.filter(alert => !alert.read).length;
 
+  // Fetch real news data
+  const fetchNewsData = async () => {
+    setIsLoadingNews(true);
+    setNewsError(null);
+    
+    try {
+      const location = currentDestination?.name || currentDestination?.country;
+      
+      // Fetch different types of news in parallel
+      const [safetyNews, travelNews, weatherNews] = await Promise.all([
+        newsService.getSafetyAlerts(location),
+        newsService.getTravelNews(location),
+        newsService.getWeatherNews(location)
+      ]);
+
+      // Combine and deduplicate articles
+      const allArticles = [
+        ...safetyNews.articles,
+        ...travelNews.articles,
+        ...weatherNews.articles
+      ];
+
+      // Remove duplicates based on title
+      const uniqueArticles = allArticles.filter((article, index, self) =>
+        index === self.findIndex(a => a.title === article.title)
+      );
+
+      // Sort by severity and publish date
+      const sortedNews = uniqueArticles.sort((a, b) => {
+        const severityOrder = { high: 3, medium: 2, low: 1 };
+        if (severityOrder[a.severity] !== severityOrder[b.severity]) {
+          return severityOrder[b.severity] - severityOrder[a.severity];
+        }
+        return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+      });
+
+      setNewsArticles(sortedNews.slice(0, 20)); // Limit to 20 articles
+    } catch (error) {
+      console.error('Error fetching news:', error);
+      setNewsError('Failed to load news. Please try again later.');
+    } finally {
+      setIsLoadingNews(false);
+    }
+  };
+
+  // Load news when component mounts or destination changes
+  useEffect(() => {
+    if (activeTab === 'news') {
+      fetchNewsData();
+    }
+  }, [activeTab, currentDestination]);
+
+  // Get location-based status for UI
+  const getLocationStatus = () => {
+    if (userLocation?.latitude && userLocation?.longitude) {
+      return {
+        hasLocation: true,
+        source: 'GPS',
+        accuracy: userLocation.accuracy
+      };
+    } else if (currentDestination) {
+      return {
+        hasLocation: true,
+        source: 'Destination',
+        location: `${currentDestination.name}, ${currentDestination.country}`
+      };
+    }
+    return { hasLocation: false };
+  };
+
+  const locationStatus = getLocationStatus();
+
   const tabs = [
     { 
       id: 'local', 
@@ -72,6 +151,13 @@ const AlertsPage: React.FC = () => {
       icon: Bell, 
       count: unreadCount,
       description: 'Personalized alerts for your destinations'
+    },
+    { 
+      id: 'news', 
+      label: 'Live News', 
+      icon: Newspaper, 
+      count: newsArticles.length,
+      description: 'Real-time travel and safety news'
     },
     { 
       id: 'destinations', 
@@ -115,11 +201,31 @@ const AlertsPage: React.FC = () => {
                   <p className="text-blue-700">
                     {unreadCount} active alerts • Monitoring enabled
                   </p>
+                  {locationStatus.hasLocation && (
+                    <p className="text-xs text-blue-600">
+                      📍 {locationStatus.source === 'GPS' 
+                        ? `GPS Location (±${Math.round(locationStatus.accuracy || 0)}m)` 
+                        : `Location: ${locationStatus.location}`
+                      }
+                    </p>
+                  )}
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
-                <span className="text-sm font-medium text-blue-800">Live</span>
+              <div className="flex items-center space-x-3">
+                <button
+                  className="p-2 rounded-lg bg-blue-100 hover:bg-blue-200 transition-colors"
+                  title="Toggle notifications"
+                >
+                  {unreadCount > 0 ? (
+                    <Bell className="w-5 h-5 text-blue-600" />
+                  ) : (
+                    <BellOff className="w-5 h-5 text-blue-400" />
+                  )}
+                </button>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium text-blue-800">Live</span>
+                </div>
               </div>
             </div>
           </div>
@@ -224,6 +330,145 @@ const AlertsPage: React.FC = () => {
                     </div>
                   )}
                 </>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'news' && (
+            <div className="space-y-6">
+              {/* News Controls */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <h3 className="text-lg font-semibold text-slate-900">Live News & Alerts</h3>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm text-green-600">Live</span>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button 
+                    onClick={fetchNewsData}
+                    disabled={isLoadingNews}
+                    className="btn-ghost flex items-center space-x-2"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isLoadingNews ? 'animate-spin' : ''}`} />
+                    <span>Refresh</span>
+                  </button>
+                  <div className="text-sm text-slate-600">
+                    {newsArticles.length} articles
+                  </div>
+                </div>
+              </div>
+
+              {/* Loading State */}
+              {isLoadingNews && (
+                <div className="card p-8 text-center">
+                  <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-4" />
+                  <p className="text-slate-600">Loading latest news and alerts...</p>
+                </div>
+              )}
+
+              {/* Error State */}
+              {newsError && (
+                <div className="card p-6 bg-red-50 border-red-200">
+                  <div className="flex items-center space-x-3">
+                    <AlertTriangle className="w-6 h-6 text-red-500" />
+                    <div>
+                      <h4 className="font-medium text-red-800">Unable to load news</h4>
+                      <p className="text-red-600 text-sm">{newsError}</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={fetchNewsData}
+                    className="mt-4 btn-primary bg-red-600 hover:bg-red-700"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              )}
+
+              {/* News Articles */}
+              {!isLoadingNews && !newsError && newsArticles.length === 0 && (
+                <div className="card p-8 text-center">
+                  <Newspaper className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-bold text-slate-900 mb-2">No News Available</h3>
+                  <p className="text-slate-600">
+                    No recent news found for your current destination. Try refreshing or check back later.
+                  </p>
+                </div>
+              )}
+
+              {!isLoadingNews && newsArticles.length > 0 && (
+                <div className="space-y-4">
+                  {newsArticles.map((article) => (
+                    <div key={article.url} className="card p-6 hover:shadow-lg transition-shadow">
+                      <div className="flex items-start space-x-4">
+                        {article.image && (
+                          <img 
+                            src={article.image} 
+                            alt={article.title}
+                            className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              article.severity === 'high' ? 'bg-red-100 text-red-800' :
+                              article.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-green-100 text-green-800'
+                            }`}>
+                              {article.severity}
+                            </span>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              article.category === 'safety' ? 'bg-orange-100 text-orange-800' :
+                              article.category === 'travel' ? 'bg-blue-100 text-blue-800' :
+                              article.category === 'weather' ? 'bg-cyan-100 text-cyan-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {article.category}
+                            </span>
+                            {article.location && (
+                              <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                                {article.location}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <h4 className="font-semibold text-slate-900 mb-2 line-clamp-2">
+                            {article.title}
+                          </h4>
+                          
+                          <p className="text-slate-600 text-sm mb-3 line-clamp-2">
+                            {article.description}
+                          </p>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-4 text-xs text-slate-500">
+                              <div className="flex items-center space-x-1">
+                                <Clock className="w-4 h-4" />
+                                <span>{new Date(article.publishedAt).toLocaleDateString()}</span>
+                              </div>
+                              <span>{article.source.name}</span>
+                            </div>
+                            
+                            <a 
+                              href={article.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                            >
+                              <span>Read more</span>
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )}

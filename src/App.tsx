@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { UserDestinationProvider } from './contexts/UserDestinationContext';
+import { LocationProvider } from './contexts/LocationContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import TabNavigation from './components/layout/TabNavigation';
 import LandingPage from './pages/LandingPage';
@@ -13,10 +14,18 @@ import AlertsPage from './pages/AlertsPage';
 import ProfilePage from './pages/ProfilePage';
 
 function App() {
+  // Using React for development environment logging
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Travel Safety App initialized with React version:', React.version);
+    }
+  }, []);
+
   return (
     <AuthProvider>
       <UserDestinationProvider>
-        <Router>
+        <LocationProvider autoStart={true} enableHighAccuracy={true}>
+          <Router>
           <div className="min-h-screen bg-gray-50">
             <Routes>
               {/* Public Routes */}
@@ -60,6 +69,7 @@ function App() {
             </Routes>
           </div>
         </Router>
+        </LocationProvider>
       </UserDestinationProvider>
     </AuthProvider>
   );

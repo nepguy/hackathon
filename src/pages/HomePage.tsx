@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserDestinations } from '../contexts/UserDestinationContext';
+import { useLocation } from '../contexts/LocationContext';
 import PageContainer from '../components/layout/PageContainer';
+import EventCard from '../components/home/EventCard';
+import { eventsService, TravelEvent } from '../lib/eventsApi';
 import { 
   MapPin, Calendar, Shield, TrendingUp, Clock, 
   Plus, ArrowRight, Zap, Globe, AlertTriangle
@@ -10,6 +13,9 @@ import {
 const HomePage: React.FC = () => {
   const { user } = useAuth();
   const { currentDestination, destinations } = useUserDestinations();
+  const { userLocation } = useLocation();
+  const [events, setEvents] = useState<TravelEvent[]>([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [greeting] = useState(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -34,6 +40,43 @@ const HomePage: React.FC = () => {
     { type: 'update', title: 'Weather conditions updated', time: '4 hours ago', severity: 'low' },
     { type: 'tip', title: 'New travel tip available', time: '1 day ago', severity: 'info' },
   ];
+
+  // Fetch events for current destination or user location
+  const fetchEvents = async () => {
+    setIsLoadingEvents(true);
+    
+    try {
+      let eventsData;
+      
+      if (currentDestination) {
+        // Use destination location
+        const location = `${currentDestination.name}, ${currentDestination.country}`;
+        eventsData = await eventsService.getTravelEvents(location);
+      } else if (userLocation?.latitude && userLocation?.longitude) {
+        // Use current GPS location
+        eventsData = await eventsService.getEventsNearLocation(
+          userLocation.latitude, 
+          userLocation.longitude, 
+          25 // 25km radius
+        );
+      } else {
+        // Fallback to general travel events
+        eventsData = await eventsService.getTravelEvents();
+      }
+      
+      setEvents(eventsData.events.slice(0, 6)); // Limit to 6 events
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      setEvents([]);
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  };
+
+  // Load events when component mounts or destination changes
+  useEffect(() => {
+    fetchEvents();
+  }, [currentDestination, userLocation?.latitude, userLocation?.longitude]);
 
   return (
     <PageContainer 
@@ -110,6 +153,54 @@ const HomePage: React.FC = () => {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Upcoming Events */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-bold text-slate-900 flex items-center">
+              <Calendar className="w-5 h-5 mr-2 text-purple-500" />
+              Upcoming Events
+              {currentDestination && (
+                <span className="ml-2 text-sm font-normal text-slate-500">
+                  in {currentDestination.name}
+                </span>
+              )}
+            </h3>
+            {events.length > 0 && (
+              <button className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
+                View all <ArrowRight className="w-4 h-4 ml-1" />
+              </button>
+            )}
+          </div>
+          
+          {isLoadingEvents ? (
+            <div className="card p-8 text-center">
+              <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-slate-600">Loading events...</p>
+            </div>
+          ) : events.length === 0 ? (
+            <div className="card p-8 text-center">
+              <Calendar className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+              <h4 className="font-medium text-slate-900 mb-2">No Events Found</h4>
+              <p className="text-slate-600 text-sm">
+                {currentDestination 
+                  ? `No events found for ${currentDestination.name}. Check back later!`
+                  : 'Add a destination to see upcoming events.'
+                }
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {events.map((event) => (
+                <EventCard 
+                  key={event.id} 
+                  event={event} 
+                  showExternalLink={true}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Recent Activity */}

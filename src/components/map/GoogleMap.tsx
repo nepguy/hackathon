@@ -1,6 +1,7 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
-import { MapPin, AlertTriangle, Cloud } from 'lucide-react';
+import { MapPin, AlertTriangle, Cloud, Navigation } from 'lucide-react';
+import { useLocation } from '../../contexts/LocationContext';
 
 interface GoogleMapProps {
   center?: google.maps.LatLngLiteral;
@@ -51,6 +52,8 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
+  const [userMarker, setUserMarker] = useState<google.maps.Marker | null>(null);
+  const { userLocation, isTracking } = useLocation();
 
   const initializeMap = useCallback(() => {
     if (ref.current && !map) {
@@ -132,11 +135,56 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
     setMarkers(newMarkers);
   }, [map, markers]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     initializeMap();
   }, [initializeMap]);
 
-  React.useEffect(() => {
+  // Update user location marker
+  const updateUserLocationMarker = useCallback(() => {
+    if (!map || !userLocation) return;
+
+    // Remove existing user marker
+    if (userMarker) {
+      userMarker.setMap(null);
+    }
+
+    // Create new user marker
+    const marker = new google.maps.Marker({
+      position: { lat: userLocation.latitude, lng: userLocation.longitude },
+      map: map,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 8,
+        fillColor: '#4285f4',
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 3
+      },
+      title: 'Your Location',
+    });
+
+    // Add accuracy circle if available
+    if (userLocation.accuracy && userLocation.accuracy < 1000) {
+      new google.maps.Circle({
+        strokeColor: '#4285f4',
+        strokeOpacity: 0.8,
+        strokeWeight: 2,
+        fillColor: '#4285f4',
+        fillOpacity: 0.15,
+        map: map,
+        center: { lat: userLocation.latitude, lng: userLocation.longitude },
+        radius: userLocation.accuracy
+      });
+    }
+
+    setUserMarker(marker);
+  }, [map, userLocation, userMarker]);
+
+  useEffect(() => {
+    initializeMap();
+  }, [initializeMap]);
+
+  useEffect(() => {
     if (map && activeLayer === 'alerts') {
       createAlertMarkers();
     } else {
@@ -145,6 +193,13 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
       setMarkers([]);
     }
   }, [map, activeLayer, createAlertMarkers, markers]);
+
+  // Update user location marker when location changes
+  useEffect(() => {
+    if (userLocation && isTracking) {
+      updateUserLocationMarker();
+    }
+  }, [userLocation, isTracking, updateUserLocationMarker]);
 
   return <div ref={ref} className="w-full h-full" />;
 };
@@ -158,8 +213,12 @@ const GoogleMapComponent: React.FC<GoogleMapProps> = (props) => {
         return (
           <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-lg">
             <div className="text-center">
-              <MapPin size={48} className="mx-auto mb-4 text-primary-500 animate-pulse" />
-              <p className="text-sm text-gray-600">Loading map...</p>
+              <div className="flex items-center justify-center space-x-2 mb-4">
+                <MapPin size={32} className="text-primary-500 animate-pulse" />
+                <Navigation size={32} className="text-blue-500 animate-bounce" />
+                <Cloud size={32} className="text-sky-500 animate-pulse" />
+              </div>
+              <p className="text-sm text-gray-600">Loading interactive map with location services...</p>
             </div>
           </div>
         );

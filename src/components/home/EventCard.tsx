@@ -1,6 +1,8 @@
 import React from 'react';
-import { Calendar, MapPin, Users, Clock } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, ExternalLink, DollarSign } from 'lucide-react';
+import { TravelEvent } from '../../lib/eventsApi';
 
+// Keep the old Event interface for backward compatibility
 export interface Event {
   id: string;
   title: string;
@@ -14,10 +16,11 @@ export interface Event {
 }
 
 interface EventCardProps {
-  event: Event;
+  event: Event | TravelEvent;
+  showExternalLink?: boolean;
 }
 
-const EventCard: React.FC<EventCardProps> = ({ event }) => {
+const EventCard: React.FC<EventCardProps> = ({ event, showExternalLink = false }) => {
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
       month: 'short',
@@ -25,51 +28,117 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
     });
   };
 
+  const formatTime = (dateStr: string) => {
+    return new Date(dateStr).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  // Check if this is a TravelEvent or legacy Event
+  const isTravelEvent = (event: Event | TravelEvent): event is TravelEvent => {
+    return 'startDate' in event;
+  };
+
+  const getEventData = () => {
+    if (isTravelEvent(event)) {
+      return {
+        title: event.title,
+        description: event.description,
+        date: event.startDate,
+        time: formatTime(event.startDate),
+        location: typeof event.location === 'object' ? event.location.address : event.location,
+        imageUrl: event.imageUrl || '/default-event.jpg',
+        category: event.category,
+        price: event.isFree ? 'Free' : event.price || 'Paid',
+        eventUrl: event.eventUrl
+      };
+    } else {
+      return {
+        title: event.title,
+        description: event.description,
+        date: event.date,
+        time: event.time,
+        location: event.location,
+        imageUrl: event.imageUrl,
+        category: event.category,
+        attendees: event.attendees
+      };
+    }
+  };
+
+  const eventData = getEventData();
+
   return (
     <div className="card card-hover group">
       <div className="relative h-48 overflow-hidden">
         <img
-          src={event.imageUrl}
-          alt={event.title}
+          src={eventData.imageUrl}
+          alt={eventData.title}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          onError={(e) => {
+            e.currentTarget.src = '/default-event.jpg';
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-        <div className="absolute bottom-4 left-4 right-4">
+        <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-white/20 backdrop-blur-md text-white">
-            {event.category}
+            {eventData.category}
           </span>
+          {isTravelEvent(event) && eventData.price && (
+            <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/80 backdrop-blur-md text-white flex items-center">
+              <DollarSign size={10} className="mr-1" />
+              {eventData.price}
+            </span>
+          )}
         </div>
       </div>
       
       <div className="p-4 space-y-3">
         <h3 className="font-semibold text-gray-900 text-lg line-clamp-1">
-          {event.title}
+          {eventData.title}
         </h3>
         
         <p className="text-sm text-gray-600 line-clamp-2">
-          {event.description}
+          {eventData.description}
         </p>
         
         <div className="flex flex-wrap gap-3 text-sm">
           <div className="flex items-center text-gray-600">
             <Calendar size={14} className="mr-1" />
-            {formatDate(event.date)}
+            {formatDate(eventData.date)}
           </div>
           
           <div className="flex items-center text-gray-600">
             <Clock size={14} className="mr-1" />
-            {event.time}
+            {eventData.time}
           </div>
           
-          <div className="flex items-center text-gray-600">
-            <Users size={14} className="mr-1" />
-            {event.attendees} attending
-          </div>
+          {!isTravelEvent(event) && eventData.attendees && (
+            <div className="flex items-center text-gray-600">
+              <Users size={14} className="mr-1" />
+              {eventData.attendees} attending
+            </div>
+          )}
         </div>
         
-        <div className="flex items-center text-gray-600 text-sm">
-          <MapPin size={14} className="mr-1 flex-shrink-0" />
-          <span className="line-clamp-1">{event.location}</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center text-gray-600 text-sm flex-1 min-w-0">
+            <MapPin size={14} className="mr-1 flex-shrink-0" />
+            <span className="line-clamp-1">{eventData.location}</span>
+          </div>
+          
+          {showExternalLink && isTravelEvent(event) && eventData.eventUrl && (
+            <a
+              href={eventData.eventUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-2 flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium"
+            >
+              <ExternalLink size={14} />
+            </a>
+          )}
         </div>
       </div>
     </div>
