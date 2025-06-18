@@ -49,7 +49,9 @@ export interface SafetyAlert {
   location: string;
   timestamp: string;
   read: boolean;
-  type: 'weather' | 'security' | 'health' | 'transportation';
+  type: 'weather' | 'security' | 'health' | 'transportation' | 'scam' | 'safety';
+  source?: string;
+  tips?: string[];
 }
 
 export interface MapMarker {
@@ -73,5 +75,7 @@ export interface User {
     security: boolean;
     health: boolean;
     transportation: boolean;
+    scam: boolean;
+    safety: boolean;
   };
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  CloudRain, Shield, Stethoscope, Bus 
+  CloudRain, Shield, Stethoscope, Bus, AlertTriangle, ShieldAlert
 } from 'lucide-react';
 
 interface AlertFiltersProps {
@@ -13,9 +13,11 @@ const AlertFilters: React.FC<AlertFiltersProps> = ({
   onFilterChange 
 }) => {
   const filters = [
-    { id: 'weather', label: 'Weather', icon: CloudRain },
+    { id: 'scam', label: 'Scams', icon: AlertTriangle },
+    { id: 'safety', label: 'Safety', icon: ShieldAlert },
     { id: 'security', label: 'Security', icon: Shield },
     { id: 'health', label: 'Health', icon: Stethoscope },
+    { id: 'weather', label: 'Weather', icon: CloudRain },
     { id: 'transportation', label: 'Transport', icon: Bus },
   ];
 

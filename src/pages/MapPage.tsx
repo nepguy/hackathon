@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import PageContainer from '../components/layout/PageContainer';
-import MapPlaceholder from '../components/map/MapPlaceholder';
+import GoogleMapComponent from '../components/map/GoogleMap';
 import MapControls from '../components/map/MapControls';
 
 const MapPage: React.FC = () => {
@@ -8,6 +8,14 @@ const MapPage: React.FC = () => {
   
   const handleLayerChange = (layer: string) => {
     setActiveLayer(layer);
+  };
+
+  const handleMapClick = (location: google.maps.LatLngLiteral) => {
+    console.log('Map clicked at:', location);
+    // You can add additional functionality here, such as:
+    // - Creating new alerts at the clicked location
+    // - Showing location details
+    // - Adding custom markers
   };
 
   return (
@@ -18,7 +26,14 @@ const MapPage: React.FC = () => {
         </p>
       </div>
       
-      <MapPlaceholder />
+      <div className="h-[calc(100vh-160px)] w-full">
+        <GoogleMapComponent 
+          center={{ lat: 40.7128, lng: -74.0060 }}
+          zoom={12}
+          activeLayer={activeLayer}
+          onMapClick={handleMapClick}
+        />
+      </div>
       
       <MapControls 
         activeLayer={activeLayer}
