@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../contexts/TranslationContext';
 import { databaseService } from '../lib/database';
 import PageContainer from '../components/layout/PageContainer';
+import LanguageSelector from '../components/common/LanguageSelector';
 
 // Define proper interfaces for type safety
 interface SettingsItem {
@@ -24,6 +26,7 @@ import {
 
 const ProfilePage: React.FC = () => {
   const { user, signOut } = useAuth();
+  const { t, currentLanguage } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -47,7 +50,7 @@ const ProfilePage: React.FC = () => {
     },
     appearance: {
       theme: 'light',
-      language: 'en'
+      language: currentLanguage
     }
   });
 
@@ -411,16 +414,16 @@ const ProfilePage: React.FC = () => {
         <div className="card p-6" data-section="notifications">
           <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center">
             <Bell className="w-5 h-5 mr-2 text-blue-600" />
-            Notification Preferences
+            {t('notification_preferences', 'Notification Preferences')}
           </h3>
           
           <div className="space-y-4">
             {Object.entries(preferences.notifications).map(([key, value]) => (
               <div key={key} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors">
                 <div>
-                  <div className="font-medium text-slate-900 capitalize">{key} Alerts</div>
+                  <div className="font-medium text-slate-900 capitalize">{key} {t('alerts', 'Alerts')}</div>
                   <div className="text-sm text-slate-600">
-                    Receive notifications about {key.toLowerCase()} updates
+                    {t('receive_notifications', 'Receive notifications about')} {key.toLowerCase()} {t('updates', 'updates')}
                   </div>
                 </div>
                 <button
@@ -435,6 +438,40 @@ const ProfilePage: React.FC = () => {
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Language Settings */}
+        <div className="card p-6" data-section="language">
+          <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center">
+            <Globe className="w-5 h-5 mr-2 text-blue-600" />
+            {t('language_settings', 'Language Settings')}
+          </h3>
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50">
+              <div>
+                <div className="font-medium text-slate-900">{t('app_language', 'App Language')}</div>
+                <div className="text-sm text-slate-600">
+                  {t('select_preferred_language', 'Select your preferred language for the app interface')}
+                </div>
+              </div>
+              <LanguageSelector />
+            </div>
+            
+            <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+              <div className="flex items-start space-x-3">
+                <Globe className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-blue-900 mb-1">
+                    {t('multilingual_support', 'Multilingual Support')}
+                  </h4>
+                  <p className="text-sm text-blue-700">
+                    {t('multilingual_description', 'GuardNomad supports over 20 languages. Your language preference is automatically saved and will be applied across all app features including alerts, weather updates, and event information.')}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

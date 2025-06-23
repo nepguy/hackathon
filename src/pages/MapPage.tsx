@@ -27,16 +27,39 @@ const MapPage: React.FC = () => {
   // Auto-center map when user location is available
   useEffect(() => {
     if (userLocation && isTracking) {
+      console.log('📍 Updating map center to user location:', userLocation);
+      
       setMapCenter({
         lat: userLocation.latitude,
         lng: userLocation.longitude
       });
       
-      // Set zoom based on location accuracy
-      const accuracyZoom = userLocation.accuracy && userLocation.accuracy < 50 ? 16 : 
-                          userLocation.accuracy && userLocation.accuracy < 200 ? 14 : 
-                          userLocation.accuracy && userLocation.accuracy < 1000 ? 12 : 10;
-      setMapZoom(accuracyZoom);
+      // Enhanced zoom logic based on location accuracy
+      let zoomLevel = 12; // Default zoom
+      
+      if (userLocation.accuracy) {
+        // More precise zoom levels based on accuracy
+        if (userLocation.accuracy <= 10) {
+          zoomLevel = 18; // Very accurate - street level
+        } else if (userLocation.accuracy <= 25) {
+          zoomLevel = 17; // Accurate - building level
+        } else if (userLocation.accuracy <= 50) {
+          zoomLevel = 16; // Good - neighborhood level
+        } else if (userLocation.accuracy <= 100) {
+          zoomLevel = 15; // Fair - area level
+        } else if (userLocation.accuracy <= 200) {
+          zoomLevel = 14; // Poor - district level
+        } else if (userLocation.accuracy <= 500) {
+          zoomLevel = 13; // Very poor - city area
+        } else if (userLocation.accuracy <= 1000) {
+          zoomLevel = 12; // Bad - city level
+        } else {
+          zoomLevel = 11; // Very bad - regional level
+        }
+      }
+      
+      console.log(`🔍 Setting zoom level to ${zoomLevel} (accuracy: ${userLocation.accuracy}m)`);
+      setMapZoom(zoomLevel);
     }
   }, [userLocation, isTracking]);
   
@@ -49,12 +72,27 @@ const MapPage: React.FC = () => {
   };
 
   const handleGetLocation = async () => {
+    console.log('🎯 User requested location access');
+    
     if (locationPermission !== 'granted') {
-      await requestLocationPermission();
+      console.log('📋 Requesting location permission...');
+      const permission = await requestLocationPermission();
+      console.log('📋 Permission result:', permission);
     }
     
     if (!isTracking) {
+      console.log('🚀 Starting location tracking...');
       startLocationTracking();
+    } else {
+      console.log('✅ Location tracking already active');
+      // Force a fresh location update
+      if (userLocation) {
+        setMapCenter({
+          lat: userLocation.latitude,
+          lng: userLocation.longitude
+        });
+        setMapZoom(16); // Zoom in for better view
+      }
     }
   };
 

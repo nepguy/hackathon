@@ -20,7 +20,7 @@ import {
 const HomePage: React.FC = () => {
   const { user } = useAuth();
   const { currentDestination, destinations } = useUserDestinations();
-  const { userLocation, locationPermission, getCurrentLocation } = useLocationContext();
+  const { userLocation, locationPermission, getCurrentLocation, isTracking, startLocationTracking } = useLocationContext();
   const { isTrialActive, trialDaysRemaining, isTrialExpired, isPremiumUser } = useTrial();
   const { requestLocationForContext } = useLocationPermissionRequest();
   const { safetyAlerts, travelPlans, recentActivity, isLoading, error, refreshData } = useRealTimeData();
@@ -104,6 +104,10 @@ const HomePage: React.FC = () => {
   // Fetch events for current destination or user location
   const fetchEvents = async () => {
     setIsLoadingEvents(true);
+    console.log('🎪 Starting events fetch...');
+    console.log('📍 Current user location:', userLocation);
+    console.log('🎯 Current destination:', currentDestination);
+    console.log('🔐 Location permission:', locationPermission);
     
     try {
       let eventsData;
@@ -115,23 +119,38 @@ const HomePage: React.FC = () => {
         console.log('🎯 Fetching events for destination:', locationName);
         eventsData = await eventsService.getTravelEvents(locationName);
       } else if (userLocation?.latitude && userLocation?.longitude) {
-        // Use current GPS location
-        locationName = `${userLocation.latitude}, ${userLocation.longitude}`;
-        console.log('📍 Fetching events for GPS location:', userLocation.latitude, userLocation.longitude);
-        eventsData = await eventsService.getEventsNearLocation(
-          userLocation.latitude, 
-          userLocation.longitude, 
-          25 // 25km radius
-        );
+        // Use current GPS location with enhanced logging
+        const lat = userLocation.latitude;
+        const lng = userLocation.longitude;
+        const accuracy = userLocation.accuracy || 'unknown';
+        
+        locationName = `${lat}, ${lng}`;
+        console.log(`📍 Fetching events for GPS location: ${lat}, ${lng} (accuracy: ${accuracy}m)`);
+        
+        // Try to get events near location with different radius based on accuracy
+        const radius = userLocation.accuracy && userLocation.accuracy > 1000 ? 50 : 25; // Larger radius for less accurate locations
+        console.log(`🔍 Using ${radius}km radius for event search`);
+        
+        eventsData = await eventsService.getEventsNearLocation(lat, lng, radius);
+        
+        // If no events found with current radius, try a larger radius
+        if (!eventsData?.events || eventsData.events.length === 0) {
+          console.log('🔍 No events found, trying larger radius (50km)...');
+          eventsData = await eventsService.getEventsNearLocation(lat, lng, 50);
+        }
       } else {
-        // Try to get location if permission allows, or use intelligent prompting
-        if (locationPermission === 'granted') {
-          console.log('🔍 Attempting to get current location for events...');
-          getCurrentLocation();
-          // Give it a moment to get location
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        // Enhanced location handling
+        console.log('🔍 No location available, attempting to get location...');
+        
+        if (locationPermission === 'granted' && !isTracking) {
+          console.log('🚀 Starting location tracking for events...');
+          startLocationTracking();
+          
+          // Wait a bit for location to be acquired
+          await new Promise(resolve => setTimeout(resolve, 2000));
           
           if (userLocation?.latitude && userLocation?.longitude) {
+            console.log('✅ Got location after tracking start, fetching events...');
             locationName = `${userLocation.latitude}, ${userLocation.longitude}`;
             eventsData = await eventsService.getEventsNearLocation(
               userLocation.latitude, 
@@ -140,6 +159,7 @@ const HomePage: React.FC = () => {
             );
           }
         } else if (locationPermission === 'prompt' || locationPermission === 'unknown') {
+          console.log('📋 Prompting for location permission for events...');
           // Use intelligent permission request for events
           requestLocationForContext({
             reason: 'accuracy_needed',
@@ -154,39 +174,76 @@ const HomePage: React.FC = () => {
           });
         }
         
-        // If still no location, use intelligent fallback based on user profile
+        // Enhanced fallback logic
         if (!eventsData) {
-          // Use user's first destination as fallback, or default location
+          console.log('🏙️ Using fallback location for events...');
+          
           if (destinations.length > 0) {
             const fallbackDest = destinations[0];
             locationName = `${fallbackDest.name}, ${fallbackDest.country}`;
-            console.log('🏙️ Using user destination as fallback:', locationName);
+            console.log('🎯 Using user destination as fallback:', locationName);
+            eventsData = await eventsService.getTravelEvents(locationName);
           } else {
-            locationName = 'New York, NY'; // Global city with many events
-            console.log('🌎 Using default global location for events');
+            // Use a major city with many events as ultimate fallback
+            const fallbackCities = [
+              'New York, NY',
+              'London, UK', 
+              'Paris, France',
+              'Tokyo, Japan',
+              'Sydney, Australia'
+            ];
+            const randomCity = fallbackCities[Math.floor(Math.random() * fallbackCities.length)];
+            locationName = randomCity;
+            console.log('🌎 Using random global city as fallback:', locationName);
+            eventsData = await eventsService.getTravelEvents(locationName);
           }
-          eventsData = await eventsService.getTravelEvents(locationName);
         }
       }
       
-      if (eventsData && eventsData.events) {
+      if (eventsData && eventsData.events && eventsData.events.length > 0) {
+        const eventCount = eventsData.events.length;
         setEvents(eventsData.events.slice(0, 6)); // Limit to 6 events
-        console.log(`✅ Loaded ${eventsData.events.length} events for ${locationName}`);
+        console.log(`✅ Loaded ${eventCount} events for ${locationName}`);
+        console.log('📋 Events:', eventsData.events.map(e => ({ title: e.title, location: e.location })));
       } else {
         setEvents([]);
-        console.log('⚠️ No events data received');
+        console.log(`⚠️ No events found for ${locationName}`);
+        
+        // Try alternative search if we have a specific location
+        if (userLocation?.latitude && userLocation?.longitude) {
+          console.log('🔄 Trying alternative events search...');
+          try {
+            // Try with a much larger radius as last resort
+            const alternativeEvents = await eventsService.getEventsNearLocation(
+              userLocation.latitude, 
+              userLocation.longitude, 
+              100 // 100km radius
+            );
+            
+            if (alternativeEvents?.events && alternativeEvents.events.length > 0) {
+              setEvents(alternativeEvents.events.slice(0, 6));
+              console.log(`✅ Found ${alternativeEvents.events.length} events with 100km radius`);
+            } else {
+              console.log('❌ No events found even with 100km radius');
+            }
+          } catch (altError) {
+            console.error('❌ Alternative events search failed:', altError);
+          }
+        }
       }
     } catch (error) {
-      console.error('Error fetching events:', error);
+      console.error('❌ Error fetching events:', error);
       setEvents([]);
     } finally {
       setIsLoadingEvents(false);
     }
   };
 
+  // Enhanced useEffect with better dependency tracking
   useEffect(() => {
+    console.log('🔄 Events fetch triggered by dependency change');
     fetchEvents();
-  }, [currentDestination, userLocation, locationPermission]);
+  }, [currentDestination, userLocation?.latitude, userLocation?.longitude, locationPermission, isTracking]);
 
   const handleRequestLocationForFeatures = () => {
     requestLocationForContext({
