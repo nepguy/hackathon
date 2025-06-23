@@ -223,7 +223,14 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
               </div>
             </div>
             <div className="text-4xl">
-              {currentWeather.condition.icon}
+              <img 
+                src={currentWeather.condition.icon.startsWith('//') 
+                  ? `https:${currentWeather.condition.icon}` 
+                  : currentWeather.condition.icon
+                } 
+                alt={currentWeather.condition.text}
+                className="w-16 h-16"
+              />
             </div>
           </div>
 
@@ -255,7 +262,14 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
                          {forecast.map((day, index) => (
                <div key={index} className="flex items-center justify-between py-2">
                  <div className="flex items-center">
-                   <span className="text-2xl mr-3">{day.condition.icon}</span>
+                   <img 
+                     src={day.condition.icon.startsWith('//') 
+                       ? `https:${day.condition.icon}` 
+                       : day.condition.icon
+                     } 
+                     alt={day.condition.text}
+                     className="w-8 h-8 mr-3"
+                   />
                    <div>
                      <div className="text-sm font-medium text-gray-900">
                        {index === 0 ? 'Today' : 
