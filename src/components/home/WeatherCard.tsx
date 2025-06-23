@@ -199,7 +199,7 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
 
   return (
     <>
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 mobile-card">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900 flex items-center">
             <Thermometer className="w-5 h-5 mr-2 text-blue-600" />
@@ -207,7 +207,7 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
           </h3>
           <div className="flex items-center text-sm text-gray-500">
             <MapPin className="w-4 h-4 mr-1" />
-            <span className="truncate max-w-32">{weatherData.location.name}</span>
+            <span className="truncate max-w-20 sm:max-w-32">{weatherData.location.name}</span>
           </div>
         </div>
 
@@ -235,7 +235,7 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
           </div>
 
           {/* Weather Details */}
-          <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-100">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4 mt-4 pt-4 border-t border-gray-100">
             <div className="flex items-center text-sm text-gray-600">
               <Droplets className="w-4 h-4 mr-2 text-blue-500" />
               <span>{currentWeather.humidity}% humidity</span>

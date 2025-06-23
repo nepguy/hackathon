@@ -171,12 +171,58 @@ class EventsService {
     }
   }
 
+  private isRemoteLocation(location?: string): boolean {
+    if (!location) return false;
+    
+    // Simple heuristic to detect remote locations
+    const locationLower = location.toLowerCase();
+    const remoteIndicators = [
+      'rural', 'remote', 'wilderness', 'mountain', 'desert', 'forest', 
+      'village', 'countryside', 'farm', 'ranch', 'national park',
+      'state park', 'hiking', 'camping', 'cabin'
+    ];
+    
+    // Check if coordinates suggest a very rural area (simplified check)
+    const coordMatch = location.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
+    if (coordMatch) {
+      const lat = parseFloat(coordMatch[1]);
+      const lng = parseFloat(coordMatch[2]);
+      
+      // Very basic check for remote coordinates (away from major population centers)
+      // This is a simplified approach - in production you'd use a proper geocoding service
+      const isInMiddleOfNowhere = (
+        Math.abs(lat) > 60 || // Very far north/south
+        (Math.abs(lat) < 10 && Math.abs(lng) > 100) // Remote tropical areas
+      );
+      
+      if (isInMiddleOfNowhere) return true;
+    }
+    
+    return remoteIndicators.some(indicator => locationLower.includes(indicator));
+  }
+
   private getFallbackEvents(location?: string, query?: string): EventsApiResponse {
     // Get real location name from the location string
     const locationName = location ? location.split(',')[0].trim() : 'your area';
     const isBusinessQuery = query?.toLowerCase().includes('business') || query?.toLowerCase().includes('networking');
     const isFoodQuery = query?.toLowerCase().includes('food') || query?.toLowerCase().includes('culinary');
     const isCultureQuery = query?.toLowerCase().includes('culture') || query?.toLowerCase().includes('art');
+    const isNearbyQuery = query?.toLowerCase().includes('nearby');
+    
+    // Check if this is a remote/rural location that might not have events
+    const isRemoteLocation = this.isRemoteLocation(location);
+    
+    if (isRemoteLocation && isNearbyQuery) {
+      console.log(`🏔️ Remote location detected: ${locationName} - returning empty events`);
+      return {
+        events: [],
+        pagination: {
+          page_number: 1,
+          page_size: 0,
+          total_items: 0
+        }
+      };
+    }
     
     // Generate date-aware events
     const today = new Date();

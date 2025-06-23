@@ -291,9 +291,9 @@ const HomePage: React.FC = () => {
         )}
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mobile-grid">
           {stats.map((stat, index) => (
-            <div key={index} className={`bg-white rounded-xl shadow-sm border p-6 ${stat.borderColor} hover:shadow-md transition-shadow`}>
+            <div key={index} className={`bg-white rounded-xl shadow-sm border mobile-card ${stat.borderColor} hover:shadow-md transition-shadow`}>
               <div className="flex items-center justify-between">
                 <div className={`p-3 rounded-lg ${stat.bgColor}`}>
                   <stat.icon className={`w-6 h-6 ${stat.color}`} />
@@ -342,9 +342,9 @@ const HomePage: React.FC = () => {
           </div>
 
           {isLoadingEvents ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="mobile-grid">
               {Array.from({ length: 6 }).map((_, index) => (
-                <div key={index} className="bg-gray-50 rounded-lg p-4 animate-pulse">
+                <div key={index} className="bg-gray-50 rounded-lg mobile-card animate-pulse">
                   <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
                   <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
                   <div className="h-3 bg-gray-200 rounded w-full"></div>
@@ -352,7 +352,7 @@ const HomePage: React.FC = () => {
               ))}
             </div>
           ) : events.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="mobile-grid">
               {events.map((event, index) => (
                 <EventCard key={`${event.id}-${index}`} event={event} />
               ))}
@@ -360,18 +360,29 @@ const HomePage: React.FC = () => {
           ) : (
             <div className="text-center py-8">
               <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Events Found</h3>
-              <p className="text-gray-500 mb-4">
+              <h3 className="mobile-title font-medium text-gray-900 mb-2">
+                {locationPermission !== 'granted' ? 'Discover Local Events' : 'No Events Nearby'}
+              </h3>
+              <p className="text-gray-500 mb-4 mobile-text">
                 {locationPermission !== 'granted' 
-                  ? 'Enable location access to discover events near you' 
-                  : 'No events found for your current location'}
+                  ? 'Enable location access to discover events and activities near you' 
+                  : userLocation 
+                    ? `No events found within 25km of your current location`
+                    : 'No events found for your current location'}
               </p>
-              {locationPermission !== 'granted' && (
+              {locationPermission !== 'granted' ? (
                 <button
                   onClick={handleRequestLocationForFeatures}
-                  className="text-purple-600 hover:text-purple-800 font-medium"
+                  className="mobile-button bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
                 >
                   Enable Location Access
+                </button>
+              ) : (
+                <button
+                  onClick={() => navigate('/explore')}
+                  className="mobile-button bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                >
+                  Explore All Events
                 </button>
               )}
             </div>
@@ -418,7 +429,7 @@ const HomePage: React.FC = () => {
             <Zap className="w-5 h-5 mr-2 text-yellow-600" />
             Quick Actions
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             <button
               onClick={() => navigate('/map')}
               className="flex flex-col items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"

@@ -16,16 +16,16 @@ const PageContainer: React.FC<PageContainerProps> = ({
   className = ''
 }) => {
   return (
-    <div className={`min-h-screen pb-24 ${className}`}>
+    <div className={`min-h-screen mobile-safe-area ${className}`}>
       {title && (
         <div className="sticky top-0 z-10 glass border-b border-white/10 backdrop-blur-xl">
           <div className="section-padding">
             <div className="animate-fade-in-up">
-              <h1 className="text-3xl font-bold gradient-text mb-2">
+              <h1 className="mobile-title font-bold gradient-text mb-2">
                 {title}
               </h1>
               {subtitle && (
-                <p className="text-slate-600 text-lg">
+                <p className="text-slate-600 mobile-text">
                   {subtitle}
                 </p>
               )}

@@ -126,11 +126,36 @@
   }
   
   .section-padding {
-    @apply px-6 py-8;
+    @apply px-4 py-6 sm:px-6 sm:py-8;
   }
   
   .container-max {
     @apply max-w-7xl mx-auto;
+  }
+  
+  /* Mobile-first responsive utilities */
+  .mobile-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6;
+  }
+  
+  .mobile-card {
+    @apply p-4 sm:p-6;
+  }
+  
+  .mobile-text {
+    @apply text-sm sm:text-base;
+  }
+  
+  .mobile-title {
+    @apply text-xl sm:text-2xl lg:text-3xl;
+  }
+  
+  .mobile-button {
+    @apply px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base;
+  }
+  
+  .mobile-safe-area {
+    @apply pb-20 sm:pb-24;
   }
 }
 

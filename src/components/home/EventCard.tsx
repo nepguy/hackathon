@@ -72,7 +72,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, showExternalLink = false }
 
   return (
     <div className="card card-hover group">
-      <div className="relative h-48 overflow-hidden">
+      <div className="relative h-40 sm:h-48 overflow-hidden">
         <img
           src={eventData.imageUrl}
           alt={eventData.title}
@@ -95,16 +95,16 @@ const EventCard: React.FC<EventCardProps> = ({ event, showExternalLink = false }
         </div>
       </div>
       
-      <div className="p-4 space-y-3">
-        <h3 className="font-semibold text-gray-900 text-lg line-clamp-1">
+      <div className="mobile-card space-y-3">
+        <h3 className="font-semibold text-gray-900 mobile-text line-clamp-1">
           {eventData.title}
         </h3>
         
-        <p className="text-sm text-gray-600 line-clamp-2">
+        <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">
           {eventData.description}
         </p>
         
-        <div className="flex flex-wrap gap-3 text-sm">
+        <div className="flex flex-wrap gap-2 sm:gap-3 text-xs sm:text-sm">
           <div className="flex items-center text-gray-600">
             <Calendar size={14} className="mr-1" />
             {formatDate(eventData.date)}
