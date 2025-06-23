@@ -132,34 +132,34 @@ class UserDataService {
       // Create user-specific seed for consistent but unique data per user
       const userSeed = this.createUserSeed(userId);
       
-      // Generate consistent stats based on user ID - same user always gets same stats
+      // Generate realistic stats based on user ID - more realistic travel patterns
       const stats: UserStats = {
-        destinationsVisited: this.seededRandom(userSeed, 3, 18), // 3-18 destinations
-        totalTrips: this.seededRandom(userSeed + 1, 5, 30), // 5-30 trips
-        daysTracked: this.seededRandom(userSeed + 2, 50, 250), // 50-250 days
-        safetyScore: this.seededRandom(userSeed + 3, 80, 100), // 80-100% safety score
-        alertsReceived: this.seededRandom(userSeed + 4, 10, 60), // 10-60 alerts
-        eventsAttended: this.seededRandom(userSeed + 5, 5, 35), // 5-35 events
+        destinationsVisited: this.seededRandom(userSeed, 2, 12), // 2-12 destinations (more realistic)
+        totalTrips: this.seededRandom(userSeed + 1, 3, 18), // 3-18 trips (realistic annual travel)
+        daysTracked: this.seededRandom(userSeed + 2, 15, 120), // 15-120 days (2 weeks to 4 months)
+        safetyScore: this.seededRandom(userSeed + 3, 75, 98), // 75-98% safety score (more realistic range)
+        alertsReceived: this.seededRandom(userSeed + 4, 3, 25), // 3-25 alerts (reasonable for active travelers)
+        eventsAttended: this.seededRandom(userSeed + 5, 1, 15), // 1-15 events (realistic event attendance)
         lastActivity: new Date(Date.now() - this.seededRandom(userSeed + 6, 1, 7) * 24 * 60 * 60 * 1000).toISOString(), // Within last week
-        joinedDate: new Date(Date.now() - this.seededRandom(userSeed + 7, 30, 365) * 24 * 60 * 60 * 1000).toISOString(), // 30-365 days ago
+        joinedDate: new Date(Date.now() - this.seededRandom(userSeed + 7, 14, 180) * 24 * 60 * 60 * 1000).toISOString(), // 2 weeks to 6 months ago
         preferredLanguage: 'en'
       };
 
-      console.log(`📊 Generated user-specific stats for ${userId}:`, stats);
+      console.log(`📊 Generated realistic user stats for ${userId}:`, stats);
       return stats;
     } catch (error) {
       console.error('Error calculating user stats:', error);
-      // Return user-specific default stats even on error
+      // Return realistic default stats even on error
       const userSeed = this.createUserSeed(userId);
       return {
-        destinationsVisited: this.seededRandom(userSeed, 8, 15),
-        totalTrips: this.seededRandom(userSeed + 1, 12, 25),
-        daysTracked: this.seededRandom(userSeed + 2, 100, 200),
-        safetyScore: this.seededRandom(userSeed + 3, 85, 98),
-        alertsReceived: this.seededRandom(userSeed + 4, 15, 35),
-        eventsAttended: this.seededRandom(userSeed + 5, 8, 20),
+        destinationsVisited: this.seededRandom(userSeed, 4, 8), // 4-8 destinations
+        totalTrips: this.seededRandom(userSeed + 1, 6, 12), // 6-12 trips
+        daysTracked: this.seededRandom(userSeed + 2, 30, 90), // 1-3 months
+        safetyScore: this.seededRandom(userSeed + 3, 82, 95), // 82-95% safety score
+        alertsReceived: this.seededRandom(userSeed + 4, 5, 18), // 5-18 alerts
+        eventsAttended: this.seededRandom(userSeed + 5, 2, 10), // 2-10 events
         lastActivity: new Date().toISOString(),
-        joinedDate: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(), // 6 months ago
+        joinedDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(), // 2 months ago
         preferredLanguage: 'en'
       };
     }
@@ -239,19 +239,26 @@ class UserDataService {
 
       // Generate realistic destinations based on popular travel spots
       const popularDestinations = [
-        { name: 'Paris', country: 'France', safety: 92, visited: true },
-        { name: 'Tokyo', country: 'Japan', safety: 98, visited: true },
-        { name: 'New York', country: 'United States', safety: 85, visited: false },
-        { name: 'London', country: 'United Kingdom', safety: 90, visited: true },
-        { name: 'Barcelona', country: 'Spain', safety: 88, visited: false },
-        { name: 'Amsterdam', country: 'Netherlands', safety: 95, visited: true },
-        { name: 'Rome', country: 'Italy', safety: 82, visited: false },
-        { name: 'Sydney', country: 'Australia', safety: 96, visited: true }
+        { name: 'Paris', country: 'France', safety: 88, visited: true },
+        { name: 'Tokyo', country: 'Japan', safety: 95, visited: true },
+        { name: 'New York', country: 'United States', safety: 82, visited: false },
+        { name: 'London', country: 'United Kingdom', safety: 87, visited: true },
+        { name: 'Barcelona', country: 'Spain', safety: 85, visited: false },
+        { name: 'Amsterdam', country: 'Netherlands', safety: 92, visited: true },
+        { name: 'Rome', country: 'Italy', safety: 79, visited: false },
+        { name: 'Sydney', country: 'Australia', safety: 93, visited: true },
+        { name: 'Berlin', country: 'Germany', safety: 89, visited: false },
+        { name: 'Vienna', country: 'Austria', safety: 94, visited: true },
+        { name: 'Prague', country: 'Czech Republic', safety: 86, visited: false },
+        { name: 'Copenhagen', country: 'Denmark', safety: 96, visited: true },
+        { name: 'Zurich', country: 'Switzerland', safety: 97, visited: false },
+        { name: 'Singapore', country: 'Singapore', safety: 98, visited: true },
+        { name: 'Dubai', country: 'UAE', safety: 91, visited: false }
       ];
 
       // Create user-specific seed for consistent destinations
       const userSeed = this.createUserSeed(userId);
-      const destinationCount = this.seededRandom(userSeed + 10, 3, 7); // 3-7 destinations
+      const destinationCount = this.seededRandom(userSeed + 10, 2, 6); // 2-6 destinations (more realistic)
 
       // Use seeded randomization for consistent user-specific destinations
       const userDestinations = this.shuffleArrayWithSeed(popularDestinations, userSeed)
@@ -263,9 +270,9 @@ class UserDataService {
           country: dest.country,
           safety_rating: dest.safety,
           is_visited: dest.visited,
-          visit_date: dest.visited ? new Date(Date.now() - this.seededRandom(userSeed + index + 20, 30, 365) * 24 * 60 * 60 * 1000).toISOString() : null,
-          duration_days: dest.visited ? this.seededRandom(userSeed + index + 30, 1, 14) : null,
-          created_at: new Date(Date.now() - this.seededRandom(userSeed + index + 40, 1, 180) * 24 * 60 * 60 * 1000).toISOString()
+          visit_date: dest.visited ? new Date(Date.now() - this.seededRandom(userSeed + index + 20, 7, 180) * 24 * 60 * 60 * 1000).toISOString() : null, // 1 week to 6 months ago
+          duration_days: dest.visited ? this.seededRandom(userSeed + index + 30, 2, 10) : null, // 2-10 days (realistic trip duration)
+          created_at: new Date(Date.now() - this.seededRandom(userSeed + index + 40, 1, 90) * 24 * 60 * 60 * 1000).toISOString() // Added within last 3 months
         }));
 
       console.log(`🌍 Generated user-specific destinations for ${userId}:`, userDestinations);
@@ -306,13 +313,13 @@ class UserDataService {
 
       // Create user-specific seed for consistent activities
       const userSeed = this.createUserSeed(userId);
-      const activityCount = Math.min(limit, this.seededRandom(userSeed + 50, 5, 8));
+      const activityCount = Math.min(limit, this.seededRandom(userSeed + 50, 3, 6)); // 3-6 activities (more realistic)
 
       const activities = [];
       for (let i = 0; i < activityCount; i++) {
         const activityIndex = this.seededRandom(userSeed + i + 60, 0, activityTypes.length - 1);
         const activity = activityTypes[activityIndex];
-        const hoursAgo = this.seededRandom(userSeed + i + 70, 1, 72); // 1-72 hours ago
+        const hoursAgo = this.seededRandom(userSeed + i + 70, 2, 48); // 2-48 hours ago (more recent activity)
         
         activities.push({
           id: `activity_${userId}_${i}`,
@@ -324,7 +331,8 @@ class UserDataService {
           activity_data: {
             source: 'mobile_app',
             version: '1.0.0',
-            user_specific: true
+            user_specific: true,
+            engagement_score: this.seededRandom(userSeed + i + 80, 70, 95) // 70-95% engagement score
           }
         });
       }
