@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
-  Home, Globe, Map, Bell, User
+  Home, Globe, Map, Bell, User, Crown
 } from 'lucide-react';
 
 const TabNavigation: React.FC = () => {
@@ -37,6 +37,12 @@ const TabNavigation: React.FC = () => {
       path: '/profile',
       label: 'Profile',
       icon: User,
+      exactPath: false
+    },
+    {
+      path: '/pricing',
+      label: 'Premium',
+      icon: Crown,
       exactPath: false
     }
   ];
