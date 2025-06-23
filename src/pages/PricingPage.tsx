@@ -1,16 +1,41 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '../components/layout/PageContainer';
-import RevenueCatPricing from '../components/payment/RevenueCatPricing';
+import PricingPlans from '../components/payment/PricingPlans';
+import PaymentForm from '../components/payment/PaymentForm';
 import { useAuth } from '../contexts/AuthContext';
 
 const PricingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
 
-  const handlePurchaseSuccess = () => {
-    // Navigate to success page or home
-    navigate('/home');
+  const planDetails = {
+    premium_monthly: {
+      name: 'Premium Monthly',
+      price: 10.99,
+      currency: 'EUR'
+    },
+    premium_yearly: {
+      name: 'Premium Yearly',
+      price: 99.99,
+      currency: 'EUR'
+    }
+  };
+
+  const handleSelectPlan = (planId: string) => {
+    setSelectedPlan(planId);
+    setShowPaymentForm(true);
+  };
+
+  const handlePaymentSuccess = () => {
+    navigate('/payment-success');
+  };
+
+  const handlePaymentCancel = () => {
+    setShowPaymentForm(false);
+    setSelectedPlan(null);
   };
 
   if (!user) {
@@ -34,13 +59,33 @@ const PricingPage: React.FC = () => {
     );
   }
 
+  if (showPaymentForm && selectedPlan) {
+    const plan = planDetails[selectedPlan as keyof typeof planDetails];
+    
+    return (
+      <PageContainer
+        title="Secure Payment"
+        subtitle="Complete your subscription"
+      >
+        <PaymentForm
+          planId={selectedPlan}
+          planName={plan.name}
+          amount={plan.price}
+          currency={plan.currency}
+          onSuccess={handlePaymentSuccess}
+          onCancel={handlePaymentCancel}
+        />
+      </PageContainer>
+    );
+  }
+
   return (
     <PageContainer
       title="Premium Plans"
       subtitle="Unlock advanced travel safety features"
     >
       <div className="max-w-6xl mx-auto">
-        <RevenueCatPricing onPurchaseSuccess={handlePurchaseSuccess} />
+        <PricingPlans onSelectPlan={handleSelectPlan} />
       </div>
     </PageContainer>
   );

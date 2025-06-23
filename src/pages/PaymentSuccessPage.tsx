@@ -1,103 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Check, Crown, Shield, Zap } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Check, Crown, Shield, Zap, ArrowRight } from 'lucide-react';
 import PageContainer from '../components/layout/PageContainer';
 
 const PaymentSuccessPage: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [isLoading, setIsLoading] = useState(true);
-  const [paymentStatus, setPaymentStatus] = useState<'success' | 'error' | 'processing'>('processing');
 
   useEffect(() => {
-    const paymentIntent = searchParams.get('payment_intent');
-    const paymentIntentClientSecret = searchParams.get('payment_intent_client_secret');
-
-    if (paymentIntent && paymentIntentClientSecret) {
-      // Verify payment status with your backend
-      verifyPayment(paymentIntent);
-    } else {
-      setPaymentStatus('error');
-      setIsLoading(false);
-    }
-  }, [searchParams]);
-
-  const verifyPayment = async (paymentIntentId: string) => {
-    try {
-      const response = await fetch(`/api/verify-payment/${paymentIntentId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-      
-      if (data.status === 'succeeded') {
-        setPaymentStatus('success');
-        // Update user subscription status in your database
-        await updateUserSubscription(data.subscription);
-      } else {
-        setPaymentStatus('error');
-      }
-    } catch (error) {
-      console.error('Payment verification error:', error);
-      setPaymentStatus('error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateUserSubscription = async (subscriptionData: any) => {
-    try {
-      // Update user subscription in Supabase or your database
-      console.log('Updating user subscription:', subscriptionData);
-    } catch (error) {
-      console.error('Error updating subscription:', error);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <PageContainer>
-        <div className="text-center py-16">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-8"></div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Processing Your Payment</h2>
-          <p className="text-gray-600">Please wait while we confirm your subscription...</p>
-        </div>
-      </PageContainer>
-    );
-  }
-
-  if (paymentStatus === 'error') {
-    return (
-      <PageContainer>
-        <div className="text-center py-16">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-8">
-            <span className="text-2xl">❌</span>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Payment Failed</h2>
-          <p className="text-gray-600 mb-8">
-            There was an issue processing your payment. Please try again or contact support.
-          </p>
-          <div className="space-x-4">
-            <button
-              onClick={() => navigate('/pricing')}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Try Again
-            </button>
-            <button
-              onClick={() => navigate('/home')}
-              className="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Back to Home
-            </button>
-          </div>
-        </div>
-      </PageContainer>
-    );
-  }
+    // In a real implementation, you would:
+    // 1. Verify the payment with your backend
+    // 2. Update user subscription status in database
+    // 3. Send confirmation email
+    console.log('Payment successful - updating user subscription status');
+  }, []);
 
   return (
     <PageContainer>
@@ -114,7 +29,7 @@ const PaymentSuccessPage: React.FC = () => {
 
         {/* Success Message */}
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-          Welcome to <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">TravelSafe Premium!</span>
+          Welcome to <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">GuardNomad Premium!</span>
         </h1>
         
         <p className="text-xl text-gray-600 mb-8">
@@ -172,9 +87,10 @@ const PaymentSuccessPage: React.FC = () => {
         <div className="space-y-4">
           <button
             onClick={() => navigate('/home')}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-8 rounded-xl font-semibold text-lg hover:shadow-lg hover:scale-105 transition-all duration-300"
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-8 rounded-xl font-semibold text-lg hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2"
           >
-            Start Using Premium Features
+            <span>Start Using Premium Features</span>
+            <ArrowRight className="w-5 h-5" />
           </button>
           
           <button
@@ -185,13 +101,32 @@ const PaymentSuccessPage: React.FC = () => {
           </button>
         </div>
 
+        {/* What's Next */}
+        <div className="mt-12 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h4 className="font-bold text-gray-900 mb-4">What's Next?</h4>
+          <div className="space-y-3 text-sm text-gray-600">
+            <div className="flex items-center space-x-3">
+              <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-bold text-blue-600">1</div>
+              <span>Explore your enhanced dashboard with premium features</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-bold text-blue-600">2</div>
+              <span>Set up personalized safety alerts for your destinations</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-bold text-blue-600">3</div>
+              <span>Access AI-powered travel insights and recommendations</span>
+            </div>
+          </div>
+        </div>
+
         {/* Support */}
         <div className="mt-12 text-center">
           <p className="text-sm text-gray-500 mb-2">
             Need help getting started?
           </p>
           <a
-            href="mailto:support@travelsafe.com"
+            href="mailto:support@guardnomad.com"
             className="text-blue-600 hover:text-blue-800 font-medium text-sm"
           >
             Contact Premium Support

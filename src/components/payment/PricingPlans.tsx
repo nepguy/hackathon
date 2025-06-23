@@ -1,36 +1,80 @@
 import React, { useState } from 'react';
-import { Check, Star, Zap, Shield, Globe, Crown } from 'lucide-react';
-import { SUBSCRIPTION_PLANS, PaymentService } from '../../lib/stripe';
+import { Check, Star, Zap, Shield, Globe, Crown, CreditCard, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+
+interface PricingPlan {
+  id: string;
+  name: string;
+  price: number;
+  currency: string;
+  interval: 'month' | 'year';
+  features: string[];
+  popular?: boolean;
+  savings?: string;
+}
 
 interface PricingPlansProps {
   onSelectPlan: (planId: string) => void;
 }
 
+const SUBSCRIPTION_PLANS: PricingPlan[] = [
+  {
+    id: 'premium_monthly',
+    name: 'Premium Monthly',
+    price: 10.99,
+    currency: 'EUR',
+    interval: 'month',
+    features: [
+      'Real-time safety alerts',
+      'AI-powered travel insights',
+      'Premium weather forecasts',
+      'Priority customer support',
+      'Unlimited destinations',
+      'Advanced map features',
+      'Offline access',
+      'Custom alert preferences'
+    ],
+    popular: true
+  },
+  {
+    id: 'premium_yearly',
+    name: 'Premium Yearly',
+    price: 99.99,
+    currency: 'EUR',
+    interval: 'year',
+    savings: 'Save 24%',
+    features: [
+      'All Premium Monthly features',
+      '2 months free (24% savings)',
+      'Exclusive travel guides',
+      'VIP support channel',
+      'Early access to new features',
+      'Travel insurance discounts',
+      'Priority booking assistance',
+      'Personalized travel reports'
+    ]
+  }
+];
+
 const PricingPlans: React.FC<PricingPlansProps> = ({ onSelectPlan }) => {
   const { user } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const paymentService = PaymentService.getInstance();
 
-  const handleSelectPlan = async (planId: string) => {
+  const handleSelectPlan = (planId: string) => {
     if (!user) {
       alert('Please sign in to subscribe to a plan');
       return;
     }
 
     setSelectedPlan(planId);
-    setIsLoading(true);
+    onSelectPlan(planId);
+  };
 
-    try {
-      await onSelectPlan(planId);
-    } catch (error) {
-      console.error('Error selecting plan:', error);
-      alert('Failed to process subscription. Please try again.');
-    } finally {
-      setIsLoading(false);
-      setSelectedPlan(null);
-    }
+  const formatPrice = (amount: number, currency: string = 'EUR'): string => {
+    return new Intl.NumberFormat('en-EU', {
+      style: 'currency',
+      currency: currency,
+    }).format(amount);
   };
 
   const getPlanIcon = (planId: string) => {
@@ -61,14 +105,13 @@ const PricingPlans: React.FC<PricingPlansProps> = ({ onSelectPlan }) => {
           const isPopular = plan.popular;
           const isYearly = plan.interval === 'year';
           const isSelected = selectedPlan === plan.id;
-          const isProcessing = isLoading && isSelected;
 
           return (
             <div
               key={plan.id}
               className={`relative bg-white rounded-2xl shadow-xl border-2 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 ${
                 isPopular ? 'border-blue-500 scale-105' : 'border-gray-200'
-              }`}
+              } ${isSelected ? 'ring-4 ring-blue-200' : ''}`}
             >
               {/* Popular Badge */}
               {isPopular && (
@@ -76,6 +119,15 @@ const PricingPlans: React.FC<PricingPlansProps> = ({ onSelectPlan }) => {
                   <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full text-sm font-semibold flex items-center space-x-2">
                     <Zap className="w-4 h-4" />
                     <span>Most Popular</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Savings Badge */}
+              {plan.savings && (
+                <div className="absolute -top-2 -right-2">
+                  <div className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                    {plan.savings}
                   </div>
                 </div>
               )}
@@ -89,14 +141,14 @@ const PricingPlans: React.FC<PricingPlansProps> = ({ onSelectPlan }) => {
                   <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
                   <div className="flex items-baseline justify-center space-x-2">
                     <span className="text-4xl font-bold text-gray-900">
-                      {paymentService.formatPrice(plan.price, plan.currency)}
+                      {formatPrice(plan.price, plan.currency)}
                     </span>
                     <span className="text-gray-600">/{plan.interval}</span>
                   </div>
                   {isYearly && (
                     <div className="mt-2">
-                      <span className="inline-block bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">
-                        Save 24% annually
+                      <span className="text-sm text-green-600 font-medium">
+                        Only {formatPrice(plan.price / 12, plan.currency)} per month
                       </span>
                     </div>
                   )}
@@ -117,31 +169,22 @@ const PricingPlans: React.FC<PricingPlansProps> = ({ onSelectPlan }) => {
                 {/* CTA Button */}
                 <button
                   onClick={() => handleSelectPlan(plan.id)}
-                  disabled={isProcessing}
                   className={`w-full py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-300 ${
                     isPopular
                       ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg hover:scale-105'
                       : 'bg-gray-900 text-white hover:bg-gray-800'
-                  } disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2`}
+                  } flex items-center justify-center space-x-2 group`}
                 >
-                  {isProcessing ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Processing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Shield className="w-5 h-5" />
-                      <span>Get Premium Access</span>
-                    </>
-                  )}
+                  <CreditCard className="w-5 h-5" />
+                  <span>Choose Plan</span>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </button>
 
                 {/* Security Note */}
                 <div className="mt-4 text-center">
                   <p className="text-xs text-gray-500 flex items-center justify-center space-x-1">
                     <Shield className="w-3 h-3" />
-                    <span>Secure payment powered by Stripe</span>
+                    <span>Secure payment • Cancel anytime</span>
                   </p>
                 </div>
               </div>
@@ -189,11 +232,19 @@ const PricingPlans: React.FC<PricingPlansProps> = ({ onSelectPlan }) => {
         </div>
       </div>
 
-      {/* Money Back Guarantee */}
-      <div className="mt-12 text-center">
-        <div className="inline-flex items-center space-x-2 bg-green-50 text-green-800 px-6 py-3 rounded-full">
-          <Shield className="w-5 h-5" />
+      {/* Trust Indicators */}
+      <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+        <div className="flex items-center justify-center space-x-2 text-gray-600">
+          <Shield className="w-5 h-5 text-green-500" />
           <span className="font-medium">30-day money-back guarantee</span>
+        </div>
+        <div className="flex items-center justify-center space-x-2 text-gray-600">
+          <CreditCard className="w-5 h-5 text-blue-500" />
+          <span className="font-medium">Secure payment processing</span>
+        </div>
+        <div className="flex items-center justify-center space-x-2 text-gray-600">
+          <Globe className="w-5 h-5 text-purple-500" />
+          <span className="font-medium">Cancel anytime</span>
         </div>
       </div>
     </div>
