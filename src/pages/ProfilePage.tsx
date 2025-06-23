@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/TranslationContext';
+import { useSubscription } from '../contexts/SubscriptionContext';
 import { databaseService } from '../lib/database';
 import { userDataService, UserStats } from '../lib/userDataService';
 import PageContainer from '../components/layout/PageContainer';
 import LanguageSelector from '../components/common/LanguageSelector';
+import SubscriptionManagement from '../components/payment/SubscriptionManagement';
 import { 
   User, Bell, Shield, HelpCircle, LogOut,
   Camera, Moon, Sun, Globe, Lock, 
@@ -28,6 +30,7 @@ interface SettingsGroup {
 const ProfilePage: React.FC = () => {
   const { user, signOut } = useAuth();
   const { t, currentLanguage } = useTranslation();
+  const { isSubscribed } = useSubscription();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -438,6 +441,9 @@ const ProfilePage: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Subscription Management */}
+        <SubscriptionManagement />
 
         {/* Notification Preferences */}
         <div className="card p-6" data-section="notifications">
