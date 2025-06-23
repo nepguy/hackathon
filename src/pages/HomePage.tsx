@@ -2,28 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserDestinations } from '../contexts/UserDestinationContext';
 import { useLocation as useLocationContext } from '../contexts/LocationContext';
+import { useTrial } from '../contexts/TrialContext';
 import { useLocationPermissionRequest } from '../components/common/PermissionManager';
 import { useRealTimeData } from '../hooks/useRealTimeData';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '../components/layout/PageContainer';
 import EventCard from '../components/home/EventCard';
 import WeatherCard from '../components/home/WeatherCard';
+import TrialExpiredModal from '../components/trial/TrialExpiredModal';
 import { eventsService, TravelEvent } from '../lib/eventsApi';
 import { 
   MapPin, Calendar, Shield, Clock, 
   Plus, ArrowRight, Zap, Globe, AlertTriangle,
-  RefreshCw
+  RefreshCw, Crown
 } from 'lucide-react';
 
 const HomePage: React.FC = () => {
   const { user } = useAuth();
   const { currentDestination, destinations } = useUserDestinations();
   const { userLocation, locationPermission, getCurrentLocation } = useLocationContext();
+  const { isTrialActive, trialDaysRemaining, isTrialExpired, isPremiumUser } = useTrial();
   const { requestLocationForContext } = useLocationPermissionRequest();
   const { safetyAlerts, travelPlans, recentActivity, isLoading, error, refreshData } = useRealTimeData();
   const navigate = useNavigate();
   const [events, setEvents] = useState<TravelEvent[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+  const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false);
   const [greeting] = useState(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -41,6 +45,13 @@ const HomePage: React.FC = () => {
     }
     return 'Traveler';
   };
+
+  // Show trial expired modal when trial expires
+  useEffect(() => {
+    if (isTrialExpired && !isPremiumUser) {
+      setShowTrialExpiredModal(true);
+    }
+  }, [isTrialExpired, isPremiumUser]);
 
   // Stats for dashboard
   const stats = [
@@ -75,6 +86,20 @@ const HomePage: React.FC = () => {
       trend: recentActivity.length > 0 ? 'New updates available' : 'All caught up'
     }
   ];
+
+  // Add trial status to stats if user is in trial
+  if (isTrialActive || isTrialExpired) {
+    stats.push({
+      label: 'Trial Status',
+      value: isTrialExpired ? 'Expired' : `${trialDaysRemaining} Days`,
+      icon: Crown,
+      color: isTrialExpired ? 'text-red-600' : trialDaysRemaining <= 1 ? 'text-orange-600' : 'text-purple-600',
+      bgColor: isTrialExpired ? 'bg-red-50' : trialDaysRemaining <= 1 ? 'bg-orange-50' : 'bg-purple-50',
+      borderColor: isTrialExpired ? 'border-red-200' : trialDaysRemaining <= 1 ? 'border-orange-200' : 'border-purple-200',
+      description: isTrialExpired ? 'Trial has ended - upgrade to continue' : 'Premium trial remaining',
+      trend: isTrialExpired ? 'Upgrade to Premium' : 'Enjoying premium features'
+    });
+  }
 
   // Fetch events for current destination or user location
   const fetchEvents = async () => {
@@ -291,7 +316,7 @@ const HomePage: React.FC = () => {
         )}
 
         {/* Quick Stats */}
-        <div className="mobile-grid">
+        <div className={`grid grid-cols-1 ${stats.length <= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'} gap-4`}>
           {stats.map((stat, index) => (
             <div key={index} className={`kit-card hover:shadow-md transition-all duration-300 ${stat.borderColor}`}>
               <div className="flex items-center justify-between">
@@ -318,6 +343,61 @@ const HomePage: React.FC = () => {
             </div>
           ))}
         </div>
+
+        {/* Trial Status Card */}
+        {(isTrialActive || isTrialExpired) && !isPremiumUser && (
+          <div className={`bg-gradient-to-r ${
+            isTrialExpired 
+              ? 'from-red-50 to-pink-50 border-red-200' 
+              : trialDaysRemaining <= 1 
+                ? 'from-orange-50 to-red-50 border-orange-200'
+                : 'from-purple-50 to-blue-50 border-purple-200'
+          } border rounded-xl p-6`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                  isTrialExpired 
+                    ? 'bg-red-100' 
+                    : trialDaysRemaining <= 1 
+                      ? 'bg-orange-100'
+                      : 'bg-purple-100'
+                }`}>
+                  <Crown className={`w-6 h-6 ${
+                    isTrialExpired 
+                      ? 'text-red-600' 
+                      : trialDaysRemaining <= 1 
+                        ? 'text-orange-600'
+                        : 'text-purple-600'
+                  }`} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {isTrialExpired 
+                      ? 'Trial Expired' 
+                      : `${trialDaysRemaining} Day${trialDaysRemaining > 1 ? 's' : ''} Left`
+                    }
+                  </h3>
+                  <p className="text-gray-600">
+                    {isTrialExpired 
+                      ? 'Upgrade to Premium to continue using advanced features'
+                      : 'Your premium trial is active. Upgrade to keep these features forever!'
+                    }
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate('/pricing')}
+                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+                  isTrialExpired
+                    ? 'bg-red-600 text-white hover:bg-red-700'
+                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                }`}
+              >
+                {isTrialExpired ? 'Upgrade Now' : 'View Plans'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Weather Widget */}
         <WeatherCard 
@@ -461,6 +541,12 @@ const HomePage: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      {/* Trial Expired Modal */}
+      <TrialExpiredModal 
+        isOpen={showTrialExpiredModal}
+        onClose={() => setShowTrialExpiredModal(false)}
+      />
     </PageContainer>
   );
 };

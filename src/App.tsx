@@ -3,10 +3,12 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { LocationProvider } from './contexts/LocationContext';
 import { UserDestinationProvider } from './contexts/UserDestinationContext';
 import { AuthProvider } from './contexts/AuthContext';
+import { TrialProvider } from './contexts/TrialContext';
 import { initializeSupabaseMonitoring } from './lib/supabase';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import TabNavigation from './components/layout/TabNavigation';
 import PermissionManager from './components/common/PermissionManager';
+import TrialBanner from './components/trial/TrialBanner';
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -30,79 +32,82 @@ function App() {
 
   return (
     <AuthProvider>
-      <LocationProvider autoStart={true}>
-        <UserDestinationProvider>
-          <PermissionManager>
-            <Router 
-              future={{
-                v7_startTransition: true,
-                v7_relativeSplatPath: true
-              }}
-            >
-              <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-                <Routes>
-                  {/* Public routes */}
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/auth" element={<AuthPage />} />
-                  
-                  {/* Protected routes */}
-                  <Route path="/home" element={
-                    <ProtectedRoute>
-                      <HomePage />
-                      <TabNavigation />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/alerts" element={
-                    <ProtectedRoute>
-                      <AlertsPage />
-                      <TabNavigation />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/map" element={
-                    <ProtectedRoute>
-                      <MapPage />
-                      <TabNavigation />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/explore" element={
-                    <ProtectedRoute>
-                      <ExplorePage />
-                      <TabNavigation />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/profile" element={
-                    <ProtectedRoute>
-                      <ProfilePage />
-                      <TabNavigation />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/add-destination" element={
-                    <ProtectedRoute>
-                      <AddDestinationPage />
-                      <TabNavigation />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/pricing" element={
-                    <ProtectedRoute>
-                      <PricingPage />
-                      <TabNavigation />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/payment-success" element={
-                    <ProtectedRoute>
-                      <PaymentSuccessPage />
-                      <TabNavigation />
-                    </ProtectedRoute>
-                  } />
-                  
-                  {/* Redirect any unknown routes to home */}
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </div>
-            </Router>
-          </PermissionManager>
-        </UserDestinationProvider>
-      </LocationProvider>
+      <TrialProvider>
+        <LocationProvider autoStart={true}>
+          <UserDestinationProvider>
+            <PermissionManager>
+              <Router 
+                future={{
+                  v7_startTransition: true,
+                  v7_relativeSplatPath: true
+                }}
+              >
+                <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+                  <TrialBanner />
+                  <Routes>
+                    {/* Public routes */}
+                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/auth" element={<AuthPage />} />
+                    
+                    {/* Protected routes */}
+                    <Route path="/home" element={
+                      <ProtectedRoute>
+                        <HomePage />
+                        <TabNavigation />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/alerts" element={
+                      <ProtectedRoute>
+                        <AlertsPage />
+                        <TabNavigation />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/map" element={
+                      <ProtectedRoute>
+                        <MapPage />
+                        <TabNavigation />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/explore" element={
+                      <ProtectedRoute>
+                        <ExplorePage />
+                        <TabNavigation />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/profile" element={
+                      <ProtectedRoute>
+                        <ProfilePage />
+                        <TabNavigation />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/add-destination" element={
+                      <ProtectedRoute>
+                        <AddDestinationPage />
+                        <TabNavigation />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/pricing" element={
+                      <ProtectedRoute>
+                        <PricingPage />
+                        <TabNavigation />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/payment-success" element={
+                      <ProtectedRoute>
+                        <PaymentSuccessPage />
+                        <TabNavigation />
+                      </ProtectedRoute>
+                    } />
+                    
+                    {/* Redirect any unknown routes to home */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </div>
+              </Router>
+            </PermissionManager>
+          </UserDestinationProvider>
+        </LocationProvider>
+      </TrialProvider>
     </AuthProvider>
   );
 }
