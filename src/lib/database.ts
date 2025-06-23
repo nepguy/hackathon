@@ -33,6 +33,8 @@ export interface DatabaseUserProfile {
   privacy_accepted_at: string | null;
   created_at: string;
   updated_at: string;
+  premium_subscription_active?: boolean;
+  premium_subscription_started_at?: string;
 }
 
 export interface DatabaseUserPreferences {
