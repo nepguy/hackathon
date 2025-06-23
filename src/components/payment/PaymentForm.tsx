@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 import { CreditCard, Lock, Shield, Check, AlertTriangle, ArrowLeft } from 'lucide-react';
 
 interface PaymentFormProps {
@@ -32,6 +33,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   onSuccess,
   onCancel,
 }) => {
+  const { purchaseProduct } = useSubscription();
   const [formData, setFormData] = useState<FormData>({
     email: '',
     cardNumber: '',
@@ -143,21 +145,22 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
     setIsProcessing(true);
     setStep('processing');
 
+    let success = false;
     try {
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Process payment through RevenueCat
+      success = await purchaseProduct(planId);
 
-      // In a real implementation, you would:
-      // 1. Send payment data to your backend
-      // 2. Process payment with your payment provider
-      // 3. Handle the response
-
-      setStep('success');
+      if (success) {
+        setStep('success');
+        
+        setTimeout(() => {
+          onSuccess();
+        }, 2000);
+      } else {
+        setErrors({ general: 'Payment failed. Please try again.' });
+        setStep('payment');
+      }
       
-      setTimeout(() => {
-        onSuccess();
-      }, 2000);
-
     } catch (error) {
       console.error('Payment error:', error);
       setErrors({ general: 'Payment failed. Please try again.' });

@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { LocationProvider } from './contexts/LocationContext';
 import { UserDestinationProvider } from './contexts/UserDestinationContext';
 import { AuthProvider } from './contexts/AuthContext';
-import { TrialProvider } from './contexts/TrialContext';
+import { SubscriptionProvider } from './contexts/SubscriptionContext';
 import { TranslationProvider } from './contexts/TranslationContext';
 import { initializeSupabaseMonitoring } from './lib/supabase';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -33,7 +33,7 @@ function App() {
 
   return (
     <AuthProvider>
-      <TrialProvider>
+      <SubscriptionProvider>
         <TranslationProvider>
           <LocationProvider autoStart={true}>
             <UserDestinationProvider>
@@ -110,7 +110,7 @@ function App() {
             </UserDestinationProvider>
           </LocationProvider>
         </TranslationProvider>
-      </TrialProvider>
+      </SubscriptionProvider>
     </AuthProvider>
   );
 }

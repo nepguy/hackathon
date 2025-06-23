@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Check, Star, Zap, Shield, Globe, Crown, CreditCard, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { REVENUECAT_CONFIG } from '../../config/api';
 
 interface PricingPlan {
   id: string;
@@ -19,7 +20,7 @@ interface PricingPlansProps {
 
 const SUBSCRIPTION_PLANS: PricingPlan[] = [
   {
-    id: 'premium_monthly',
+    id: REVENUECAT_CONFIG.PRODUCTS.MONTHLY,
     name: 'Premium Monthly',
     price: 10.99,
     currency: 'EUR',
@@ -37,7 +38,7 @@ const SUBSCRIPTION_PLANS: PricingPlan[] = [
     popular: true
   },
   {
-    id: 'premium_yearly',
+    id: REVENUECAT_CONFIG.PRODUCTS.YEARLY,
     name: 'Premium Yearly',
     price: 99.99,
     currency: 'EUR',

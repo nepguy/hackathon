@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSubscription } from '../contexts/SubscriptionContext';
 import PageContainer from '../components/layout/PageContainer';
 import PricingPlans from '../components/payment/PricingPlans';
 import PaymentForm from '../components/payment/PaymentForm';
+import RevenueCatPayment from '../components/payment/RevenueCatPayment';
 import { useAuth } from '../contexts/AuthContext';
 
 const PricingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isSubscribed } = useSubscription();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
 
@@ -37,6 +40,34 @@ const PricingPage: React.FC = () => {
     setShowPaymentForm(false);
     setSelectedPlan(null);
   };
+  
+  // If user is already subscribed, show subscription management instead
+  if (isSubscribed) {
+    return (
+      <PageContainer
+        title="Subscription Management"
+        subtitle="Manage your premium subscription"
+      >
+        <div className="text-center py-12">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Check className="w-10 h-10 text-green-600" />
+          </div>
+          <h3 className="text-2xl font-semibold text-gray-900 mb-4">
+            You're already a Premium member!
+          </h3>
+          <p className="text-gray-600 mb-8 max-w-md mx-auto">
+            You already have an active premium subscription. You can manage your subscription from your profile.
+          </p>
+          <button
+            onClick={() => navigate('/profile')}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Manage Subscription
+          </button>
+        </div>
+      </PageContainer>
+    );
+  }
 
   if (!user) {
     return (
@@ -64,14 +95,11 @@ const PricingPage: React.FC = () => {
     
     return (
       <PageContainer
-        title="Secure Payment"
+        title="Complete Purchase"
         subtitle="Complete your subscription"
       >
-        <PaymentForm
+        <RevenueCatPayment
           planId={selectedPlan}
-          planName={plan.name}
-          amount={plan.price}
-          currency={plan.currency}
           onSuccess={handlePaymentSuccess}
           onCancel={handlePaymentCancel}
         />

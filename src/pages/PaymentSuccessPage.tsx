@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, Crown, Shield, Zap, ArrowRight } from 'lucide-react';
-import { useTrial } from '../contexts/TrialContext';
+import { useSubscription } from '../contexts/SubscriptionContext';
 import PageContainer from '../components/layout/PageContainer';
 
 const PaymentSuccessPage: React.FC = () => {
   const navigate = useNavigate();
-  const { upgradeToPremium } = useTrial();
+  const { refreshSubscriptionStatus } = useSubscription();
 
   useEffect(() => {
     // In a real implementation, you would:
@@ -16,7 +16,7 @@ const PaymentSuccessPage: React.FC = () => {
     console.log('Payment successful - updating user subscription status');
     
     // Update trial status to premium
-    upgradeToPremium();
+    refreshSubscriptionStatus();
   }, []);
 
   return (

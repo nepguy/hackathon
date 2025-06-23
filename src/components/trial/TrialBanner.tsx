@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Crown, Clock, X, Zap, ArrowRight } from 'lucide-react';
-import { useTrial } from '../../contexts/TrialContext';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 
 const TrialBanner: React.FC = () => {
   const navigate = useNavigate();
-  const { isTrialActive, trialDaysRemaining, isTrialExpired } = useTrial();
+  const { isTrialActive, trialDaysRemaining, subscriptionStatus, isSubscribed } = useSubscription();
   const [isDismissed, setIsDismissed] = useState(false);
+  
+  // Check if trial has expired
+  const isTrialExpired = subscriptionStatus === 'expired';
 
   // Don't show banner if dismissed or if user is premium
-  if (isDismissed || (!isTrialActive && !isTrialExpired)) {
+  if (isDismissed || isSubscribed || (!isTrialActive && !isTrialExpired)) {
     return null;
   }
 

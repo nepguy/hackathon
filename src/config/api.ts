@@ -1,7 +1,7 @@
 // API Configuration
 export const API_CONFIG = {
   // Backend API URL - change this for production
-  BASE_URL: (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000',
+  BASE_URL: import.meta.env.VITE_API_URL || 'https://saver-7tda.onrender.com',
   
   // API endpoints
   ENDPOINTS: {
@@ -35,6 +35,18 @@ export const API_CONFIG = {
   TIMEOUT: 30000, // 30 seconds
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000 // 1 second
+};
+
+// RevenueCat Configuration
+export const REVENUECAT_CONFIG = {
+  API_KEY: import.meta.env.VITE_REVENUECAT_API_KEY || 'goog_fTTowBftlWMKsvkaQQsLRDAULEu',
+  ENTITLEMENTS: {
+    PREMIUM: 'premium'
+  },
+  PRODUCTS: {
+    MONTHLY: 'premium_monthly',
+    YEARLY: 'premium_yearly'
+  }
 };
 
 export default API_CONFIG; 

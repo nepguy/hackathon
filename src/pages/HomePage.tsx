@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserDestinations } from '../contexts/UserDestinationContext';
 import { useLocation as useLocationContext } from '../contexts/LocationContext';
-import { useTrial } from '../contexts/TrialContext';
+import { useSubscription } from '../contexts/SubscriptionContext';
 import { useLocationPermissionRequest } from '../components/common/PermissionManager';
 import { useRealTimeData } from '../hooks/useRealTimeData';
 import { useNavigate } from 'react-router-dom';
@@ -22,7 +22,7 @@ const HomePage: React.FC = () => {
   const { user } = useAuth();
   const { currentDestination, destinations } = useUserDestinations();
   const { userLocation, locationPermission, isTracking, startLocationTracking } = useLocationContext();
-  const { isTrialActive, trialDaysRemaining, isTrialExpired, isPremiumUser } = useTrial();
+  const { isTrialActive, trialDaysRemaining, subscriptionStatus, isSubscribed } = useSubscription();
   const { requestLocationForContext } = useLocationPermissionRequest();
   const { safetyAlerts, travelPlans, recentActivity, isLoading, error, refreshData } = useRealTimeData();
   const navigate = useNavigate();
@@ -31,6 +31,10 @@ const HomePage: React.FC = () => {
   const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
+  
+  // Check if trial has expired
+  const isTrialExpired = subscriptionStatus === 'expired';
+  const isPremiumUser = isSubscribed;
   const [realActivities, setRealActivities] = useState<any[]>([]);
   const [greeting] = useState(() => {
     const hour = new Date().getHours();
@@ -53,6 +57,7 @@ const HomePage: React.FC = () => {
   // Show trial expired modal when trial expires
   useEffect(() => {
     if (isTrialExpired && !isPremiumUser) {
+      console.log('🔔 Trial expired, showing upgrade modal');
       setShowTrialExpiredModal(true);
     }
   }, [isTrialExpired, isPremiumUser]);

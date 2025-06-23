@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Crown, Star, Zap, Shield, Globe, ArrowRight, X } from 'lucide-react';
-import { useTrial } from '../../contexts/TrialContext';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 
 interface TrialExpiredModalProps {
   isOpen: boolean;
@@ -10,7 +10,7 @@ interface TrialExpiredModalProps {
 
 const TrialExpiredModal: React.FC<TrialExpiredModalProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
-  const { upgradeToPremium } = useTrial();
+  const { purchaseProduct } = useSubscription();
 
   if (!isOpen) return null;
 
@@ -22,6 +22,9 @@ const TrialExpiredModal: React.FC<TrialExpiredModalProps> = ({ isOpen, onClose }
   const handleContinueFree = () => {
     // User can continue with limited features
     onClose();
+    
+    // Track that user declined premium
+    console.log('User declined premium upgrade after trial');
   };
 
   const premiumFeatures = [
@@ -128,7 +131,7 @@ const TrialExpiredModal: React.FC<TrialExpiredModalProps> = ({ isOpen, onClose }
           <div className="mt-8 grid grid-cols-3 gap-4 text-center text-sm text-gray-500">
             <div className="flex flex-col items-center">
               <Shield className="w-5 h-5 text-green-500 mb-1" />
-              <span>30-day guarantee</span>
+              <span>7-day guarantee</span>
             </div>
             <div className="flex flex-col items-center">
               <Star className="w-5 h-5 text-yellow-500 mb-1" />
