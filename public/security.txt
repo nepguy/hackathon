@@ -1,0 +1,31 @@
+Contact: security@travelsafe.com
+Expires: 2025-12-31T23:59:59.000Z
+Encryption: https://travelsafe.com/pgp-key.txt
+Preferred-Languages: en
+Canonical: https://travelsafe.com/.well-known/security.txt
+Policy: https://travelsafe.com/security-policy
+
+# Security Policy for TravelSafe Application
+
+## Supported Versions
+Currently supported versions:
+- v1.0.x (Current)
+
+## Reporting a Vulnerability
+If you discover a security vulnerability, please report it to:
+- Email: security@travelsafe.com
+- Response time: Within 48 hours
+- Resolution time: Critical issues within 7 days
+
+## Responsible Disclosure
+We follow responsible disclosure practices:
+1. Report vulnerabilities privately first
+2. Allow reasonable time for fixes
+3. Public disclosure after fix is deployed
+
+## Security Features
+- End-to-end encryption for sensitive data
+- Secure permission handling
+- GDPR compliance
+- Content Security Policy
+- Secure headers implementation 

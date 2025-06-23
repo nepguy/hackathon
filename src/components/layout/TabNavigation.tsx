@@ -1,15 +1,16 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Home, Globe, Map, Bell, User
 } from 'lucide-react';
 
 const TabNavigation: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   
   const tabs = [
     {
-      path: '/',
+      path: '/home',
       label: 'Home',
       icon: Home,
       exactPath: true
@@ -49,10 +50,10 @@ const TabNavigation: React.FC = () => {
             : location.pathname.startsWith(tab.path);
           
           return (
-            <NavLink
+            <button
               key={tab.path}
-              to={tab.path}
-              className={`tab-item ${isActive ? 'tab-active' : 'tab-inactive'}`}
+              onClick={() => navigate(tab.path)}
+              className={`tab-item ${isActive ? 'tab-active' : 'tab-inactive'} flex flex-col items-center justify-center min-h-[60px] px-2 bg-transparent border-none cursor-pointer`}
             >
               <div className={`p-2 rounded-xl transition-all duration-300 ${
                 isActive 
@@ -66,7 +67,7 @@ const TabNavigation: React.FC = () => {
               }`}>
                 {tab.label}
               </span>
-            </NavLink>
+            </button>
           );
         })}
       </div>

@@ -18,6 +18,13 @@ interface AlertMarker {
   description: string;
 }
 
+// Global configuration to ensure consistent library loading
+const GOOGLE_MAPS_CONFIG = {
+  apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+  libraries: ['places', 'geometry'] as any, // Type assertion to fix library type issue
+  version: 'weekly' // Use stable version instead of beta
+};
+
 const mockAlerts: AlertMarker[] = [
   {
     id: '1',
@@ -42,6 +49,46 @@ const mockAlerts: AlertMarker[] = [
   }
 ];
 
+// Create custom marker element using standard HTML/CSS
+const createMarkerElement = (alert: AlertMarker) => {
+  const markerElement = document.createElement('div');
+  markerElement.className = 'custom-marker';
+  markerElement.style.cssText = `
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+    background-color: ${alert.type === 'danger' ? '#ef4444' : alert.type === 'weather' ? '#3b82f6' : '#f59e0b'};
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+  `;
+  markerElement.innerHTML = alert.type === 'danger' ? '⚠' : alert.type === 'weather' ? '🌧' : '🚧';
+  return markerElement;
+};
+
+const createUserMarkerElement = () => {
+  const markerElement = document.createElement('div');
+  markerElement.className = 'user-marker';
+  markerElement.style.cssText = `
+    width: 16px;
+    height: 16px;
+    background-color: #4285f4;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    animation: pulse 2s infinite;
+  `;
+  return markerElement;
+};
+
 const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map: google.maps.Map | null) => void }> = ({ 
   center = { lat: 40.7128, lng: -74.0060 }, 
   zoom = 12,
@@ -51,8 +98,8 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
   setMap
 }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
-  const [userMarker, setUserMarker] = useState<google.maps.Marker | null>(null);
+  const [markers, setMarkers] = useState<google.maps.marker.AdvancedMarkerElement[]>([]);
+  const [userMarker, setUserMarker] = useState<google.maps.marker.AdvancedMarkerElement | null>(null);
   const { userLocation, isTracking } = useLocation();
 
   const initializeMap = useCallback(() => {
@@ -60,6 +107,7 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
       const newMap = new window.google.maps.Map(ref.current, {
         center,
         zoom,
+        mapId: 'DEMO_MAP_ID', // Required for AdvancedMarkerElement
         styles: [
           {
             featureType: 'poi',
@@ -91,13 +139,78 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
     }
   }, [center, zoom, onMapClick, map, setMap]);
 
-  const createAlertMarkers = useCallback(() => {
+  const createAlertMarkers = useCallback(async () => {
     if (!map) return;
 
     // Clear existing markers
-    markers.forEach(marker => marker.setMap(null));
+    markers.forEach(marker => {
+      if (marker.map) marker.map = null;
+    });
     
-    const newMarkers: google.maps.Marker[] = [];
+    const newMarkers: google.maps.marker.AdvancedMarkerElement[] = [];
+    
+    // Check if AdvancedMarkerElement is available
+    if (window.google?.maps?.marker?.AdvancedMarkerElement) {
+      // Use modern AdvancedMarkerElement
+      for (const alert of mockAlerts) {
+        try {
+          const markerElement = createMarkerElement(alert);
+          
+          const marker = new google.maps.marker.AdvancedMarkerElement({
+            position: alert.position,
+            map: map,
+            content: markerElement,
+            title: alert.title
+          });
+
+          // Create info window
+          const infoWindow = new google.maps.InfoWindow({
+            content: `
+              <div style="padding: 12px; max-width: 200px;">
+                <h3 style="font-weight: 600; font-size: 14px; margin: 0 0 8px 0; color: #111827;">${alert.title}</h3>
+                <p style="font-size: 12px; margin: 0 0 8px 0; color: #6b7280;">${alert.description}</p>
+                <div style="padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; display: inline-block; ${
+                  alert.type === 'danger' ? 'background-color: #fef2f2; color: #991b1b;' :
+                  alert.type === 'weather' ? 'background-color: #eff6ff; color: #1e40af;' :
+                  'background-color: #fffbeb; color: #92400e;'
+                }">
+                  ${alert.type.charAt(0).toUpperCase() + alert.type.slice(1)}
+                </div>
+              </div>
+            `
+          });
+
+          marker.addListener('click', () => {
+            infoWindow.open(map, marker);
+          });
+
+          newMarkers.push(marker);
+        } catch (error) {
+          console.error('Error creating advanced marker:', error);
+          // Fall back to legacy markers
+          createLegacyMarkers();
+          return;
+        }
+      }
+    } else {
+      // Fall back to legacy markers
+      createLegacyMarkers();
+      return;
+    }
+    
+    setMarkers(newMarkers);
+  }, [map]);
+
+  // Fallback to legacy markers
+  const createLegacyMarkers = useCallback(() => {
+    if (!map) return;
+
+    // Clear existing markers
+    markers.forEach(marker => {
+      if (marker.map) marker.map = null;
+    });
+    
+    const newMarkers: any[] = [];
     
     mockAlerts.forEach(alert => {
       const icon = {
@@ -118,9 +231,9 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
 
       const infoWindow = new google.maps.InfoWindow({
         content: `
-          <div class="p-2">
-            <h3 class="font-semibold text-sm">${alert.title}</h3>
-            <p class="text-xs text-gray-600 mt-1">${alert.description}</p>
+          <div style="padding: 8px;">
+            <h3 style="font-weight: 600; font-size: 14px; margin: 0 0 4px 0;">${alert.title}</h3>
+            <p style="font-size: 12px; margin: 0; color: #6b7280;">${alert.description}</p>
           </div>
         `
       });
@@ -132,67 +245,85 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
       newMarkers.push(marker);
     });
     
-    setMarkers(newMarkers);
-  }, [map, markers]);
-
-  useEffect(() => {
-    initializeMap();
-  }, [initializeMap]);
+    setMarkers(newMarkers as any);
+  }, [map]);
 
   // Update user location marker
-  const updateUserLocationMarker = useCallback(() => {
+  const updateUserLocationMarker = useCallback(async () => {
     if (!map || !userLocation) return;
 
     // Remove existing user marker
     if (userMarker) {
-      userMarker.setMap(null);
+      userMarker.map = null;
     }
 
-    // Create new user marker
-    const marker = new google.maps.Marker({
-      position: { lat: userLocation.latitude, lng: userLocation.longitude },
-      map: map,
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 8,
-        fillColor: '#4285f4',
-        fillOpacity: 1,
-        strokeColor: '#ffffff',
-        strokeWeight: 3
-      },
-      title: 'Your Location',
-    });
+    try {
+      // Try to use AdvancedMarkerElement if available
+      if (window.google?.maps?.marker?.AdvancedMarkerElement) {
+        const markerElement = createUserMarkerElement();
+        
+        const marker = new google.maps.marker.AdvancedMarkerElement({
+          position: { lat: userLocation.latitude, lng: userLocation.longitude },
+          map: map,
+          content: markerElement,
+          title: 'Your Location'
+        });
 
-    // Add accuracy circle if available
-    if (userLocation.accuracy && userLocation.accuracy < 1000) {
-      new google.maps.Circle({
-        strokeColor: '#4285f4',
-        strokeOpacity: 0.8,
-        strokeWeight: 2,
-        fillColor: '#4285f4',
-        fillOpacity: 0.15,
-        map: map,
-        center: { lat: userLocation.latitude, lng: userLocation.longitude },
-        radius: userLocation.accuracy
-      });
+        setUserMarker(marker);
+      } else {
+        // Fallback to legacy marker
+        const marker = new google.maps.Marker({
+          position: { lat: userLocation.latitude, lng: userLocation.longitude },
+          map: map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: '#4285f4',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 3
+          },
+          title: 'Your Location',
+        });
+
+        setUserMarker(marker as any);
+      }
+
+      // Add accuracy circle if available
+      if (userLocation.accuracy && userLocation.accuracy < 1000) {
+        new google.maps.Circle({
+          strokeColor: '#4285f4',
+          strokeOpacity: 0.8,
+          strokeWeight: 2,
+          fillColor: '#4285f4',
+          fillOpacity: 0.15,
+          map: map,
+          center: { lat: userLocation.latitude, lng: userLocation.longitude },
+          radius: userLocation.accuracy
+        });
+      }
+    } catch (error) {
+      console.error('Error creating user location marker:', error);
     }
+  }, [map, userLocation]);
 
-    setUserMarker(marker);
-  }, [map, userLocation, userMarker]);
-
+  // Initialize map - only run once
   useEffect(() => {
     initializeMap();
   }, [initializeMap]);
 
+  // Handle alert markers - only when layer changes
   useEffect(() => {
     if (map && activeLayer === 'alerts') {
       createAlertMarkers();
-    } else {
+    } else if (map) {
       // Clear markers when alerts layer is not active
-      markers.forEach(marker => marker.setMap(null));
+      markers.forEach(marker => {
+        if (marker.map) marker.map = null;
+      });
       setMarkers([]);
     }
-  }, [map, activeLayer, createAlertMarkers, markers]);
+  }, [map, activeLayer, createAlertMarkers]);
 
   // Update user location marker when location changes
   useEffect(() => {
@@ -211,26 +342,32 @@ const GoogleMapComponent: React.FC<GoogleMapProps> = (props) => {
     switch (status) {
       case Status.LOADING:
         return (
-          <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-lg">
+          <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg">
             <div className="text-center">
               <div className="flex items-center justify-center space-x-2 mb-4">
-                <MapPin size={32} className="text-primary-500 animate-pulse" />
-                <Navigation size={32} className="text-blue-500 animate-bounce" />
+                <MapPin size={32} className="text-blue-500 animate-pulse" />
+                <Navigation size={32} className="text-emerald-500 animate-bounce" />
                 <Cloud size={32} className="text-sky-500 animate-pulse" />
               </div>
-              <p className="text-sm text-gray-600">Loading interactive map with location services...</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Loading interactive map with location services...</p>
             </div>
           </div>
         );
       case Status.FAILURE:
         return (
-          <div className="w-full h-full flex items-center justify-center bg-red-50 rounded-lg">
+          <div className="w-full h-full flex items-center justify-center bg-red-50 dark:bg-red-900/20 rounded-lg">
             <div className="text-center">
               <AlertTriangle size={48} className="mx-auto mb-4 text-red-500" />
-              <h3 className="text-lg font-semibold text-red-800 mb-2">Map Failed to Load</h3>
-              <p className="text-sm text-red-600">
+              <h3 className="text-lg font-semibold text-red-800 dark:text-red-400 mb-2">Map Failed to Load</h3>
+              <p className="text-sm text-red-600 dark:text-red-300 mb-4">
                 Please check your internet connection and try again.
               </p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Retry
+              </button>
             </div>
           </div>
         );
@@ -239,16 +376,17 @@ const GoogleMapComponent: React.FC<GoogleMapProps> = (props) => {
     }
   };
 
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-  
-  if (!apiKey) {
+  if (!GOOGLE_MAPS_CONFIG.apiKey) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-yellow-50 rounded-lg">
+      <div className="w-full h-full flex items-center justify-center bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
         <div className="text-center">
           <AlertTriangle size={48} className="mx-auto mb-4 text-yellow-500" />
-          <h3 className="text-lg font-semibold text-yellow-800 mb-2">API Key Missing</h3>
-          <p className="text-sm text-yellow-600">
+          <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-400 mb-2">API Key Missing</h3>
+          <p className="text-sm text-yellow-600 dark:text-yellow-300 mb-4">
             Google Maps API key is not configured.
+          </p>
+          <p className="text-xs text-yellow-500">
+            Add VITE_GOOGLE_MAPS_API_KEY to your .env file
           </p>
         </div>
       </div>
@@ -258,9 +396,10 @@ const GoogleMapComponent: React.FC<GoogleMapProps> = (props) => {
   return (
     <div className="w-full h-full">
       <Wrapper
-        apiKey={apiKey}
+        apiKey={GOOGLE_MAPS_CONFIG.apiKey}
         render={render}
-        libraries={['places', 'geometry']}
+        libraries={GOOGLE_MAPS_CONFIG.libraries}
+        version={GOOGLE_MAPS_CONFIG.version}
       />
     </div>
   );

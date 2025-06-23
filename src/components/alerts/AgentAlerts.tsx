@@ -1,283 +1,395 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Calendar, Shield, ExternalLink, RefreshCw, AlertTriangle } from 'lucide-react';
-import TravelAlertAPI, { AlertRecord } from '../../lib/travelAlertApi';
+import { AlertTriangle, Shield, Globe, RefreshCw, Wifi, WifiOff, ExternalLink } from 'lucide-react';
+import { saverTravelAlertService, SaverApiResponse } from '../../lib/travelAlertApi';
+import { addConnectionListener, subscribeSafetyAlerts, fetchSafetyAlerts } from '../../lib/supabase';
 
 interface AgentAlertsProps {
   searchLocation?: string;
 }
 
-const AgentAlerts: React.FC<AgentAlertsProps> = ({ searchLocation }) => {
-  const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'government' | 'events' | 'news'>('government');
-  const [alertsBySource, setAlertsBySource] = useState<{
-    government: AlertRecord[];
-    events: AlertRecord[];
-    news: AlertRecord[];
-  }>({
-    government: [],
-    events: [],
-    news: []
+interface ConnectionStatus {
+  saver: 'online' | 'offline' | 'loading';
+  supabase: 'online' | 'offline' | 'loading';
+}
+
+export const AgentAlerts: React.FC<AgentAlertsProps> = () => {
+  const [saverAlerts, setSaverAlerts] = useState<SaverApiResponse | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
+    saver: 'loading',
+    supabase: 'loading'
   });
+  const [selectedLocation, setSelectedLocation] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [systemStatus, setSystemStatus] = useState<any>(null);
+  const [safetyAlerts, setSafetyAlerts] = useState<any[]>([]);
 
+  // Check connection status and set up realtime monitoring
   useEffect(() => {
-    if (searchLocation) {
-      fetchAlerts(searchLocation);
-    }
-  }, [searchLocation]);
+    checkConnections();
+    
+    // Set up Supabase realtime connection monitoring
+    const removeConnectionListener = addConnectionListener((connected) => {
+      setConnectionStatus(prev => ({ 
+        ...prev, 
+        supabase: connected ? 'online' : 'offline' 
+      }));
+    });
+    
+    // Subscribe to safety alerts realtime updates
+    const unsubscribeSafetyAlerts = subscribeSafetyAlerts((alerts) => {
+      setSafetyAlerts(alerts);
+    });
+    
+    // Initial fetch of safety alerts
+    fetchSafetyAlerts().then(setSafetyAlerts);
+    
+    return () => {
+      removeConnectionListener();
+      unsubscribeSafetyAlerts();
+    };
+  }, []);
 
-  const fetchAlerts = async (location: string) => {
-    setLoading(true);
+  const checkConnections = async () => {
+    // Check Saver system status only
     try {
-      // First, trigger scraping for the location
-      const govScrapingPromise = TravelAlertAPI.getQuickAlerts(location);
-      const eventAlertsPromise = TravelAlertAPI.getEventAlerts(location);
-      const newsAlertsPromise = TravelAlertAPI.getNewsAlerts(location);
-
-      const [govResponse, eventResponse, newsResponse] = await Promise.allSettled([
-        govScrapingPromise,
-        eventAlertsPromise,
-        newsAlertsPromise
-      ]);
-
-      // Handle government alerts - these come from scraping result
-      let govAlerts: AlertRecord[] = [];
-      if (govResponse.status === 'fulfilled' && govResponse.value.status === 'success') {
-        // If scraping was successful, try to get the CSV data
-        const csvFile = govResponse.value.data?.csv_file;
-        if (csvFile) {
-          try {
-            const csvData = await TravelAlertAPI.getAlertData(csvFile, 50);
-            govAlerts = csvData.data || [];
-          } catch (error) {
-            console.warn('Could not fetch CSV data:', error);
-          }
-        }
-      }
-
-      // Handle event alerts - these come directly from the API
-      const eventAlerts = eventResponse.status === 'fulfilled' ? 
-        (eventResponse.value.alerts || []) : [];
-      
-      // Handle news alerts - these come directly from the API
-      const newsAlerts = newsResponse.status === 'fulfilled' ? 
-        (newsResponse.value.alerts || []) : [];
-
-      setAlertsBySource({
-        government: govAlerts,
-        events: eventAlerts,
-        news: newsAlerts
-      });
+      const status = await saverTravelAlertService.getSystemStatus();
+      setSystemStatus(status);
+      setConnectionStatus(prev => ({ 
+        ...prev, 
+        saver: status.status 
+      }));
     } catch (error) {
-      console.error('Failed to fetch alerts:', error);
+      setConnectionStatus(prev => ({ 
+        ...prev, 
+        saver: 'offline' 
+      }));
+    }
+    
+    // Supabase connection is now monitored via realtime listeners
+    // No need to poll the database
+  };
+
+  const fetchSaverAlerts = async (location?: string) => {
+    setIsRefreshing(true);
+    try {
+      let response: SaverApiResponse;
+      
+      if (location) {
+        response = await saverTravelAlertService.getLocationAlerts(location);
+      } else {
+        // Get general alerts from database
+        response = await saverTravelAlertService.queryDatabase();
+      }
+      
+      setSaverAlerts(response);
+    } catch (error) {
+      console.error('Error fetching Saver alerts:', error);
     } finally {
-      setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
-  const getRiskColor = (riskLevel: number) => {
-    if (riskLevel >= 8) return 'bg-red-50 border-red-200';
-    if (riskLevel >= 5) return 'bg-yellow-50 border-yellow-200';
-    return 'bg-green-50 border-green-200';
-  };
-
-  const getRiskBadgeColor = (riskLevel: number) => {
-    if (riskLevel >= 8) return 'bg-red-100 text-red-800';
-    if (riskLevel >= 5) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-green-100 text-green-800';
-  };
-
-  const getSeverityIcon = (severity: string) => {
-    switch (severity.toLowerCase()) {
-      case 'high':
-        return <AlertTriangle className="w-4 h-4 text-red-500" />;
-      case 'medium':
-        return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
-      default:
-        return <Shield className="w-4 h-4 text-green-500" />;
+  const handleLocationSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedLocation.trim()) {
+      fetchSaverAlerts(selectedLocation.trim());
     }
   };
 
-  const getSourceIcon = (sourceCredibility: string) => {
-    if (sourceCredibility.includes('Government')) return '🏛️';
-    if (sourceCredibility.includes('Eventbrite')) return '🎫';
-    if (sourceCredibility.includes('News')) return '📰';
-    return '🔗';
+  const handleScrapeGovernmentData = async (country: string, source: string) => {
+    setIsRefreshing(true);
+    try {
+      await saverTravelAlertService.scrapeGovernmentSource(country, source);
+      // Refresh alerts after scraping
+      if (selectedLocation) {
+        await fetchSaverAlerts(selectedLocation);
+      }
+    } catch (error) {
+      console.error('Error scraping government data:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
-
-  const currentAlerts = alertsBySource[activeTab];
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
-        <span className="ml-3 text-gray-600">Loading AI-powered alerts...</span>
-      </div>
-    );
-  }
-
-  if (!searchLocation) {
-    return (
-      <div className="text-center py-12">
-        <AlertTriangle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No Location Selected</h3>
-        <p className="text-gray-500">
-          Use the Agent Control panel to search for a location and get AI-powered travel alerts.
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
-      {/* Tab Navigation */}
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+            <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              🛡️ Saver Travel Alert System
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Real-time alerts from government and official sources
+            </p>
+          </div>
+        </div>
+        
+        <button
+          onClick={checkConnections}
+          disabled={isRefreshing}
+          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        >
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <span>Refresh</span>
+        </button>
+      </div>
+
+      {/* Connection Status */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Globe className="h-5 w-5 text-blue-600" />
+              <span className="font-medium">Saver System</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              {connectionStatus.saver === 'online' ? (
+                <Wifi className="h-4 w-4 text-green-500" />
+              ) : (
+                <WifiOff className="h-4 w-4 text-red-500" />
+              )}
+              <span className={`text-sm font-medium ${
+                connectionStatus.saver === 'online' ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {connectionStatus.saver}
+              </span>
+            </div>
+          </div>
+          {systemStatus && (
+            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+              <div>Total Alerts: <span className="font-medium">{systemStatus.totalAlerts}</span></div>
+              <div>High Severity: <span className="font-medium text-red-600">{systemStatus.highSeverity}</span></div>
+              <div>Active Locations: <span className="font-medium">{systemStatus.activeLocations}</span></div>
+              <div>Last Update: <span className="font-medium">{new Date(systemStatus.lastUpdate).toLocaleTimeString()}</span></div>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Shield className="h-5 w-5 text-purple-600" />
+              <span className="font-medium">Supabase Database</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              {connectionStatus.supabase === 'online' ? (
+                <Wifi className="h-4 w-4 text-green-500" />
+              ) : (
+                <WifiOff className="h-4 w-4 text-red-500" />
+              )}
+              <span className={`text-sm font-medium ${
+                connectionStatus.supabase === 'online' ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {connectionStatus.supabase}
+              </span>
+            </div>
+          </div>
+          <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+            Real-time updates and data synchronization
+          </div>
+        </div>
+      </div>
+
+      {/* Location Search */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold mb-4">Search Travel Alerts</h3>
+        <form onSubmit={handleLocationSubmit} className="flex space-x-4">
+          <input
+            type="text"
+            value={selectedLocation}
+            onChange={(e) => setSelectedLocation(e.target.value)}
+            placeholder="Enter location (e.g., Thailand, Paris, New York)"
+            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+          />
+          <button
+            type="submit"
+            disabled={isRefreshing || !selectedLocation.trim()}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            Search Alerts
+          </button>
+        </form>
+      </div>
+
+      {/* Government Sources */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold mb-4">Government Sources</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[
-            { key: 'government', label: '🏛️ Government', count: alertsBySource.government.length },
-            { key: 'events', label: '🎫 Events', count: alertsBySource.events.length },
-            { key: 'news', label: '📰 Breaking News', count: alertsBySource.news.length }
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as any)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === tab.key
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              {tab.label} ({tab.count})
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* Alert Summary */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-center">
-          <MapPin className="w-5 h-5 text-blue-500 mr-2" />
-          <span className="font-medium text-blue-900">
-            Showing {currentAlerts.length} AI-analyzed alerts for {searchLocation}
-          </span>
-        </div>
-        <p className="text-sm text-blue-700 mt-1">
-          Data sourced from {alertsBySource.government.length > 0 ? 'government advisories, ' : ''}
-          {alertsBySource.events.length > 0 ? 'event monitoring, ' : ''}
-          {alertsBySource.news.length > 0 ? 'breaking news' : ''}
-        </p>
-      </div>
-
-      {/* Alerts List */}
-      {currentAlerts.length === 0 ? (
-        <div className="text-center py-8">
-          <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Alerts Found</h3>
-          <p className="text-gray-500">
-            No {activeTab} alerts found for {searchLocation}. This could mean the area is currently safe 
-            or our AI hasn't detected any relevant threats from this source.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {currentAlerts.map((alert, index) => (
-            <div
-              key={index}
-              className={`border rounded-lg p-6 ${getRiskColor(alert.risk_rating)}`}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  {getSeverityIcon(alert.severity)}
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {alert.scam_type}
-                  </h3>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRiskBadgeColor(alert.risk_rating)}`}>
-                    Risk: {alert.risk_rating}/10
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <span>{getSourceIcon(alert.source_credibility)}</span>
-                  <span>{alert.source_credibility}</span>
-                </div>
+            { country: 'Thailand', flag: '🇹🇭', sources: ['US State Dept', 'UK Gov', 'US Embassy', 'Smartraveller', 'Canada Travel'] },
+            { country: 'France', flag: '🇫🇷', sources: ['US State Dept', 'UK Gov', 'EU Travel'] },
+            { country: 'Spain', flag: '🇪🇸', sources: ['US State Dept', 'UK Gov', 'EU Travel'] },
+            { country: 'Italy', flag: '🇮🇹', sources: ['US State Dept', 'UK Gov', 'EU Travel'] },
+            { country: 'Germany', flag: '🇩🇪', sources: ['US State Dept', 'UK Gov', 'EU Travel'] }
+          ].map((country) => (
+            <div key={country.country} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+              <div className="flex items-center space-x-2 mb-3">
+                <span className="text-2xl">{country.flag}</span>
+                <span className="font-medium">{country.country}</span>
               </div>
-
-              <p className="text-gray-700 mb-4 leading-relaxed">
-                {alert.description}
-              </p>
-
-              {alert.prevention_tips && (
-                <div className="mb-4 p-4 bg-white bg-opacity-50 rounded-lg">
-                  <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
-                    <Shield className="w-4 h-4" />
-                    Prevention Tips
-                  </h4>
-                  <p className="text-sm text-gray-700">
-                    {alert.prevention_tips}
-                  </p>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between text-sm text-gray-500">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    <span>{alert.location}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    <span>{new Date(alert.date_reported).toLocaleDateString()}</span>
-                  </div>
-                  {alert.target_demographic && (
-                    <div>
-                      <span className="font-medium">Target:</span> {alert.target_demographic}
-                    </div>
-                  )}
-                </div>
-                
-                {alert.source_url && (
-                  <a
-                    href={alert.source_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
+              <div className="space-y-2">
+                {country.sources.map((source) => (
+                  <button
+                    key={source}
+                    onClick={() => handleScrapeGovernmentData(country.country, source)}
+                    disabled={isRefreshing}
+                    className="w-full text-left px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded border border-gray-200 dark:border-gray-600 disabled:opacity-50"
                   >
-                    <ExternalLink className="w-4 h-4" />
-                    <span>Source</span>
-                  </a>
-                )}
+                    {source}
+                  </button>
+                ))}
               </div>
-
-              {/* Additional metadata for specific alert types */}
-              {alert.event_type && (
-                <div className="mt-3 pt-3 border-t border-gray-200">
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <span><strong>Event Type:</strong> {alert.event_type.replace('_', ' ')}</span>
-                    {alert.urgency && (
-                      <span><strong>Urgency:</strong> {alert.urgency}</span>
-                    )}
-                    {alert.affected_locations && (
-                      <span><strong>Affected Areas:</strong> {alert.affected_locations}</span>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Real-time Safety Alerts from Database */}
+      {safetyAlerts.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">
+              🔄 Real-time Safety Alerts ({safetyAlerts.length})
+            </h3>
+            <div className="flex items-center space-x-2">
+              {connectionStatus.supabase === 'online' ? (
+                <Wifi className="h-4 w-4 text-green-500" />
+              ) : (
+                <WifiOff className="h-4 w-4 text-red-500" />
+              )}
+              <span className="text-sm text-gray-600 dark:text-gray-400">Live Updates</span>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            {safetyAlerts.slice(0, 5).map((alert) => (
+              <div key={alert.id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1">
+                      {alert.title || 'Safety Alert'}
+                    </h4>
+                    <p className="text-gray-600 dark:text-gray-400 text-xs mb-2">
+                      {alert.message || alert.description || 'Alert details...'}
+                    </p>
+                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                      <span>{alert.location || 'Global'}</span>
+                      <span>{new Date(alert.created_at).toLocaleTimeString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
-      {/* Refresh Button */}
-      <div className="text-center">
-        <button
-          onClick={() => searchLocation && fetchAlerts(searchLocation)}
-          disabled={loading}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh Alerts
-        </button>
+      {/* Saver Alerts Results */}
+      {saverAlerts && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">
+              Travel Alerts ({saverAlerts.total} found)
+            </h3>
+            <a
+              href="https://saver-7tda.onrender.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 text-sm"
+            >
+              <ExternalLink className="h-4 w-4" />
+              <span>View on Saver</span>
+            </a>
+          </div>
+          
+          {saverAlerts.status === 'error' && (
+            <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-red-700 dark:text-red-400">
+                {saverAlerts.message || 'Error fetching alerts'}
+              </p>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            {saverAlerts.alerts.map((alert) => (
+              <div key={alert.id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <AlertTriangle className={`h-5 w-5 ${
+                        alert.severity === 'high' ? 'text-red-500' :
+                        alert.severity === 'medium' ? 'text-yellow-500' : 'text-green-500'
+                      }`} />
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        alert.severity === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                        alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                        'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                      }`}>
+                        {alert.severity.toUpperCase()}
+                      </span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {alert.location}
+                      </span>
+                    </div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                      {alert.title}
+                    </h4>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">
+                      {alert.message}
+                    </p>
+                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                      <span>Source: {alert.government_source || alert.source}</span>
+                      <span>{new Date(alert.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {saverAlerts.alerts.length === 0 && (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No alerts found for the selected location.</p>
+              <p className="text-sm mt-2">This is good news! The area appears to be safe.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Quick Access Links */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
+        <h3 className="text-lg font-semibold mb-4 text-blue-900 dark:text-blue-100">
+          🌐 Saver System Features
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <h4 className="font-medium text-blue-800 dark:text-blue-200">Data Sources</h4>
+            <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+              <li>• US State Department Travel Advisories</li>
+              <li>• UK Government Travel Guidance</li>
+              <li>• Embassy Safety Notifications</li>
+              <li>• Smartraveller (Australia) Alerts</li>
+              <li>• Canada Travel Health Notices</li>
+            </ul>
+          </div>
+          <div className="space-y-2">
+            <h4 className="font-medium text-blue-800 dark:text-blue-200">Alert Types</h4>
+            <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+              <li>• Travel Safety Warnings</li>
+              <li>• Scam & Fraud Alerts</li>
+              <li>• Health & Medical Advisories</li>
+              <li>• Security Threat Notifications</li>
+              <li>• Emergency Contact Information</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   );
-};
-
-export default AgentAlerts; 
+}; 

@@ -4,13 +4,15 @@ import GoogleMapComponent from '../components/map/GoogleMap';
 import MapControls from '../components/map/MapControls';
 import { 
   Layers, Navigation, Locate, Zap, 
-  AlertTriangle, Cloud, Calendar, Wifi, Thermometer
+  AlertTriangle, Cloud, Calendar, Wifi, Thermometer, MapPin
 } from 'lucide-react';
 
 const MapPage: React.FC = () => {
   const [activeLayer, setActiveLayer] = useState('alerts');
   const [mapCenter, setMapCenter] = useState({ lat: 40.7128, lng: -74.0060 });
   const [mapZoom, setMapZoom] = useState(12);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [locationError, setLocationError] = useState<string>('');
   
   const handleLayerChange = (layer: string) => {
     setActiveLayer(layer);
@@ -20,21 +22,64 @@ const MapPage: React.FC = () => {
     console.log('Map clicked at:', location);
   };
 
-  const handleGetLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setMapCenter({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-          setMapZoom(14);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-        }
-      );
+  const getLocationErrorMessage = (error: GeolocationPositionError): string => {
+    switch (error.code) {
+      case error.PERMISSION_DENIED:
+        return "Location access denied. Please enable location permissions in your browser settings.";
+      case error.POSITION_UNAVAILABLE:
+        return "Location information is unavailable. Please try again.";
+      case error.TIMEOUT:
+        return "Location request timed out. Please try again.";
+      default:
+        return "An unknown error occurred while retrieving your location.";
     }
+  };
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by this browser.');
+      setLocationStatus('error');
+      return;
+    }
+
+    setLocationStatus('loading');
+    setLocationError('');
+
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 300000 // 5 minutes
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setMapCenter({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+        setMapZoom(16);
+        setLocationStatus('success');
+        console.log('Location found:', position.coords);
+      },
+      (error) => {
+        const errorMessage = getLocationErrorMessage(error);
+        setLocationError(errorMessage);
+        setLocationStatus('error');
+        console.error('Geolocation error:', error);
+        
+        // Show user-friendly notification
+        if (error.code === error.PERMISSION_DENIED) {
+          // Suggest manual location entry or browser settings
+          setTimeout(() => {
+            if (confirm('Location access was denied. Would you like to manually enter your location or enable location permissions?')) {
+              // Could open a location search modal here
+              console.log('User wants to manually enter location');
+            }
+          }, 1000);
+        }
+      },
+      options
+    );
   };
 
   const layerStats = {
@@ -45,12 +90,48 @@ const MapPage: React.FC = () => {
     temperature: { count: 1, active: 1 }
   };
 
+  const getLocationButtonContent = () => {
+    switch (locationStatus) {
+      case 'loading':
+        return (
+          <>
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <span className="font-medium">Finding...</span>
+          </>
+        );
+      case 'success':
+        return (
+          <>
+            <MapPin className="w-5 h-5" />
+            <span className="font-medium">Located</span>
+          </>
+        );
+      case 'error':
+        return (
+          <>
+            <AlertTriangle className="w-5 h-5" />
+            <span className="font-medium">Try Again</span>
+          </>
+        );
+      default:
+        return (
+          <>
+            <Locate className="w-5 h-5" />
+            <span className="font-medium">My Location</span>
+          </>
+        );
+    }
+  };
+
   const quickActions = [
     { 
       label: 'My Location', 
       icon: Locate, 
       action: handleGetLocation,
-      color: 'from-blue-500 to-indigo-500'
+      color: locationStatus === 'error' ? 'from-red-500 to-red-600' : 
+             locationStatus === 'success' ? 'from-green-500 to-emerald-500' :
+             'from-blue-500 to-indigo-500',
+      content: getLocationButtonContent()
     },
     { 
       label: 'Safety Zones', 
@@ -84,6 +165,45 @@ const MapPage: React.FC = () => {
           />
         </div>
 
+        {/* Location Error Toast */}
+        {locationStatus === 'error' && locationError && (
+          <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-20">
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg max-w-md">
+              <div className="flex items-center space-x-2">
+                <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-sm">Location Error</p>
+                  <p className="text-xs mt-1">{locationError}</p>
+                </div>
+                <button 
+                  onClick={() => setLocationStatus('idle')}
+                  className="ml-2 text-red-400 hover:text-red-600"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Success Toast */}
+        {locationStatus === 'success' && (
+          <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-20">
+            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg shadow-lg">
+              <div className="flex items-center space-x-2">
+                <MapPin className="w-5 h-5" />
+                <p className="font-medium text-sm">Location found successfully!</p>
+                <button 
+                  onClick={() => setLocationStatus('idle')}
+                  className="ml-2 text-green-400 hover:text-green-600"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Floating Controls - Top Left */}
         <div className="absolute top-6 left-6 space-y-3 z-10">
           {/* Layer Stats */}
@@ -103,10 +223,15 @@ const MapPage: React.FC = () => {
               <button
                 key={index}
                 onClick={action.action}
-                className={`glass p-3 rounded-xl bg-gradient-to-r ${action.color} text-white hover:shadow-xl transition-all duration-300 flex items-center space-x-2 group`}
+                disabled={index === 0 && locationStatus === 'loading'}
+                className={`glass p-3 rounded-xl bg-gradient-to-r ${action.color} text-white hover:shadow-xl transition-all duration-300 flex items-center space-x-2 group disabled:opacity-75 disabled:cursor-not-allowed`}
               >
-                <action.icon className="w-5 h-5" />
-                <span className="font-medium">{action.label}</span>
+                {index === 0 ? action.content : (
+                  <>
+                    <action.icon className="w-5 h-5" />
+                    <span className="font-medium">{action.label}</span>
+                  </>
+                )}
               </button>
             ))}
           </div>

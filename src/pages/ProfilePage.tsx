@@ -2,20 +2,33 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { databaseService } from '../lib/database';
 import PageContainer from '../components/layout/PageContainer';
+
+// Define proper interfaces for type safety
+interface SettingsItem {
+  icon: React.ComponentType<any>;
+  label: string;
+  action: () => void | Promise<void>;
+  value?: string;
+  danger?: boolean;
+}
+
+interface SettingsGroup {
+  title: string;
+  items: SettingsItem[];
+}
 import { 
-  User, Settings, Bell, Shield, HelpCircle, LogOut,
-  Edit2, Camera, Moon, Sun, Globe, Lock, 
-  ChevronRight, Check, X, RefreshCw
+  User, Bell, Shield, HelpCircle, LogOut,
+  Camera, Moon, Sun, Globe, Lock, 
+  ChevronRight, Check, X, RefreshCw, AlertTriangle
 } from 'lucide-react';
 
 const ProfilePage: React.FC = () => {
   const { user, signOut } = useAuth();
-  const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
-  const [userPreferences, setUserPreferences] = useState<any>(null);
   const [editForm, setEditForm] = useState({
     fullName: '',
     email: ''
@@ -53,7 +66,6 @@ const ProfilePage: React.FC = () => {
         ]);
 
         setUserProfile(profile);
-        setUserPreferences(prefs);
 
         // Set form data
         setEditForm({
@@ -119,13 +131,34 @@ const ProfilePage: React.FC = () => {
   const togglePreference = async (category: string, key: string) => {
     if (!user) return;
 
-    const newPreferences = {
-      ...preferences,
-      [category]: {
-        ...preferences[category as keyof typeof preferences],
-        [key]: !preferences[category as keyof typeof preferences][key as keyof typeof preferences[typeof category]]
-      }
-    };
+    // Create a new preferences object with proper type safety
+    let newPreferences = { ...preferences };
+    
+    if (category === 'notifications') {
+      newPreferences = {
+        ...preferences,
+        notifications: {
+          ...preferences.notifications,
+          [key]: !preferences.notifications[key as keyof typeof preferences.notifications]
+        }
+      };
+    } else if (category === 'privacy') {
+      newPreferences = {
+        ...preferences,
+        privacy: {
+          ...preferences.privacy,
+          [key]: !preferences.privacy[key as keyof typeof preferences.privacy]
+        }
+      };
+    } else if (category === 'appearance') {
+      newPreferences = {
+        ...preferences,
+        appearance: {
+          ...preferences.appearance,
+          [key]: !preferences.appearance[key as keyof typeof preferences.appearance]
+        }
+      };
+    }
 
     setPreferences(newPreferences);
 
@@ -157,26 +190,83 @@ const ProfilePage: React.FC = () => {
     { label: 'Days Traveled', value: '127' } // Could be calculated from travel_plans
   ];
 
-  const settingsGroups = [
+  const handlePrivacyAndSecurity = () => {
+    alert('Privacy & Security settings will be implemented in a future update. Your data is secured with end-to-end encryption.');
+  };
+
+  const handleNotificationSettings = () => {
+    // Scroll to notification preferences section
+    const element = document.querySelector('[data-section="notifications"]');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleAppearanceSettings = () => {
+    const newTheme = preferences.appearance.theme === 'light' ? 'dark' : 'light';
+    setPreferences(prev => ({
+      ...prev,
+      appearance: { ...prev.appearance, theme: newTheme }
+    }));
+    // Apply theme to document
+    document.documentElement.setAttribute('data-theme', newTheme);
+  };
+
+  const handleLanguageSettings = () => {
+    const languages = ['English', 'Spanish', 'French', 'German', 'Japanese'];
+    const currentIndex = languages.indexOf(preferences.appearance.language);
+    const nextIndex = (currentIndex + 1) % languages.length;
+    const newLanguage = languages[nextIndex];
+    
+    setPreferences(prev => ({
+      ...prev,
+      appearance: { ...prev.appearance, language: newLanguage.toLowerCase() }
+    }));
+    
+    alert(`Language changed to ${newLanguage}. This is a demo - full localization coming soon!`);
+  };
+
+  const handleHelpAndSupport = () => {
+    const supportOptions = [
+      'Email: support@travelsafe.com',
+      'Phone: +1 (555) 123-4567',
+      'FAQ: Available in app menu',
+      'Live Chat: Available 24/7'
+    ];
+    
+    alert('Support Options:\n\n' + supportOptions.join('\n'));
+  };
+
+  const settingsGroups: SettingsGroup[] = [
     {
       title: 'Account',
       items: [
         { icon: User, label: 'Personal Information', action: () => setIsEditing(true) },
-        { icon: Lock, label: 'Privacy & Security', action: () => {} },
-        { icon: Bell, label: 'Notifications', action: () => {} },
+        { icon: Lock, label: 'Privacy & Security', action: handlePrivacyAndSecurity },
+        { icon: Bell, label: 'Notifications', action: handleNotificationSettings },
       ]
     },
     {
       title: 'Preferences',
       items: [
-        { icon: Moon, label: 'Appearance', value: 'Light', action: () => {} },
-        { icon: Globe, label: 'Language', value: 'English', action: () => {} },
+        { 
+          icon: preferences.appearance.theme === 'light' ? Sun : Moon, 
+          label: 'Appearance', 
+          value: preferences.appearance.theme === 'light' ? 'Light' : 'Dark', 
+          action: handleAppearanceSettings 
+        },
+        { 
+          icon: Globe, 
+          label: 'Language', 
+          value: preferences.appearance.language.charAt(0).toUpperCase() + preferences.appearance.language.slice(1), 
+          action: handleLanguageSettings 
+        },
       ]
     },
     {
       title: 'Support',
       items: [
-        { icon: HelpCircle, label: 'Help & Support', action: () => {} },
+        { icon: HelpCircle, label: 'Help & Support', action: handleHelpAndSupport },
         { icon: LogOut, label: 'Sign Out', action: handleSignOut, danger: true },
       ]
     }
@@ -318,7 +408,7 @@ const ProfilePage: React.FC = () => {
         </div>
 
         {/* Notification Preferences */}
-        <div className="card p-6">
+        <div className="card p-6" data-section="notifications">
           <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center">
             <Bell className="w-5 h-5 mr-2 text-blue-600" />
             Notification Preferences

@@ -19,7 +19,7 @@ const AuthPage: React.FC = () => {
 
   // Redirect if already authenticated
   if (user) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/home" replace />
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,7 +74,7 @@ const AuthPage: React.FC = () => {
       <div className="relative w-full max-w-md">
         {/* Back to Landing */}
         <Link
-          to="/landing"
+          to="/"
           className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
         >
           <ArrowLeft size={16} />
@@ -210,6 +210,34 @@ const AuthPage: React.FC = () => {
               )}
             </button>
           </form>
+
+          {/* Test User Button */}
+          <div className="mt-4">
+            <button
+              onClick={async () => {
+                setLoading(true)
+                setError('')
+                try {
+                  const { error } = await signIn('test@travelsafe.com', 'testpassword123')
+                  if (error) {
+                    // If test user doesn't exist, create it
+                    const { error: signUpError } = await signUp('test@travelsafe.com', 'testpassword123', 'Test User')
+                    if (signUpError) {
+                      setError('Failed to create test user: ' + signUpError.message)
+                    }
+                  }
+                } catch (err) {
+                  setError('Test user creation failed')
+                } finally {
+                  setLoading(false)
+                }
+              }}
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-2 rounded-lg font-medium hover:from-emerald-600 hover:to-teal-600 transition-all disabled:opacity-50"
+            >
+              🧪 Quick Test Login
+            </button>
+          </div>
 
           {/* Toggle Auth Mode */}
           <div className="mt-6 text-center">

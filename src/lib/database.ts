@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, createRealtimeSubscription } from './supabase';
 import { SafetyAlert, TravelPlan } from '../types';
 
 export interface DatabaseSafetyAlert {
@@ -188,11 +188,54 @@ class DatabaseService {
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // If user profile doesn't exist, create one
+        if (error.code === 'PGRST116') {
+          console.log('User profile not found, creating default profile for:', userId);
+          return await this.createUserProfile(userId);
+        }
+        throw error;
+      }
 
       return data;
     } catch (error) {
       console.error('Error fetching user profile:', error);
+      return null;
+    }
+  }
+
+  async createUserProfile(userId: string, profileData?: Partial<DatabaseUserProfile>): Promise<DatabaseUserProfile | null> {
+    try {
+      // Get user info from auth if available
+      const { data: authUser } = await supabase.auth.getUser();
+      
+      const defaultProfile: Omit<DatabaseUserProfile, 'id' | 'created_at' | 'updated_at'> = {
+        email: authUser?.user?.email || null,
+        full_name: authUser?.user?.user_metadata?.full_name || null,
+        avatar_url: authUser?.user?.user_metadata?.avatar_url || null,
+        terms_accepted_at: new Date().toISOString(),
+        privacy_accepted_at: new Date().toISOString(),
+        ...profileData
+      };
+
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .insert({
+          id: userId,
+          ...defaultProfile
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating user profile:', error);
+        return null;
+      }
+
+      console.log('✅ Created user profile successfully');
+      return data;
+    } catch (error) {
+      console.error('Error creating user profile:', error);
       return null;
     }
   }
@@ -311,48 +354,25 @@ class DatabaseService {
 
   // Real-time subscriptions
   subscribeToSafetyAlerts(callback: (alerts: SafetyAlert[]) => void, destination?: string) {
-    let channel = supabase
-      .channel('safety_alerts_changes')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'safety_alerts' 
-        }, 
-        async () => {
-          const alerts = await this.getSafetyAlerts(destination);
-          callback(alerts);
-        }
-      );
-
-    channel.subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return createRealtimeSubscription(
+      'safety_alerts',
+      async () => {
+        const alerts = await this.getSafetyAlerts(destination);
+        callback(alerts);
+      },
+      destination ? `destination=eq.${destination}` : undefined
+    );
   }
 
   subscribeToTravelPlans(userId: string, callback: (plans: TravelPlan[]) => void) {
-    let channel = supabase
-      .channel('travel_plans_changes')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'travel_plans',
-          filter: `user_id=eq.${userId}`
-        }, 
-        async () => {
-          const plans = await this.getTravelPlans(userId);
-          callback(plans);
-        }
-      );
-
-    channel.subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return createRealtimeSubscription(
+      'travel_plans',
+      async () => {
+        const plans = await this.getTravelPlans(userId);
+        callback(plans);
+      },
+      `user_id=eq.${userId}`
+    );
   }
 }
 

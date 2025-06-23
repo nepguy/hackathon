@@ -1,231 +1,330 @@
 import React, { useState, useEffect } from 'react';
+import { MapPin, Thermometer, Droplets, Wind, Eye, Sunrise, Navigation } from 'lucide-react';
+import { useLocation } from '../../contexts/LocationContext';
+import { useLocationPermissionRequest } from '../common/PermissionManager';
 import { weatherService, WeatherData } from '../../lib/weatherApi';
-import { 
-  Cloud, CloudRain, Sun, Snowflake, Wind, 
-  Droplets, Eye, Thermometer, AlertTriangle
-} from 'lucide-react';
 
 interface WeatherCardProps {
   location?: string;
-  coordinates?: { lat: number; lng: number };
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
 }
 
 const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
+  const { userLocation, getCurrentLocation, requestLocationPermission, locationPermission } = useLocation();
+  const { requestLocationForContext } = useLocationPermissionRequest();
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
 
-  const fetchWeather = async () => {
-    if (!location && !coordinates) return;
-    
-    setIsLoading(true);
+  const fetchWeather = async (requestLocation = false) => {
     setError(null);
     
     try {
       let data: WeatherData;
       
+      // Try to get user's current location if requested
+      if (requestLocation) {
+        console.log('🌍 User requested location access for weather');
+        
+        // Use the intelligent permission system
+        requestLocationForContext({
+          reason: 'accuracy_needed',
+          feature: 'Accurate Weather Data',
+          importance: 'high',
+          benefits: [
+            'Real-time weather for your exact location',
+            'Precise temperature and conditions',
+            'Location-specific weather alerts',
+            'Better travel planning with hyperlocal forecasts'
+          ]
+        });
+        
+        if (locationPermission === 'denied') {
+          console.log('❌ Location permission was denied, using fallback weather');
+          // Don't show error, just use fallback with generic location
+          data = await weatherService.getWeatherForecast('Current Location', 3);
+          setWeatherData(data);
+          return;
+        }
+        
+        if (locationPermission === 'prompt' || locationPermission === 'unknown') {
+          const permission = await requestLocationPermission();
+          if (permission !== 'granted') {
+            console.log('❌ Location permission not granted, using fallback weather');
+            // Don't show error, just use fallback with generic location
+            data = await weatherService.getWeatherForecast('Current Location', 3);
+            setWeatherData(data);
+            return;
+          }
+        }
+        
+        // Try to get current location
+        await getCurrentLocation();
+        
+        // Wait a moment for location to be retrieved
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        if (!userLocation) {
+          console.log('⚠️ Could not get GPS location, using fallback weather');
+          data = await weatherService.getWeatherForecast('Current Location', 3);
+          setWeatherData(data);
+          return;
+        }
+      }
+      
+      // Get weather data based on priority: coordinates > userLocation > location string > fallback
       if (coordinates) {
+        console.log('🌍 Using provided coordinates for weather');
         data = await weatherService.getWeatherByCoordinates(
           coordinates.lat, 
           coordinates.lng, 
           3
         );
+      } else if (userLocation && (requestLocation || locationPermission === 'granted')) {
+        console.log('📍 Using user GPS location for weather');
+        data = await weatherService.getWeatherByCoordinates(
+          userLocation.latitude, 
+          userLocation.longitude, 
+          3
+        );
       } else if (location) {
+        console.log('🏙️ Using provided location string for weather');
         data = await weatherService.getWeatherForecast(location, 3);
       } else {
-        throw new Error('No location provided');
+        console.log('🌐 Using fallback weather data');
+        data = await weatherService.getWeatherForecast('Current Location', 3);
       }
       
       setWeatherData(data);
-    } catch (err) {
-      console.error('Error fetching weather:', err);
+      console.log('✅ Weather data loaded successfully');
+      
+    } catch (error) {
+      console.error('❌ Weather fetch error:', error);
       setError('Unable to load weather data');
-    } finally {
-      setIsLoading(false);
+      
+      // Try fallback weather as last resort
+      try {
+        const fallbackData = await weatherService.getWeatherForecast('Current Location', 3);
+        setWeatherData(fallbackData);
+        setError(null);
+        console.log('✅ Fallback weather data loaded');
+      } catch (fallbackError) {
+        console.error('❌ Fallback weather also failed:', fallbackError);
+        setError('Weather service temporarily unavailable');
+      }
     }
   };
 
+  // Detect location changes and prompt user
+  useEffect(() => {
+    if (userLocation && weatherData) {
+      // Check if user has moved significantly (>5km) since last weather update
+      const lastWeatherLocation = weatherData.location.name.toLowerCase();
+      const currentLocationString = `${userLocation.latitude.toFixed(2)},${userLocation.longitude.toFixed(2)}`;
+      
+      // Simple check - in a real app you'd want more sophisticated location comparison
+      if (!lastWeatherLocation.includes('current location') && 
+          !lastWeatherLocation.includes(currentLocationString)) {
+        
+        // Only show prompt if we haven't shown it recently
+        const lastLocationPrompt = localStorage.getItem('weatherLocationPrompt');
+        const now = Date.now();
+        if (!lastLocationPrompt || (now - parseInt(lastLocationPrompt)) > 30 * 60 * 1000) { // 30 minutes
+          setShowLocationPrompt(true);
+          localStorage.setItem('weatherLocationPrompt', now.toString());
+        }
+      }
+    }
+  }, [userLocation, weatherData]);
+
+  // Load weather on component mount
   useEffect(() => {
     fetchWeather();
-  }, [location, coordinates?.lat, coordinates?.lng]);
+  }, [location, coordinates]);
 
-  const getWeatherIcon = (condition: string, size: number = 24) => {
-    const iconClass = `w-${size/4} h-${size/4}`;
-    
-    if (condition.toLowerCase().includes('rain')) {
-      return <CloudRain className={iconClass} />;
-    } else if (condition.toLowerCase().includes('snow')) {
-      return <Snowflake className={iconClass} />;
-    } else if (condition.toLowerCase().includes('cloud')) {
-      return <Cloud className={iconClass} />;
-    } else if (condition.toLowerCase().includes('sun') || condition.toLowerCase().includes('clear')) {
-      return <Sun className={iconClass} />;
-    }
-    return <Cloud className={iconClass} />;
+  // Handle location update prompt
+  const handleLocationUpdate = () => {
+    setShowLocationPrompt(false);
+    fetchWeather(true);
   };
 
-  const getTemperatureColor = (temp: number) => {
-    if (temp >= 30) return 'text-red-600';
-    if (temp >= 20) return 'text-orange-500';
-    if (temp >= 10) return 'text-yellow-500';
-    if (temp >= 0) return 'text-blue-500';
-    return 'text-blue-700';
+  const dismissLocationPrompt = () => {
+    setShowLocationPrompt(false);
   };
 
-  const getAlertSeverityColor = (severity: string) => {
-    switch (severity.toLowerCase()) {
-      case 'high': return 'bg-red-100 text-red-800 border-red-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default: return 'bg-blue-100 text-blue-800 border-blue-200';
-    }
-  };
-
-  if (isLoading) {
+  if (error && !weatherData) {
     return (
-      <div className="card p-6">
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="w-8 h-8 bg-blue-200 rounded-lg animate-pulse"></div>
-          <div className="h-6 bg-gray-200 rounded w-24 animate-pulse"></div>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+            <Thermometer className="w-5 h-5 mr-2 text-blue-600" />
+            Weather
+          </h3>
         </div>
-        <div className="space-y-3">
-          <div className="h-8 bg-gray-200 rounded w-32 animate-pulse"></div>
-          <div className="h-4 bg-gray-200 rounded w-48 animate-pulse"></div>
-          <div className="grid grid-cols-3 gap-2">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 bg-gray-200 rounded animate-pulse"></div>
-            ))}
-          </div>
+        <div className="text-center py-4">
+          <p className="text-gray-500 text-sm">{error}</p>
+          <button 
+            onClick={() => fetchWeather()}
+            className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
   }
 
-  if (error || !weatherData) {
+  if (!weatherData) {
     return (
-      <div className="card p-6 bg-red-50 border-red-200">
-        <div className="flex items-center space-x-3">
-          <AlertTriangle className="w-6 h-6 text-red-500" />
-          <div>
-            <h3 className="font-medium text-red-800">Weather Unavailable</h3>
-            <p className="text-red-600 text-sm">{error || 'Unable to load weather data'}</p>
-          </div>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+            <Thermometer className="w-5 h-5 mr-2 text-blue-600" />
+            Weather
+          </h3>
         </div>
-        <button 
-          onClick={fetchWeather}
-          className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors"
-        >
-          Try Again
-        </button>
+        <div className="text-center py-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-500 text-sm mt-2">Loading weather...</p>
+        </div>
       </div>
     );
   }
+
+  const currentWeather = weatherData.current;
+  const forecast = weatherData.forecast.slice(0, 3);
 
   return (
-    <div className="card p-6 bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          {getWeatherIcon(weatherData.current.condition.text, 32)}
+    <>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+            <Thermometer className="w-5 h-5 mr-2 text-blue-600" />
+            Weather
+          </h3>
+          <div className="flex items-center text-sm text-gray-500">
+            <MapPin className="w-4 h-4 mr-1" />
+            <span className="truncate max-w-32">{weatherData.location.name}</span>
+          </div>
+        </div>
+
+        {/* Current Weather */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-3xl font-bold text-gray-900">
+                {Math.round(currentWeather.temperature)}°C
+              </div>
+              <div className="text-gray-600 capitalize">
+                {currentWeather.condition.text}
+              </div>
+            </div>
+            <div className="text-4xl">
+              {currentWeather.condition.icon}
+            </div>
+          </div>
+
+          {/* Weather Details */}
+          <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-100">
+            <div className="flex items-center text-sm text-gray-600">
+              <Droplets className="w-4 h-4 mr-2 text-blue-500" />
+              <span>{currentWeather.humidity}% humidity</span>
+            </div>
+            <div className="flex items-center text-sm text-gray-600">
+              <Wind className="w-4 h-4 mr-2 text-gray-500" />
+              <span>{currentWeather.windSpeed} km/h</span>
+            </div>
+            <div className="flex items-center text-sm text-gray-600">
+              <Eye className="w-4 h-4 mr-2 text-gray-500" />
+              <span>{currentWeather.visibility} km</span>
+            </div>
+            <div className="flex items-center text-sm text-gray-600">
+              <Sunrise className="w-4 h-4 mr-2 text-yellow-500" />
+              <span>UV {currentWeather.uvIndex}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 3-Day Forecast */}
         <div>
-            <h3 className="font-semibold text-slate-900">Weather</h3>
-            <p className="text-sm text-slate-600">
-              {weatherData.location.name}, {weatherData.location.country}
+          <h4 className="text-sm font-medium text-gray-900 mb-3">3-Day Forecast</h4>
+          <div className="space-y-2">
+                         {forecast.map((day, index) => (
+               <div key={index} className="flex items-center justify-between py-2">
+                 <div className="flex items-center">
+                   <span className="text-2xl mr-3">{day.condition.icon}</span>
+                   <div>
+                     <div className="text-sm font-medium text-gray-900">
+                       {index === 0 ? 'Today' : 
+                        index === 1 ? 'Tomorrow' : 
+                        new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
+                     </div>
+                     <div className="text-xs text-gray-600 capitalize">
+                       {day.condition.text}
+                     </div>
+                   </div>
+                 </div>
+                 <div className="text-right">
+                   <div className="text-sm font-medium text-gray-900">
+                     {Math.round(day.maxTemp)}°
+                   </div>
+                   <div className="text-xs text-gray-500">
+                     {Math.round(day.minTemp)}°
+                   </div>
+                 </div>
+               </div>
+             ))}
+          </div>
+        </div>
+
+        {/* Location Access Button */}
+        {locationPermission !== 'granted' && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <button
+              onClick={() => fetchWeather(true)}
+              className="w-full flex items-center justify-center px-4 py-2 text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+            >
+              <Navigation className="w-4 h-4 mr-2" />
+              Get weather for my location
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Location Change Prompt */}
+      {showLocationPrompt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+            <div className="flex items-center mb-4">
+              <MapPin className="w-6 h-6 text-blue-600 mr-2" />
+              <h3 className="text-lg font-semibold text-gray-900">
+                Location Changed?
+              </h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              It looks like you might be in a different location. Would you like to update your weather information?
             </p>
-          </div>
-        </div>
-        <button 
-          onClick={fetchWeather}
-          className="p-2 rounded-lg bg-blue-100 hover:bg-blue-200 transition-colors"
-          title="Refresh weather"
-        >
-          <Wind className="w-4 h-4 text-blue-600" />
-        </button>
-      </div>
-
-      {/* Current Weather */}
-      <div className="mb-4">
-        <div className="flex items-center space-x-4 mb-2">
-          <span className={`text-3xl font-bold ${getTemperatureColor(weatherData.current.temperature)}`}>
-            {weatherData.current.temperature}°C
-          </span>
-          <div className="text-sm text-slate-600">
-            <div>Feels like {weatherData.current.feelsLike}°C</div>
-            <div>{weatherData.current.condition.text}</div>
-          </div>
-        </div>
-
-        {/* Weather Details */}
-        <div className="grid grid-cols-3 gap-3 text-xs">
-          <div className="flex items-center space-x-1 text-slate-600">
-            <Droplets className="w-3 h-3" />
-            <span>{weatherData.current.humidity}%</span>
-          </div>
-          <div className="flex items-center space-x-1 text-slate-600">
-            <Wind className="w-3 h-3" />
-            <span>{weatherData.current.windSpeed} km/h</span>
-          </div>
-          <div className="flex items-center space-x-1 text-slate-600">
-            <Eye className="w-3 h-3" />
-            <span>{weatherData.current.visibility} km</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 3-Day Forecast */}
-      <div className="space-y-2">
-        <h4 className="text-sm font-medium text-slate-800">3-Day Forecast</h4>
-        <div className="grid grid-cols-3 gap-2">
-          {weatherData.forecast.slice(0, 3).map((day, index) => (
-            <div key={day.date} className="bg-white/60 rounded-lg p-3 text-center">
-              <div className="text-xs text-slate-600 mb-1">
-                {index === 0 ? 'Today' : new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
-              </div>
-              <div className="flex justify-center mb-1">
-                {getWeatherIcon(day.condition.text, 16)}
-              </div>
-              <div className="text-xs">
-                <div className={`font-medium ${getTemperatureColor(day.maxTemp)}`}>
-                  {day.maxTemp}°
-                </div>
-                <div className="text-slate-500">
-                  {day.minTemp}°
-                </div>
-              </div>
-              {day.totalPrecip > 0 && (
-                <div className="text-xs text-blue-600 mt-1">
-                  {day.totalPrecip}mm
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Weather Alerts */}
-      {weatherData.current.temperature > 35 && (
-        <div className="mt-4 p-3 bg-red-100 border border-red-200 rounded-lg">
-          <div className="flex items-center space-x-2">
-            <AlertTriangle className="w-4 h-4 text-red-600" />
-            <div className="text-sm">
-              <div className="font-medium text-red-800">Heat Warning</div>
-              <div className="text-red-600">High temperature - stay hydrated</div>
+            <div className="flex space-x-3">
+              <button
+                onClick={handleLocationUpdate}
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              >
+                Update Weather
+              </button>
+              <button
+                onClick={dismissLocationPrompt}
+                className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+              >
+                Keep Current
+              </button>
             </div>
           </div>
         </div>
       )}
-
-      {weatherData.current.uvIndex >= 8 && (
-        <div className="mt-4 p-3 bg-yellow-100 border border-yellow-200 rounded-lg">
-          <div className="flex items-center space-x-2">
-            <Sun className="w-4 h-4 text-yellow-600" />
-            <div className="text-sm">
-              <div className="font-medium text-yellow-800">High UV Index</div>
-              <div className="text-yellow-600">UV {weatherData.current.uvIndex} - use protection</div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   );
 };
 
