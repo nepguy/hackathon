@@ -3,35 +3,103 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
+// Check if we have valid Supabase configuration
+const hasValidSupabaseConfig = () => {
+  return supabaseUrl && 
+         supabaseAnonKey && 
+         supabaseUrl !== 'your_supabase_url_here' && 
+         supabaseAnonKey !== 'your_supabase_anon_key_here' &&
+         supabaseUrl.startsWith('https://') &&
+         supabaseUrl.includes('.supabase.co');
+};
+
+// Create a mock client for development when Supabase is not configured
+const createMockSupabaseClient = () => {
+  console.warn('🔧 Supabase not configured - using mock client for development');
+  
+  const mockClient = {
+    auth: {
+      getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+      signUp: () => Promise.resolve({ data: { user: null, session: null }, error: { message: 'Supabase not configured' } }),
+      signInWithPassword: () => Promise.resolve({ data: { user: null, session: null }, error: { message: 'Supabase not configured' } }),
+      signOut: () => Promise.resolve({ error: null }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
+    },
+    from: () => ({
+      select: () => ({ 
+        eq: () => ({ 
+          single: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }),
+          order: () => ({ limit: () => Promise.resolve({ data: [], error: null }) })
+        })
+      }),
+      insert: () => ({ 
+        select: () => ({ 
+          single: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } })
+        })
+      }),
+      update: () => ({ 
+        eq: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } })
+      }),
+      delete: () => ({ 
+        eq: () => Promise.resolve({ data: null, error: null })
+      })
+    }),
+    channel: () => ({
+      on: () => ({ subscribe: () => {} }),
+      subscribe: (callback: Function) => {
+        callback('CLOSED', { message: 'Supabase not configured' });
+        return { unsubscribe: () => {} };
+      }
+    }),
+    removeChannel: () => {}
+  };
+
+  return mockClient as any;
+};
+
+// Initialize Supabase client with proper error handling
+let supabase: any;
+
+try {
+  if (hasValidSupabaseConfig()) {
+    // Create real Supabase client
+    supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      realtime: {
+        params: {
+          eventsPerSecond: 2,
+        },
+        heartbeatIntervalMs: 30000,
+        reconnectAfterMs: (tries: number) => Math.min(tries * 2000, 30000),
+        timeout: 15000,
+      },
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false,
+        flowType: 'pkce',
+      },
+      global: {
+        headers: {
+          'x-application-name': 'guardnomad',
+        },
+      },
+      db: {
+        schema: 'public',
+      },
+    });
+    
+    console.log('✅ Supabase client initialized successfully');
+  } else {
+    // Use mock client for development
+    supabase = createMockSupabaseClient();
+  }
+} catch (error) {
+  console.error('❌ Failed to initialize Supabase client:', error);
+  console.log('🔧 Using mock client for development');
+  supabase = createMockSupabaseClient();
 }
 
-// Simple Supabase client configuration to avoid multiple instances
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  realtime: {
-    params: {
-      eventsPerSecond: 2,
-    },
-    heartbeatIntervalMs: 30000,
-    reconnectAfterMs: (tries: number) => Math.min(tries * 2000, 30000),
-    timeout: 15000,
-  },
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-    flowType: 'pkce',
-  },
-  global: {
-    headers: {
-      'x-application-name': 'guardnomad',
-    },
-  },
-  db: {
-    schema: 'public',
-  },
-})
+export { supabase };
 
 // WebSocket connection monitoring
 let wsConnectionAttempts = 0;
@@ -101,13 +169,13 @@ export const createRealtimeSubscription = (
           table,
           ...(filter && { filter })
         }, 
-        (payload) => {
+        (payload: any) => {
           console.log(`📡 Received ${table} change:`, payload);
           callback(payload);
         }
       );
 
-    channel.subscribe((status, err) => {
+    channel.subscribe((status: string, err?: any) => {
       if (status === 'SUBSCRIBED') {
         console.log(`✅ Successfully subscribed to ${table} changes`);
         wsConnectionAttempts = 0;
@@ -184,7 +252,7 @@ export const initializeSupabaseMonitoring = () => {
   // Create a monitoring channel to track connection status
   const monitoringChannel = supabase.channel('connection_monitor');
   
-  monitoringChannel.subscribe((status, err) => {
+  monitoringChannel.subscribe((status: string, err?: any) => {
     if (status === 'SUBSCRIBED') {
       console.log('✅ Supabase WebSocket connected');
       notifyConnectionChange(true);
@@ -200,15 +268,9 @@ export const initializeSupabaseMonitoring = () => {
     }
   });
 
-  // Cleanup function
   return () => {
-    console.log('🧹 Cleaning up Supabase monitoring');
-    try {
-      supabase.removeChannel(monitoringChannel);
-    } catch (error) {
-      console.warn('Warning during cleanup:', error);
-    }
-    connectionListeners = [];
+    console.log('🔌 Cleaning up Supabase monitoring');
+    supabase.removeChannel(monitoringChannel);
   };
 };
 
