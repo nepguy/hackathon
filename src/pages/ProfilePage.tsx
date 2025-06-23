@@ -2,8 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/TranslationContext';
 import { databaseService } from '../lib/database';
+import { userDataService, UserStats } from '../lib/userDataService';
 import PageContainer from '../components/layout/PageContainer';
 import LanguageSelector from '../components/common/LanguageSelector';
+import { 
+  User, Bell, Shield, HelpCircle, LogOut,
+  Camera, Moon, Sun, Globe, Lock, 
+  ChevronRight, Check, X, RefreshCw, AlertTriangle
+} from 'lucide-react';
 
 // Define proper interfaces for type safety
 interface SettingsItem {
@@ -18,11 +24,6 @@ interface SettingsGroup {
   title: string;
   items: SettingsItem[];
 }
-import { 
-  User, Bell, Shield, HelpCircle, LogOut,
-  Camera, Moon, Sun, Globe, Lock, 
-  ChevronRight, Check, X, RefreshCw, AlertTriangle
-} from 'lucide-react';
 
 const ProfilePage: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -32,6 +33,7 @@ const ProfilePage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [editForm, setEditForm] = useState({
     fullName: '',
     email: ''
@@ -63,10 +65,15 @@ const ProfilePage: React.FC = () => {
       setError(null);
 
       try {
+        // Load profile and preferences from database
         const [profile, prefs] = await Promise.all([
           databaseService.getUserProfile(user.id),
           databaseService.getUserPreferences(user.id)
         ]);
+
+        // Load real user statistics
+        const stats = await userDataService.calculateUserStats(user.id);
+        setUserStats(stats);
 
         setUserProfile(profile);
 
@@ -88,6 +95,8 @@ const ProfilePage: React.FC = () => {
             }
           }));
         }
+
+        console.log('✅ User profile and stats loaded:', { profile, stats });
       } catch (err) {
         console.error('Error loading user data:', err);
         setError('Failed to load profile data');
@@ -187,10 +196,27 @@ const ProfilePage: React.FC = () => {
     `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=3b82f6&color=fff&size=128`;
 
   // Calculate stats from real data
-  const stats = [
-    { label: 'Destinations Visited', value: '12' }, // Could be calculated from travel_plans
-    { label: 'Safety Score', value: '95%' }, // Could be calculated from user activity
-    { label: 'Days Traveled', value: '127' } // Could be calculated from travel_plans
+  const stats = userStats ? [
+    { 
+      label: 'Destinations Visited', 
+      value: userStats.destinationsVisited.toString(),
+      trend: userStats.destinationsVisited > 10 ? 'World Explorer' : userStats.destinationsVisited > 5 ? 'Active Traveler' : 'Getting Started'
+    },
+    { 
+      label: 'Safety Score', 
+      value: `${userStats.safetyScore}%`,
+      trend: userStats.safetyScore >= 95 ? 'Excellent' : userStats.safetyScore >= 85 ? 'Very Good' : 'Good'
+    },
+    { 
+      label: 'Days Traveled', 
+      value: userStats.daysTracked.toString(),
+      trend: userStats.daysTracked > 100 ? 'Experienced' : userStats.daysTracked > 30 ? 'Regular' : 'Beginner'
+    }
+  ] : [
+    // Fallback while loading
+    { label: 'Destinations Visited', value: '...', trend: 'Loading...' },
+    { label: 'Safety Score', value: '...', trend: 'Loading...' },
+    { label: 'Days Traveled', value: '...', trend: 'Loading...' }
   ];
 
   const handlePrivacyAndSecurity = () => {
@@ -402,6 +428,9 @@ const ProfilePage: React.FC = () => {
                     <div key={index} className="text-center">
                       <div className="text-2xl font-bold text-slate-900">{stat.value}</div>
                       <div className="text-sm text-slate-600">{stat.label}</div>
+                      {stat.trend && (
+                        <div className="text-xs text-slate-500 mt-1">{stat.trend}</div>
+                      )}
                     </div>
                   ))}
                 </div>

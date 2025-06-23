@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { 
+  MapPin, Layers, Zap, AlertTriangle, Cloud, Calendar, 
+  Wifi, Thermometer, Locate, Navigation
+} from 'lucide-react';
 import PageContainer from '../components/layout/PageContainer';
 import GoogleMapComponent from '../components/map/GoogleMap';
-import MapControls from '../components/map/MapControls';
 import { useLocation } from '../contexts/LocationContext';
-import { 
-  Layers, Navigation, Locate, Zap, 
-  AlertTriangle, Cloud, Calendar, Wifi, Thermometer, MapPin
-} from 'lucide-react';
+import { eventsService, TravelEvent } from '../lib/eventsApi';
 
 const MapPage: React.FC = () => {
   const [activeLayer, setActiveLayer] = useState('alerts');
   const [mapCenter, setMapCenter] = useState({ lat: 40.7128, lng: -74.0060 });
   const [mapZoom, setMapZoom] = useState(12);
+  const [events, setEvents] = useState<TravelEvent[]>([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   
   // Use LocationContext instead of manual geolocation
   const { 
@@ -23,6 +25,47 @@ const MapPage: React.FC = () => {
     locationError,
     clearLocationError
   } = useLocation();
+  
+  // Enhanced useEffect with better dependency tracking
+  useEffect(() => {
+    console.log('🔄 Events fetch triggered by dependency change');
+    fetchEvents();
+  }, [userLocation?.latitude, userLocation?.longitude, locationPermission, isTracking]);
+
+  // Fetch events for map display
+  const fetchEvents = async () => {
+    setIsLoadingEvents(true);
+    console.log('🎪 Fetching events for map display...');
+    
+    try {
+      let eventsData;
+      
+      if (userLocation?.latitude && userLocation?.longitude) {
+        console.log(`📍 Fetching events for map location: ${userLocation.latitude}, ${userLocation.longitude}`);
+        eventsData = await eventsService.getEventsNearLocation(
+          userLocation.latitude, 
+          userLocation.longitude, 
+          25 // 25km radius for map view
+        );
+      } else {
+        console.log('🌎 Using default location for map events');
+        eventsData = await eventsService.getTravelEvents('New York, NY');
+      }
+      
+      if (eventsData && eventsData.events) {
+        setEvents(eventsData.events.slice(0, 10)); // Show up to 10 events on map
+        console.log(`✅ Loaded ${eventsData.events.length} events for map display`);
+      } else {
+        setEvents([]);
+        console.log('⚠️ No events found for map display');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching events for map:', error);
+      setEvents([]);
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  };
   
   // Auto-center map when user location is available
   useEffect(() => {
@@ -235,6 +278,55 @@ const MapPage: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Events Panel - Right Side (when events layer is active) */}
+        {activeLayer === 'events' && (
+          <div className="absolute top-6 right-20 z-10 w-80 max-h-96 overflow-hidden">
+            <div className="kit-card p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-slate-900 flex items-center">
+                  <Calendar className="w-5 h-5 mr-2 text-green-600" />
+                  Local Events
+                </h3>
+                {isLoadingEvents && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                )}
+              </div>
+              
+              <div className="space-y-3 max-h-80 overflow-y-auto">
+                {events.length > 0 ? (
+                  events.map((event) => (
+                    <div key={event.id} className="p-3 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors">
+                      <h4 className="font-medium text-green-900 text-sm mb-1">{event.title}</h4>
+                      <p className="text-xs text-green-700 mb-2 line-clamp-2">{event.description}</p>
+                      <div className="flex items-center text-xs text-green-600">
+                        <MapPin className="w-3 h-3 mr-1" />
+                        <span className="truncate">{event.location.name}</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-green-600">
+                          {new Date(event.startDate).toLocaleDateString()}
+                        </span>
+                        {event.isFree && (
+                          <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded">
+                            Free
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-6">
+                    <Calendar className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">
+                      {isLoadingEvents ? 'Loading events...' : 'No events found nearby'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Layer Selection - Bottom */}
         <div className="absolute bottom-6 left-6 right-6 z-10">

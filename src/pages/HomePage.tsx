@@ -11,6 +11,7 @@ import EventCard from '../components/home/EventCard';
 import WeatherCard from '../components/home/WeatherCard';
 import TrialExpiredModal from '../components/trial/TrialExpiredModal';
 import { eventsService, TravelEvent } from '../lib/eventsApi';
+import { userDataService, UserStats } from '../lib/userDataService';
 import { 
   MapPin, Calendar, Shield, Clock, 
   Plus, ArrowRight, Zap, Globe, AlertTriangle,
@@ -20,7 +21,7 @@ import {
 const HomePage: React.FC = () => {
   const { user } = useAuth();
   const { currentDestination, destinations } = useUserDestinations();
-  const { userLocation, locationPermission, getCurrentLocation, isTracking, startLocationTracking } = useLocationContext();
+  const { userLocation, locationPermission, isTracking, startLocationTracking } = useLocationContext();
   const { isTrialActive, trialDaysRemaining, isTrialExpired, isPremiumUser } = useTrial();
   const { requestLocationForContext } = useLocationPermissionRequest();
   const { safetyAlerts, travelPlans, recentActivity, isLoading, error, refreshData } = useRealTimeData();
@@ -28,6 +29,9 @@ const HomePage: React.FC = () => {
   const [events, setEvents] = useState<TravelEvent[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [realActivities, setRealActivities] = useState<any[]>([]);
   const [greeting] = useState(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -53,8 +57,74 @@ const HomePage: React.FC = () => {
     }
   }, [isTrialExpired, isPremiumUser]);
 
-  // Stats for dashboard
-  const stats = [
+  // Load real user data
+  useEffect(() => {
+    const loadUserData = async () => {
+      if (!user?.id) return;
+      
+      setIsLoadingStats(true);
+      try {
+        console.log('📊 Loading real user data for:', user.id);
+        
+        // Load user statistics
+        const stats = await userDataService.calculateUserStats(user.id);
+        setUserStats(stats);
+        
+        // Load recent activities
+        const activities = await userDataService.getRecentActivities(user.id, 8);
+        setRealActivities(activities);
+        
+        // Track page view activity
+        await userDataService.trackActivity(user.id, 'home_page_viewed', {
+          timestamp: new Date().toISOString(),
+          user_agent: navigator.userAgent
+        });
+        
+        console.log('✅ Real user data loaded successfully');
+      } catch (error) {
+        console.error('❌ Error loading user data:', error);
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+
+    loadUserData();
+  }, [user?.id]);
+
+  // Stats for dashboard - now using real data
+  const stats = userStats ? [
+    {
+      label: 'Travel Plans',
+      value: userStats.totalTrips,
+      icon: Calendar,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50',
+      borderColor: 'border-blue-200',
+      description: 'Active travel destinations and plans',
+      trend: userStats.totalTrips > 10 ? `+${Math.floor(userStats.totalTrips * 0.1)} this month` : 'Start planning your next adventure'
+    },
+    {
+      label: 'Safety Score',
+      value: `${userStats.safetyScore}%`,
+      icon: Shield,
+      color: userStats.safetyScore >= 90 ? 'text-green-600' : userStats.safetyScore >= 70 ? 'text-yellow-600' : 'text-red-600',
+      bgColor: userStats.safetyScore >= 90 ? 'bg-green-50' : userStats.safetyScore >= 70 ? 'bg-yellow-50' : 'bg-red-50',
+      borderColor: userStats.safetyScore >= 90 ? 'border-green-200' : userStats.safetyScore >= 70 ? 'border-yellow-200' : 'border-red-200',
+      description: 'Current safety status for your locations',
+      trend: userStats.safetyScore >= 90 ? 'Excellent safety record' : userStats.safetyScore >= 70 ? 'Good safety practices' : 'Review safety recommendations'
+    },
+    {
+      label: 'Days Tracked',
+      value: userStats.daysTracked,
+      icon: Clock,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50',
+      borderColor: 'border-purple-200',
+      description: 'Total days of travel tracking',
+      trend: userStats.daysTracked > 100 ? 'Experienced traveler' : userStats.daysTracked > 30 ? 'Active explorer' : 'Getting started'
+    }
+  ] : [
+    // Fallback stats while loading
     {
       label: 'Travel Plans',
       value: travelPlans.length,
@@ -470,7 +540,7 @@ const HomePage: React.FC = () => {
               Local Events & Activities
             </h2>
             <button
-              onClick={() => navigate('/explore')}
+              onClick={() => navigate('/map')}
               className="text-purple-600 hover:text-purple-800 font-medium text-sm flex items-center transition-colors"
             >
               View All
@@ -516,7 +586,7 @@ const HomePage: React.FC = () => {
                 </button>
               ) : (
                 <button
-                  onClick={() => navigate('/explore')}
+                  onClick={() => navigate('/map')}
                   className="kit-button bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-gray-200 hover:to-gray-300"
                 >
                   Explore All Events
