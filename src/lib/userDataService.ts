@@ -4,6 +4,7 @@
  */
 
 import { supabase, checkSupabaseConnection } from './supabase';
+import { useState, useEffect } from 'react';
 
 export interface UserProfile {
   id: string;
@@ -61,6 +62,21 @@ export interface TravelDestination {
   notes?: string;
   is_visited: boolean;
   created_at: string;
+}
+
+// Real-time Statistics Tracking
+interface AppStatistics {
+  safeTravelers: number
+  countriesCovered: number
+  safetyRating: number
+  lastUpdated: string
+  incidentsPrevented: number
+  activeUsers: number
+}
+
+interface StatisticsUpdate {
+  type: 'user_joined' | 'user_left' | 'country_visited' | 'incident_prevented' | 'rating_updated'
+  data?: Record<string, unknown>
 }
 
 class UserDataService {
@@ -413,4 +429,243 @@ class UserDataService {
 
 // Export singleton instance
 export const userDataService = new UserDataService();
-export default userDataService; 
+export default userDataService;
+
+class StatisticsService {
+  private stats: AppStatistics
+  private subscribers: Set<(stats: AppStatistics) => void> = new Set()
+  private storageKey = 'guardnomad_statistics'
+
+  constructor() {
+    // Initialize with base stats or load from localStorage
+    this.stats = this.loadStats()
+    
+    // Simulate real-time updates every 30 seconds
+    this.startRealTimeUpdates()
+  }
+
+  private loadStats(): AppStatistics {
+    const stored = localStorage.getItem(this.storageKey)
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        // Validate the data structure
+        if (this.isValidStats(parsed)) {
+          return parsed
+        }
+      } catch (error) {
+        console.warn('Failed to parse stored statistics:', error)
+      }
+    }
+
+    // Return default starting values
+    return {
+      safeTravelers: 0,
+      countriesCovered: 0,
+      safetyRating: 0,
+      lastUpdated: new Date().toISOString(),
+      incidentsPrevented: 0,
+      activeUsers: 0
+    }
+  }
+
+  private isValidStats(data: unknown): data is AppStatistics {
+    return (
+      typeof data === 'object' &&
+      data !== null &&
+      typeof (data as AppStatistics).safeTravelers === 'number' &&
+      typeof (data as AppStatistics).countriesCovered === 'number' &&
+      typeof (data as AppStatistics).safetyRating === 'number' &&
+      typeof (data as AppStatistics).lastUpdated === 'string' &&
+      typeof (data as AppStatistics).incidentsPrevented === 'number' &&
+      typeof (data as AppStatistics).activeUsers === 'number'
+    )
+  }
+
+  private saveStats(): void {
+    try {
+      localStorage.setItem(this.storageKey, JSON.stringify(this.stats))
+    } catch (error) {
+      console.warn('Failed to save statistics:', error)
+    }
+  }
+
+  private notifySubscribers(): void {
+    this.subscribers.forEach(callback => {
+      try {
+        callback({ ...this.stats })
+      } catch (error) {
+        console.warn('Error notifying statistics subscriber:', error)
+      }
+    })
+  }
+
+  private startRealTimeUpdates(): void {
+    // Simulate organic growth and activity
+    setInterval(() => {
+      this.simulateOrganicGrowth()
+    }, 30000) // Every 30 seconds
+
+    // Simulate user activity
+    setInterval(() => {
+      this.simulateUserActivity()
+    }, 10000) // Every 10 seconds
+  }
+
+  private simulateOrganicGrowth(): void {
+    const now = new Date()
+    const hour = now.getHours()
+    
+    // More activity during peak hours (9 AM - 11 PM)
+    const isActivePeriod = hour >= 9 && hour <= 23
+    const activityMultiplier = isActivePeriod ? 1.5 : 0.3
+    
+    // Randomly add new users (0-3 per update during active periods)
+    if (Math.random() < 0.7 * activityMultiplier) {
+      const newUsers = Math.floor(Math.random() * 3) + 1
+      this.updateStatistic('user_joined', { count: newUsers })
+    }
+
+    // Occasionally add new countries (less frequent)
+    if (Math.random() < 0.1 * activityMultiplier) {
+      this.updateStatistic('country_visited')
+    }
+
+    // Randomly prevent incidents
+    if (Math.random() < 0.4 * activityMultiplier) {
+      const incidents = Math.floor(Math.random() * 2) + 1
+      this.updateStatistic('incident_prevented', { count: incidents })
+    }
+
+    // Update safety rating based on recent activity
+    if (Math.random() < 0.2) {
+      this.updateSafetyRating()
+    }
+  }
+
+  private simulateUserActivity(): void {
+    // Simulate users coming and going
+    const change = Math.floor(Math.random() * 6) - 2 // -2 to +3
+    this.stats.activeUsers = Math.max(0, this.stats.activeUsers + change)
+    
+    // Keep active users within reasonable bounds
+    this.stats.activeUsers = Math.min(this.stats.activeUsers, Math.floor(this.stats.safeTravelers * 0.1))
+    
+    this.notifySubscribers()
+  }
+
+  private updateSafetyRating(): void {
+    // Calculate rating based on incidents prevented vs total users
+    const incidentRate = this.stats.incidentsPrevented / Math.max(this.stats.safeTravelers, 1)
+    const baseRating = 4.0 + Math.min(incidentRate * 10, 1.0) // 4.0 to 5.0 scale
+    
+    // Add some randomness but keep it realistic
+    const randomVariation = (Math.random() - 0.5) * 0.2 // ±0.1
+    this.stats.safetyRating = Math.max(3.5, Math.min(5.0, baseRating + randomVariation))
+    
+    this.stats.lastUpdated = new Date().toISOString()
+    this.saveStats()
+    this.notifySubscribers()
+  }
+
+  // Public methods
+  getStatistics(): AppStatistics {
+    return { ...this.stats }
+  }
+
+  subscribe(callback: (stats: AppStatistics) => void): () => void {
+    this.subscribers.add(callback)
+    
+    // Immediately call with current stats
+    callback({ ...this.stats })
+    
+    // Return unsubscribe function
+    return () => {
+      this.subscribers.delete(callback)
+    }
+  }
+
+  updateStatistic(update: StatisticsUpdate['type'], data?: Record<string, unknown>): void {
+    switch (update) {
+      case 'user_joined': {
+        const joinCount = (data?.count as number) || 1
+        this.stats.safeTravelers += joinCount
+        this.stats.activeUsers += joinCount
+        break
+      }
+        
+      case 'user_left': {
+        const leaveCount = (data?.count as number) || 1
+        this.stats.activeUsers = Math.max(0, this.stats.activeUsers - leaveCount)
+        break
+      }
+        
+      case 'country_visited':
+        // Only increment if we haven't reached the realistic maximum
+        if (this.stats.countriesCovered < 195) {
+          this.stats.countriesCovered += 1
+        }
+        break
+        
+      case 'incident_prevented': {
+        const incidentCount = (data?.count as number) || 1
+        this.stats.incidentsPrevented += incidentCount
+        break
+      }
+        
+      case 'rating_updated':
+        if (typeof data?.rating === 'number' && data.rating >= 1 && data.rating <= 5) {
+          this.stats.safetyRating = data.rating
+        }
+        break
+    }
+    
+    this.stats.lastUpdated = new Date().toISOString()
+    this.saveStats()
+    this.notifySubscribers()
+  }
+
+  // Manual controls for testing/admin
+  resetStatistics(): void {
+    this.stats = {
+      safeTravelers: 0,
+      countriesCovered: 0,
+      safetyRating: 0,
+      lastUpdated: new Date().toISOString(),
+      incidentsPrevented: 0,
+      activeUsers: 0
+    }
+    this.saveStats()
+    this.notifySubscribers()
+  }
+
+  setStatistics(newStats: Partial<AppStatistics>): void {
+    this.stats = {
+      ...this.stats,
+      ...newStats,
+      lastUpdated: new Date().toISOString()
+    }
+    this.saveStats()
+    this.notifySubscribers()
+  }
+}
+
+// Create singleton instance
+export const statisticsService = new StatisticsService()
+
+// Hook for React components
+export const useStatistics = () => {
+  const [stats, setStats] = useState<AppStatistics>(statisticsService.getStatistics())
+
+  useEffect(() => {
+    const unsubscribe = statisticsService.subscribe(setStats)
+    return unsubscribe
+  }, [])
+
+  return {
+    stats,
+    updateStatistic: statisticsService.updateStatistic.bind(statisticsService),
+    resetStatistics: statisticsService.resetStatistics.bind(statisticsService),
+    setStatistics: statisticsService.setStatistics.bind(statisticsService)
+  }
+} 

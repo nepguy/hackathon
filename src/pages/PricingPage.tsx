@@ -6,11 +6,13 @@ import PageContainer from '../components/layout/PageContainer';
 import PricingPlans from '../components/payment/PricingPlans';
 import RevenueCatPayment from '../components/payment/RevenueCatPayment';
 import { Check, Star, Zap, Shield, Globe, Crown } from 'lucide-react';
+import { useStatistics } from '../lib/userDataService';
 
 const PricingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isSubscribed } = useSubscription();
+  const { stats } = useStatistics();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
 
@@ -179,7 +181,7 @@ const PricingPage: React.FC = () => {
           <div className="flex items-center justify-center space-x-8 text-gray-500">
             <div className="flex items-center space-x-2">
               <Star className="w-5 h-5 text-yellow-500" />
-              <span className="text-sm">4.9/5 Rating</span>
+              <span className="text-sm">{stats.safetyRating.toFixed(1)}/5 Rating</span>
             </div>
             <div className="flex items-center space-x-2">
               <Shield className="w-5 h-5 text-green-500" />
@@ -187,7 +189,7 @@ const PricingPage: React.FC = () => {
             </div>
             <div className="flex items-center space-x-2">
               <Globe className="w-5 h-5 text-blue-500" />
-              <span className="text-sm">50+ Countries</span>
+              <span className="text-sm">{stats.countriesCovered}+ Countries</span>
             </div>
           </div>
         </div>

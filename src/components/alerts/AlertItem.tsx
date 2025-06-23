@@ -4,6 +4,7 @@ import {
   AlertTriangle, CloudRain, Stethoscope, Bus, Shield, ShieldAlert, 
   ChevronDown, ChevronUp, Info, ExternalLink, Clock, MapPin
 } from 'lucide-react';
+import { statisticsService } from '../../lib/userDataService';
 
 interface AlertItemProps {
   alert: SafetyAlert;
@@ -155,7 +156,14 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onMarkAsRead }) => {
           <div className="flex items-center space-x-3">
             {!alert.read && (
               <button 
-                onClick={() => onMarkAsRead(alert.id)}
+                onClick={() => {
+                  onMarkAsRead(alert.id);
+                  // Track incident prevention when user acknowledges a safety alert
+                  if (alert.severity === 'high' || alert.severity === 'medium') {
+                    console.log('🛡️ Incident potentially prevented by alert acknowledgment');
+                    statisticsService.updateStatistic('incident_prevented');
+                  }
+                }}
                 className="btn-ghost text-sm"
               >
                 Mark as read

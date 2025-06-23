@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Check, Star, Zap, Shield, Globe, Crown, CreditCard, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { REVENUECAT_CONFIG } from '../../config/api';
+import { useStatistics } from '../../lib/userDataService';
 
 interface PricingPlan {
   id: string;
@@ -59,6 +60,7 @@ const SUBSCRIPTION_PLANS: PricingPlan[] = [
 
 const PricingPlans: React.FC<PricingPlansProps> = ({ onSelectPlan }) => {
   const { user } = useAuth();
+  const { stats } = useStatistics();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
   const handleSelectPlan = (planId: string) => {
@@ -227,7 +229,7 @@ const PricingPlans: React.FC<PricingPlansProps> = ({ onSelectPlan }) => {
             </div>
             <h4 className="font-semibold text-gray-900 mb-2">Global Coverage</h4>
             <p className="text-gray-600 text-sm">
-              Access comprehensive safety data and travel insights for 195+ countries worldwide.
+              Access comprehensive safety data and travel insights for {stats.countriesCovered}+ countries worldwide.
             </p>
           </div>
         </div>

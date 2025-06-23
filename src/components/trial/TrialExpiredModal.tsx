@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Crown, Star, Zap, Shield, Globe, ArrowRight, X } from 'lucide-react';
 import { useSubscription } from '../../contexts/SubscriptionContext';
+import { useStatistics } from '../../lib/userDataService';
 
 interface TrialExpiredModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface TrialExpiredModalProps {
 const TrialExpiredModal: React.FC<TrialExpiredModalProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const { purchaseProduct } = useSubscription();
+  const { stats } = useStatistics();
 
   if (!isOpen) return null;
 
@@ -41,7 +43,7 @@ const TrialExpiredModal: React.FC<TrialExpiredModalProps> = ({ isOpen, onClose }
     {
       icon: Globe,
       title: 'Global Coverage',
-      description: 'Access comprehensive safety data for 195+ countries worldwide'
+      description: `Access comprehensive safety data for ${stats.countriesCovered}+ countries worldwide`
     },
     {
       icon: Star,

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { statisticsService } from '../lib/userDataService'
 
 interface AuthContextType {
   user: User | null
@@ -68,6 +69,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: string, session: any) => {
         console.log('Auth state changed:', event, session?.user?.id);
+        
+        // Track user statistics for real-time updates
+        if (event === 'SIGNED_IN' && session?.user) {
+          console.log('🔥 User joined - updating statistics');
+          statisticsService.updateStatistic('user_joined');
+        } else if (event === 'SIGNED_OUT') {
+          console.log('👋 User left - updating statistics');
+          statisticsService.updateStatistic('user_left');
+        }
         
         if (mounted) {
           setUser(session?.user ?? null);

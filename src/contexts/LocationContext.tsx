@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import useGeolocation, { UserLocation, GeolocationError } from '../hooks/useGeolocation';
+import { statisticsService } from '../lib/userDataService';
 
 interface LocationContextType {
   userLocation: UserLocation | null;
@@ -40,6 +41,36 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({
 }) => {
   const [isTracking, setIsTracking] = useState(false);
   const [locationPermission, setLocationPermission] = useState<PermissionState | 'unknown'>('prompt');
+  const [visitedCountries, setVisitedCountries] = useState<Set<string>>(new Set());
+
+  // Function to get country from coordinates using reverse geocoding
+  const getCountryFromCoords = async (lat: number, lng: number): Promise<string | null> => {
+    try {
+      const response = await fetch(
+        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
+      );
+      const data = await response.json();
+      return data.countryName || null;
+    } catch (error) {
+      console.warn('Could not determine country from coordinates:', error);
+      return null;
+    }
+  };
+
+  // Track new countries visited
+  const trackCountryVisit = async (location: UserLocation) => {
+    const country = await getCountryFromCoords(location.latitude, location.longitude);
+    if (country && !visitedCountries.has(country)) {
+      console.log('🌍 New country visited:', country);
+      setVisitedCountries(prev => new Set([...prev, country]));
+      statisticsService.updateStatistic('country_visited');
+      
+      // Save to localStorage
+      const savedCountries = Array.from(visitedCountries);
+      savedCountries.push(country);
+      localStorage.setItem('visitedCountries', JSON.stringify(savedCountries));
+    }
+  };
 
   const {
     position: userLocation,
@@ -62,6 +93,9 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({
         ...location,
         savedAt: Date.now()
       }));
+      
+      // Track country visits
+      trackCountryVisit(location);
     },
     onError: (error) => {
       console.warn('Geolocation error:', error.message || 'Location access failed');
@@ -135,7 +169,7 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({
     stopWatching();
   };
 
-  // Load last known location from localStorage on mount
+  // Load last known location and visited countries from localStorage on mount
   useEffect(() => {
     const savedLocation = localStorage.getItem('lastKnownLocation');
     if (savedLocation && !userLocation) {
@@ -149,6 +183,19 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({
       } catch (error) {
         console.warn('Could not parse saved location:', error);
         localStorage.removeItem('lastKnownLocation');
+      }
+    }
+
+    // Load visited countries
+    const savedCountries = localStorage.getItem('visitedCountries');
+    if (savedCountries) {
+      try {
+        const countries = JSON.parse(savedCountries);
+        setVisitedCountries(new Set(countries));
+        console.log('Loaded visited countries:', countries);
+      } catch (error) {
+        console.warn('Could not parse saved countries:', error);
+        localStorage.removeItem('visitedCountries');
       }
     }
   }, [userLocation]);

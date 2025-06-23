@@ -5,6 +5,7 @@ import {
   X, Calendar, Users, Star, Globe,
   TrendingUp, Share2, ChevronRight
 } from 'lucide-react';
+import { useStatistics } from '../lib/userDataService';
 
 interface TravelStory {
   id: string;
@@ -35,6 +36,7 @@ interface TravelStory {
 }
 
 const ExplorePage: React.FC = () => {
+  const { stats } = useStatistics();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
@@ -163,8 +165,8 @@ const ExplorePage: React.FC = () => {
 
   const communityStats = [
     { label: 'Travel Stories', value: '2.5K+', icon: Globe },
-    { label: 'Active Travelers', value: '12K+', icon: Users },
-    { label: 'Countries Covered', value: '89', icon: MapPin },
+    { label: 'Active Travelers', value: `${Math.floor(stats.safeTravelers / 1000)}K+`, icon: Users },
+    { label: 'Countries Covered', value: stats.countriesCovered.toString(), icon: MapPin },
   ];
 
   return (
