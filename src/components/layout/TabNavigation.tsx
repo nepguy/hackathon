@@ -38,12 +38,6 @@ const TabNavigation: React.FC = () => {
       label: 'Profile',
       icon: User,
       exactPath: false
-    },
-    {
-      path: '/pricing',
-      label: 'Premium',
-      icon: Crown,
-      exactPath: false
     }
   ];
 
