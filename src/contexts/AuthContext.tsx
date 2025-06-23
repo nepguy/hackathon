@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import RevenueCatService from '../lib/revenuecat'
 
 interface AuthContextType {
   user: User | null
@@ -25,6 +26,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const revenueCatService = RevenueCatService.getInstance()
 
   useEffect(() => {
     // Get initial session
@@ -41,6 +43,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
+      
+      // Initialize RevenueCat when user changes
+      if (session?.user) {
+        revenueCatService.initialize(session.user.id).catch(console.error)
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -68,6 +75,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const signOut = async () => {
+    // Log out from RevenueCat
+    try {
+      await revenueCatService.logOut()
+    } catch (error) {
+      console.error('RevenueCat logout error:', error)
+    }
+    
     await supabase.auth.signOut()
   }
 

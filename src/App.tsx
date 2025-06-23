@@ -17,6 +17,8 @@ import MapPage from './pages/MapPage';
 import ExplorePage from './pages/ExplorePage';
 import ProfilePage from './pages/ProfilePage';
 import AddDestinationPage from './pages/AddDestinationPage';
+import PricingPage from './pages/PricingPage';
+import PaymentSuccessPage from './pages/PaymentSuccessPage';
 
 function App() {
   useEffect(() => {
@@ -77,6 +79,18 @@ function App() {
                   <Route path="/add-destination" element={
                     <ProtectedRoute>
                       <AddDestinationPage />
+                      <TabNavigation />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/pricing" element={
+                    <ProtectedRoute>
+                      <PricingPage />
+                      <TabNavigation />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/payment-success" element={
+                    <ProtectedRoute>
+                      <PaymentSuccessPage />
                       <TabNavigation />
                     </ProtectedRoute>
                   } />

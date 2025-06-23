@@ -1,37 +1,38 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '../components/layout/PageContainer';
-import PricingPlans from '../components/payment/PricingPlans';
-import PaymentModal from '../components/payment/PaymentModal';
+import RevenueCatPricing from '../components/payment/RevenueCatPricing';
 import { useAuth } from '../contexts/AuthContext';
 
 const PricingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-  const handleSelectPlan = (planId: string) => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-
-    setSelectedPlanId(planId);
-    setShowPaymentModal(true);
-  };
-
-  const handlePaymentSuccess = () => {
-    // Update user subscription status
-    // This would typically involve updating the user's subscription in your database
-    alert('Welcome to TravelSafe Premium! Your subscription is now active.');
+  const handlePurchaseSuccess = () => {
+    // Navigate to success page or home
     navigate('/home');
   };
 
-  const handleCloseModal = () => {
-    setShowPaymentModal(false);
-    setSelectedPlanId(null);
-  };
+  if (!user) {
+    return (
+      <PageContainer
+        title="Premium Plans"
+        subtitle="Sign in to access premium features"
+      >
+        <div className="text-center py-12">
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">
+            Please sign in to view subscription plans
+          </h3>
+          <button
+            onClick={() => navigate('/auth')}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Sign In
+          </button>
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer
@@ -39,16 +40,7 @@ const PricingPage: React.FC = () => {
       subtitle="Unlock advanced travel safety features"
     >
       <div className="max-w-6xl mx-auto">
-        <PricingPlans onSelectPlan={handleSelectPlan} />
-        
-        {selectedPlanId && (
-          <PaymentModal
-            isOpen={showPaymentModal}
-            onClose={handleCloseModal}
-            planId={selectedPlanId}
-            onSuccess={handlePaymentSuccess}
-          />
-        )}
+        <RevenueCatPricing onPurchaseSuccess={handlePurchaseSuccess} />
       </div>
     </PageContainer>
   );
