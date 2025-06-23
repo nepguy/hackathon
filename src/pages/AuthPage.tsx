@@ -211,33 +211,6 @@ const AuthPage: React.FC = () => {
             </button>
           </form>
 
-          {/* Test User Button */}
-          <div className="mt-4">
-            <button
-              onClick={async () => {
-                setLoading(true)
-                setError('')
-                try {
-                  const { error } = await signIn('test@travelsafe.com', 'testpassword123')
-                  if (error) {
-                    // If test user doesn't exist, create it
-                    const { error: signUpError } = await signUp('test@travelsafe.com', 'testpassword123', 'Test User')
-                    if (signUpError) {
-                      setError('Failed to create test user: ' + signUpError.message)
-                    }
-                  }
-                } catch (err) {
-                  setError('Test user creation failed')
-                } finally {
-                  setLoading(false)
-                }
-              }}
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-2 rounded-lg font-medium hover:from-emerald-600 hover:to-teal-600 transition-all disabled:opacity-50"
-            >
-              🧪 Quick Test Login
-            </button>
-          </div>
 
           {/* Toggle Auth Mode */}
           <div className="mt-6 text-center">
