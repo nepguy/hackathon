@@ -638,6 +638,27 @@
   @apply bg-red-500 animate-pulse-glow;
 }
 
+/* Map layer hover effects */
+.map-layer-button {
+  @apply p-3 rounded-xl text-center transition-all duration-300;
+}
+
+.map-layer-button:hover {
+  @apply transform scale-105 shadow-md;
+}
+
+.map-layer-button.active {
+  @apply bg-white shadow-lg scale-105;
+}
+
+.map-layer-button:not(.active) {
+  @apply bg-white/50 hover:bg-white/80;
+}
+
+.map-layer-button:hover .map-layer-icon {
+  @apply transform scale-110;
+}
+
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   html {
