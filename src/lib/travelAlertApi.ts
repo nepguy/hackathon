@@ -1,5 +1,5 @@
 import { SafetyAlert } from '../types';
-import { BASE_URL } from '../config/api';
+import { API_CONFIG } from '../config/api';
 
 // Travel Alert API Configuration
 const API_BASE_URL = 'https://saver-7tda.onrender.com';
@@ -265,7 +265,7 @@ class TravelAlertAPI {
 }
 
 class SaverTravelAlertService {
-  private baseUrl = BASE_URL;
+  private baseUrl = API_CONFIG.BASE_URL;
   private apiKey?: string;
 
   constructor(apiKey?: string) {
