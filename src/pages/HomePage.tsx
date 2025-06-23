@@ -30,18 +30,16 @@ const HomePage: React.FC = () => {
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [isLoadingStats, setIsLoadingStats] = useState(true);
-  
-  // Check if trial has expired
-  const isTrialExpired = subscriptionStatus === 'expired';
-  const isPremiumUser = isSubscribed;
-  const [realActivities, setRealActivities] = useState<any[]>([]);
   const [greeting] = useState(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
     if (hour < 18) return 'Good afternoon';
     return 'Good evening';
   });
+
+  // Check if trial has expired
+  const isTrialExpired = subscriptionStatus === 'expired';
+  const isPremiumUser = isSubscribed;
 
   // Get user's display name
   const getUserName = () => {
@@ -67,17 +65,12 @@ const HomePage: React.FC = () => {
     const loadUserData = async () => {
       if (!user?.id) return;
       
-      setIsLoadingStats(true);
       try {
         console.log('📊 Loading real user data for:', user.id);
         
         // Load user statistics
         const stats = await userDataService.calculateUserStats(user.id);
         setUserStats(stats);
-        
-        // Load recent activities
-        const activities = await userDataService.getRecentActivities(user.id, 8);
-        setRealActivities(activities);
         
         // Track page view activity
         await userDataService.trackActivity(user.id, 'home_page_viewed', {
@@ -88,8 +81,6 @@ const HomePage: React.FC = () => {
         console.log('✅ Real user data loaded successfully');
       } catch (error) {
         console.error('❌ Error loading user data:', error);
-      } finally {
-        setIsLoadingStats(false);
       }
     };
 

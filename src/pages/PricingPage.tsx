@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '../contexts/SubscriptionContext';
+import { useAuth } from '../contexts/AuthContext';
 import PageContainer from '../components/layout/PageContainer';
 import PricingPlans from '../components/payment/PricingPlans';
-import PaymentForm from '../components/payment/PaymentForm';
 import RevenueCatPayment from '../components/payment/RevenueCatPayment';
-import { useAuth } from '../contexts/AuthContext';
+import { Check, Star, Zap, Shield, Globe, Crown } from 'lucide-react';
 
 const PricingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -96,13 +96,37 @@ const PricingPage: React.FC = () => {
     return (
       <PageContainer
         title="Complete Purchase"
-        subtitle="Complete your subscription"
+        subtitle={`Complete your ${plan.name} subscription`}
       >
-        <RevenueCatPayment
-          planId={selectedPlan}
-          onSuccess={handlePaymentSuccess}
-          onCancel={handlePaymentCancel}
-        />
+        <div className="max-w-2xl mx-auto">
+          {/* Plan Summary */}
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-6 mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  {plan.name}
+                </h3>
+                <p className="text-gray-600">
+                  You're subscribing to premium features
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-gray-900">
+                  €{plan.price}
+                </div>
+                <div className="text-sm text-gray-500">
+                  {selectedPlan.includes('yearly') ? 'per year' : 'per month'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <RevenueCatPayment
+            planId={selectedPlan}
+            onSuccess={handlePaymentSuccess}
+            onCancel={handlePaymentCancel}
+          />
+        </div>
       </PageContainer>
     );
   }
@@ -113,7 +137,60 @@ const PricingPage: React.FC = () => {
       subtitle="Unlock advanced travel safety features"
     >
       <div className="max-w-6xl mx-auto">
+        {/* Feature Highlights */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+          <div className="text-center p-4">
+            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+              <Shield className="w-6 h-6 text-blue-600" />
+            </div>
+            <h3 className="font-semibold text-gray-900 mb-1">Safety First</h3>
+            <p className="text-sm text-gray-600">Real-time alerts and protection</p>
+          </div>
+          
+          <div className="text-center p-4">
+            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+              <Zap className="w-6 h-6 text-purple-600" />
+            </div>
+            <h3 className="font-semibold text-gray-900 mb-1">AI Powered</h3>
+            <p className="text-sm text-gray-600">Smart travel insights</p>
+          </div>
+          
+          <div className="text-center p-4">
+            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+              <Globe className="w-6 h-6 text-green-600" />
+            </div>
+            <h3 className="font-semibold text-gray-900 mb-1">Global Coverage</h3>
+            <p className="text-sm text-gray-600">Worldwide travel support</p>
+          </div>
+          
+          <div className="text-center p-4">
+            <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+              <Crown className="w-6 h-6 text-amber-600" />
+            </div>
+            <h3 className="font-semibold text-gray-900 mb-1">Premium Quality</h3>
+            <p className="text-sm text-gray-600">Best-in-class features</p>
+          </div>
+        </div>
+
         <PricingPlans onSelectPlan={handleSelectPlan} />
+        
+        {/* Trust Indicators */}
+        <div className="mt-16 text-center">
+          <div className="flex items-center justify-center space-x-8 text-gray-500">
+            <div className="flex items-center space-x-2">
+              <Star className="w-5 h-5 text-yellow-500" />
+              <span className="text-sm">4.9/5 Rating</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Shield className="w-5 h-5 text-green-500" />
+              <span className="text-sm">Secure Payment</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Globe className="w-5 h-5 text-blue-500" />
+              <span className="text-sm">50+ Countries</span>
+            </div>
+          </div>
+        </div>
       </div>
     </PageContainer>
   );

@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Thermometer, Droplets, Wind, Eye, Sunrise, Navigation, Gauge } from 'lucide-react';
+import { 
+  Cloud, CloudRain, Sun, Wind, Droplets, Eye, 
+  Thermometer, MapPin, RefreshCw, AlertCircle
+} from 'lucide-react';
 import { useLocation } from '../../contexts/LocationContext';
 import { useLocationPermissionRequest } from '../common/PermissionManager';
 import { weatherService, WeatherData } from '../../lib/weatherApi';
@@ -145,6 +148,24 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
     fetchWeather();
   }, [location, coordinates]);
 
+  // Helper function to get appropriate weather icon based on condition
+  const getWeatherIcon = (condition: string, size: string = "w-8 h-8") => {
+    const lowerCondition = condition.toLowerCase();
+    
+    if (lowerCondition.includes('rain') || lowerCondition.includes('drizzle') || lowerCondition.includes('shower')) {
+      return <CloudRain className={`${size} text-blue-500`} />;
+    }
+    if (lowerCondition.includes('cloud') || lowerCondition.includes('overcast')) {
+      return <Cloud className={`${size} text-gray-500`} />;
+    }
+    if (lowerCondition.includes('sun') || lowerCondition.includes('clear') || lowerCondition.includes('bright')) {
+      return <Sun className={`${size} text-yellow-500`} />;
+    }
+    
+    // Default icon for unknown conditions
+    return <Cloud className={`${size} text-gray-400`} />;
+  };
+
   // Handle location update prompt
   const handleLocationUpdate = () => {
     setShowLocationPrompt(false);
@@ -155,6 +176,11 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
     setShowLocationPrompt(false);
   };
 
+  // Handle refresh weather data
+  const handleRefreshWeather = () => {
+    fetchWeather(true);
+  };
+
   if (error && !weatherData) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -163,8 +189,16 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
             <Thermometer className="w-5 h-5 mr-2 text-blue-600" />
             Weather
           </h3>
+          <button 
+            onClick={handleRefreshWeather}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Refresh weather data"
+          >
+            <RefreshCw className="w-4 h-4 text-gray-600" />
+          </button>
         </div>
         <div className="text-center py-4">
+          <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
           <p className="text-gray-500 text-sm">{error}</p>
           <button 
             onClick={() => fetchWeather()}
@@ -215,14 +249,7 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
             <div className="text-4xl">
-              <img 
-                src={currentWeather.condition.icon.startsWith('//') 
-                  ? `https:${currentWeather.condition.icon}` 
-                  : currentWeather.condition.icon
-                } 
-                alt={currentWeather.condition.text}
-                className="w-16 h-16"
-              />
+              {getWeatherIcon(currentWeather.condition.text, "w-16 h-16")}
             </div>
             <div>
               <div className="text-3xl font-bold text-gray-900">
@@ -281,7 +308,7 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
           
           <div className="kit-glass rounded-lg p-3">
             <div className="flex items-center space-x-2">
-              <Gauge className="w-4 h-4 text-orange-500" />
+              <Thermometer className="w-4 h-4 text-orange-500" />
               <span className="text-sm text-gray-600">Pressure</span>
             </div>
             <div className="text-lg font-semibold text-gray-900 mt-1">
@@ -298,14 +325,9 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
               <div key={index} className="kit-glass rounded-lg p-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <img 
-                      src={day.condition.icon.startsWith('//') 
-                        ? `https:${day.condition.icon}` 
-                        : day.condition.icon
-                      } 
-                      alt={day.condition.text}
-                      className="w-8 h-8 mr-3"
-                    />
+                    <div className="mr-3">
+                      {getWeatherIcon(day.condition.text, "w-8 h-8")}
+                    </div>
                     <div>
                       <div className="text-sm font-medium text-gray-900">
                         {index === 0 ? 'Today' : 

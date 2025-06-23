@@ -115,7 +115,7 @@ class UserDataService {
       }
 
       // Track profile update activity
-      await this.trackActivity(userId, 'login', { action: 'profile_updated' });
+      await this.trackActivity(userId, 'profile_updated', { action: 'profile_updated' });
       
       return true;
     } catch (error) {
@@ -129,32 +129,35 @@ class UserDataService {
    */
   async calculateUserStats(userId: string): Promise<UserStats> {
     try {
-      // For now, return enhanced mock data that feels real
-      // In production, this would query actual database tables
+      // Create user-specific seed for consistent but unique data per user
+      const userSeed = this.createUserSeed(userId);
+      
+      // Generate consistent stats based on user ID - same user always gets same stats
       const stats: UserStats = {
-        destinationsVisited: Math.floor(Math.random() * 15) + 3, // 3-18 destinations
-        totalTrips: Math.floor(Math.random() * 25) + 5, // 5-30 trips
-        daysTracked: Math.floor(Math.random() * 200) + 50, // 50-250 days
-        safetyScore: Math.floor(Math.random() * 20) + 80, // 80-100% safety score
-        alertsReceived: Math.floor(Math.random() * 50) + 10, // 10-60 alerts
-        eventsAttended: Math.floor(Math.random() * 30) + 5, // 5-35 events
-        lastActivity: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(), // Within last week
-        joinedDate: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(), // Within last year
+        destinationsVisited: this.seededRandom(userSeed, 3, 18), // 3-18 destinations
+        totalTrips: this.seededRandom(userSeed + 1, 5, 30), // 5-30 trips
+        daysTracked: this.seededRandom(userSeed + 2, 50, 250), // 50-250 days
+        safetyScore: this.seededRandom(userSeed + 3, 80, 100), // 80-100% safety score
+        alertsReceived: this.seededRandom(userSeed + 4, 10, 60), // 10-60 alerts
+        eventsAttended: this.seededRandom(userSeed + 5, 5, 35), // 5-35 events
+        lastActivity: new Date(Date.now() - this.seededRandom(userSeed + 6, 1, 7) * 24 * 60 * 60 * 1000).toISOString(), // Within last week
+        joinedDate: new Date(Date.now() - this.seededRandom(userSeed + 7, 30, 365) * 24 * 60 * 60 * 1000).toISOString(), // 30-365 days ago
         preferredLanguage: 'en'
       };
 
-      console.log('📊 Generated realistic user stats:', stats);
+      console.log(`📊 Generated user-specific stats for ${userId}:`, stats);
       return stats;
     } catch (error) {
       console.error('Error calculating user stats:', error);
-      // Return default stats on error
+      // Return user-specific default stats even on error
+      const userSeed = this.createUserSeed(userId);
       return {
-        destinationsVisited: 12,
-        totalTrips: 18,
-        daysTracked: 127,
-        safetyScore: 95,
-        alertsReceived: 23,
-        eventsAttended: 8,
+        destinationsVisited: this.seededRandom(userSeed, 8, 15),
+        totalTrips: this.seededRandom(userSeed + 1, 12, 25),
+        daysTracked: this.seededRandom(userSeed + 2, 100, 200),
+        safetyScore: this.seededRandom(userSeed + 3, 85, 98),
+        alertsReceived: this.seededRandom(userSeed + 4, 15, 35),
+        eventsAttended: this.seededRandom(userSeed + 5, 8, 20),
         lastActivity: new Date().toISOString(),
         joinedDate: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(), // 6 months ago
         preferredLanguage: 'en'
@@ -163,32 +166,48 @@ class UserDataService {
   }
 
   /**
+   * Create a numeric seed from userId for consistent randomization
+   */
+  private createUserSeed(userId: string): number {
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+      const char = userId.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash);
+  }
+
+  /**
+   * Generate seeded random number within range (consistent for same seed)
+   */
+  private seededRandom(seed: number, min: number, max: number): number {
+    const x = Math.sin(seed) * 10000;
+    const random = x - Math.floor(x);
+    return Math.floor(random * (max - min + 1)) + min;
+  }
+
+  /**
    * Track user activity for analytics and personalization
    */
   async trackActivity(
-    userId: string, 
+    userId: string,
     activityType: string, 
-    activityData: any = {},
+    activityData: Record<string, unknown> = {},
     location?: { latitude: number; longitude: number; city?: string; country?: string }
   ): Promise<void> {
     try {
-      // In production, this would insert into user_activities table
-      console.log('📈 Tracking activity:', {
-        userId,
-        activityType,
-        activityData,
-        location,
-        timestamp: new Date().toISOString()
-      });
-
-      // Simulate database insert
+      // Create activity record with user ID
       const activity = {
         user_id: userId,
         activity_type: activityType,
         activity_data: activityData,
-        location: location || null,
-        created_at: new Date().toISOString()
+        location,
+        timestamp: new Date().toISOString()
       };
+
+      // In production, this would insert into user_activities table
+      console.log('📈 Tracking activity for user:', userId, activity);
 
       // In a real implementation, this would be:
       // await supabase.from('user_activities').insert(activity);
@@ -201,7 +220,7 @@ class UserDataService {
   /**
    * Get user's travel destinations with realistic data
    */
-  async getUserDestinations(userId: string): Promise<any[]> {
+  async getUserDestinations(userId: string): Promise<unknown[]> {
     try {
       // Generate realistic destinations based on popular travel spots
       const popularDestinations = [
@@ -215,22 +234,26 @@ class UserDataService {
         { name: 'Sydney', country: 'Australia', safety: 96, visited: true }
       ];
 
-      const userDestinations = popularDestinations
-        .sort(() => Math.random() - 0.5) // Randomize
-        .slice(0, Math.floor(Math.random() * 5) + 3) // 3-7 destinations
+      // Create user-specific seed for consistent destinations
+      const userSeed = this.createUserSeed(userId);
+      const destinationCount = this.seededRandom(userSeed + 10, 3, 7); // 3-7 destinations
+
+      // Use seeded randomization for consistent user-specific destinations
+      const userDestinations = this.shuffleArrayWithSeed(popularDestinations, userSeed)
+        .slice(0, destinationCount)
         .map((dest, index) => ({
-          id: `dest_${index}`,
+          id: `dest_${userId}_${index}`,
           user_id: userId,
           name: dest.name,
           country: dest.country,
           safety_rating: dest.safety,
           is_visited: dest.visited,
-          visit_date: dest.visited ? new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString() : null,
-          duration_days: dest.visited ? Math.floor(Math.random() * 14) + 1 : null,
-          created_at: new Date(Date.now() - Math.random() * 180 * 24 * 60 * 60 * 1000).toISOString()
+          visit_date: dest.visited ? new Date(Date.now() - this.seededRandom(userSeed + index + 20, 30, 365) * 24 * 60 * 60 * 1000).toISOString() : null,
+          duration_days: dest.visited ? this.seededRandom(userSeed + index + 30, 1, 14) : null,
+          created_at: new Date(Date.now() - this.seededRandom(userSeed + index + 40, 1, 180) * 24 * 60 * 60 * 1000).toISOString()
         }));
 
-      console.log('🌍 Generated user destinations:', userDestinations);
+      console.log(`🌍 Generated user-specific destinations for ${userId}:`, userDestinations);
       return userDestinations;
     } catch (error) {
       console.error('Error fetching destinations:', error);
@@ -239,9 +262,21 @@ class UserDataService {
   }
 
   /**
+   * Shuffle array with seeded randomization for consistent results
+   */
+  private shuffleArrayWithSeed<T>(array: T[], seed: number): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = this.seededRandom(seed + i, 0, i);
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
+  /**
    * Get recent user activities for dashboard
    */
-  async getRecentActivities(userId: string, limit: number = 10): Promise<any[]> {
+  async getRecentActivities(userId: string, limit: number = 10): Promise<unknown[]> {
     try {
       // Generate realistic recent activities
       const activityTypes = [
@@ -254,13 +289,18 @@ class UserDataService {
         { type: 'profile_updated', description: 'Updated profile', icon: '👤' }
       ];
 
+      // Create user-specific seed for consistent activities
+      const userSeed = this.createUserSeed(userId);
+      const activityCount = Math.min(limit, this.seededRandom(userSeed + 50, 5, 8));
+
       const activities = [];
-      for (let i = 0; i < Math.min(limit, 8); i++) {
-        const activity = activityTypes[Math.floor(Math.random() * activityTypes.length)];
-        const hoursAgo = Math.floor(Math.random() * 72) + 1; // 1-72 hours ago
+      for (let i = 0; i < activityCount; i++) {
+        const activityIndex = this.seededRandom(userSeed + i + 60, 0, activityTypes.length - 1);
+        const activity = activityTypes[activityIndex];
+        const hoursAgo = this.seededRandom(userSeed + i + 70, 1, 72); // 1-72 hours ago
         
         activities.push({
-          id: `activity_${i}`,
+          id: `activity_${userId}_${i}`,
           user_id: userId,
           activity_type: activity.type,
           description: activity.description,
@@ -268,14 +308,15 @@ class UserDataService {
           created_at: new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString(),
           activity_data: {
             source: 'mobile_app',
-            version: '1.0.0'
+            version: '1.0.0',
+            user_specific: true
           }
         });
       }
 
       activities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       
-      console.log('📋 Generated recent activities:', activities);
+      console.log(`📋 Generated user-specific activities for ${userId}:`, activities);
       return activities;
     } catch (error) {
       console.error('Error fetching activities:', error);

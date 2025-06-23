@@ -115,7 +115,7 @@ export const checkSupabaseConnection = async (): Promise<{
 }> => {
   try {
     // Simple auth check to verify connection
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const { error } = await supabase.auth.getSession();
     const connected = !error;
     
     return {
