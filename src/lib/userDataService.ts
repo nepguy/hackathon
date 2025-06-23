@@ -3,7 +3,7 @@
  * Handles real user profile data, activity tracking, and statistics
  */
 
-import { supabase } from './supabase';
+import { supabase, checkSupabaseConnection } from './supabase';
 
 export interface UserProfile {
   id: string;
@@ -222,6 +222,21 @@ class UserDataService {
    */
   async getUserDestinations(userId: string): Promise<unknown[]> {
     try {
+      // Try to get real destinations from Supabase first
+      const connection = await checkSupabaseConnection();
+      if (connection.connected) {
+        const { data, error } = await supabase
+          .from('user_destinations')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+
+        if (!error && data && data.length > 0) {
+          console.log(`🌍 Retrieved ${data.length} real destinations from Supabase for user ${userId}`);
+          return data;
+        }
+      }
+
       // Generate realistic destinations based on popular travel spots
       const popularDestinations = [
         { name: 'Paris', country: 'France', safety: 92, visited: true },
