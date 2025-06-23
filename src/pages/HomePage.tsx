@@ -293,7 +293,7 @@ const HomePage: React.FC = () => {
         {/* Quick Stats */}
         <div className="mobile-grid">
           {stats.map((stat, index) => (
-            <div key={index} className={`bg-white rounded-xl shadow-sm border mobile-card ${stat.borderColor} hover:shadow-md transition-shadow`}>
+            <div key={index} className={`kit-card hover:shadow-md transition-all duration-300 ${stat.borderColor}`}>
               <div className="flex items-center justify-between">
                 <div className={`p-3 rounded-lg ${stat.bgColor}`}>
                   <stat.icon className={`w-6 h-6 ${stat.color}`} />
@@ -326,7 +326,7 @@ const HomePage: React.FC = () => {
         />
 
         {/* Events Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="kit-card">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-gray-900 flex items-center">
               <Calendar className="w-5 h-5 mr-2 text-purple-600" />
@@ -334,7 +334,7 @@ const HomePage: React.FC = () => {
             </h2>
             <button
               onClick={() => navigate('/explore')}
-              className="text-purple-600 hover:text-purple-800 font-medium text-sm flex items-center"
+              className="text-purple-600 hover:text-purple-800 font-medium text-sm flex items-center transition-colors"
             >
               View All
               <ArrowRight className="w-4 h-4 ml-1" />
@@ -344,7 +344,7 @@ const HomePage: React.FC = () => {
           {isLoadingEvents ? (
             <div className="mobile-grid">
               {Array.from({ length: 6 }).map((_, index) => (
-                <div key={index} className="bg-gray-50 rounded-lg mobile-card animate-pulse">
+                <div key={index} className="kit-glass rounded-lg mobile-card animate-pulse">
                   <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
                   <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
                   <div className="h-3 bg-gray-200 rounded w-full"></div>
@@ -373,14 +373,14 @@ const HomePage: React.FC = () => {
               {locationPermission !== 'granted' ? (
                 <button
                   onClick={handleRequestLocationForFeatures}
-                  className="mobile-button bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                  className="kit-button"
                 >
                   Enable Location Access
                 </button>
               ) : (
                 <button
                   onClick={() => navigate('/explore')}
-                  className="mobile-button bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                  className="kit-button bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-gray-200 hover:to-gray-300"
                 >
                   Explore All Events
                 </button>

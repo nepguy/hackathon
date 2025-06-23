@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Thermometer, Droplets, Wind, Eye, Sunrise, Navigation } from 'lucide-react';
+import { MapPin, Thermometer, Droplets, Wind, Eye, Sunrise, Navigation, Gauge } from 'lucide-react';
 import { useLocation } from '../../contexts/LocationContext';
 import { useLocationPermissionRequest } from '../common/PermissionManager';
 import { weatherService, WeatherData } from '../../lib/weatherApi';
@@ -199,7 +199,7 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
 
   return (
     <>
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 mobile-card">
+      <div className="kit-card">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900 flex items-center">
             <Thermometer className="w-5 h-5 mr-2 text-blue-600" />
@@ -207,21 +207,13 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
           </h3>
           <div className="flex items-center text-sm text-gray-500">
             <MapPin className="w-4 h-4 mr-1" />
-            <span className="truncate max-w-20 sm:max-w-32">{weatherData.location.name}</span>
+            <span className="truncate max-w-24 sm:max-w-32">{weatherData.location.name}</span>
           </div>
         </div>
 
         {/* Current Weather */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-3xl font-bold text-gray-900">
-                {Math.round(currentWeather.temperature)}°C
-              </div>
-              <div className="text-gray-600 capitalize">
-                {currentWeather.condition.text}
-              </div>
-            </div>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-4">
             <div className="text-4xl">
               <img 
                 src={currentWeather.condition.icon.startsWith('//') 
@@ -232,80 +224,112 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
                 className="w-16 h-16"
               />
             </div>
+            <div>
+              <div className="text-3xl font-bold text-gray-900">
+                {Math.round(currentWeather.temperature)}°C
+              </div>
+              <div className="text-sm text-gray-600">
+                {currentWeather.condition.text}
+              </div>
+              <div className="text-xs text-gray-500">
+                Feels like {Math.round(currentWeather.feelsLike)}°C
+              </div>
+            </div>
           </div>
+          
+          <div className="text-right">
+            <div className="text-sm text-gray-600 mb-1">
+              {Math.round(forecast[0].maxTemp)}° / {Math.round(forecast[0].minTemp)}°
+            </div>
+            <div className="text-xs text-gray-500">
+              High / Low
+            </div>
+          </div>
+        </div>
 
-          {/* Weather Details */}
-          <div className="grid grid-cols-2 gap-2 sm:gap-4 mt-4 pt-4 border-t border-gray-100">
-            <div className="flex items-center text-sm text-gray-600">
-              <Droplets className="w-4 h-4 mr-2 text-blue-500" />
-              <span>{currentWeather.humidity}% humidity</span>
+        {/* Weather Details */}
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 mt-4 pt-4 border-t border-gray-100">
+          <div className="kit-glass rounded-lg p-3">
+            <div className="flex items-center space-x-2">
+              <Droplets className="w-4 h-4 text-blue-500" />
+              <span className="text-sm text-gray-600">Humidity</span>
             </div>
-            <div className="flex items-center text-sm text-gray-600">
-              <Wind className="w-4 h-4 mr-2 text-gray-500" />
-              <span>{currentWeather.windSpeed} km/h</span>
+            <div className="text-lg font-semibold text-gray-900 mt-1">
+              {currentWeather.humidity}%
             </div>
-            <div className="flex items-center text-sm text-gray-600">
-              <Eye className="w-4 h-4 mr-2 text-gray-500" />
-              <span>{currentWeather.visibility} km</span>
+          </div>
+          
+          <div className="kit-glass rounded-lg p-3">
+            <div className="flex items-center space-x-2">
+              <Wind className="w-4 h-4 text-gray-500" />
+              <span className="text-sm text-gray-600">Wind</span>
             </div>
-            <div className="flex items-center text-sm text-gray-600">
-              <Sunrise className="w-4 h-4 mr-2 text-yellow-500" />
-              <span>UV {currentWeather.uvIndex}</span>
+            <div className="text-lg font-semibold text-gray-900 mt-1">
+              {Math.round(currentWeather.windSpeed)} km/h
+            </div>
+          </div>
+          
+          <div className="kit-glass rounded-lg p-3">
+            <div className="flex items-center space-x-2">
+              <Eye className="w-4 h-4 text-purple-500" />
+              <span className="text-sm text-gray-600">Visibility</span>
+            </div>
+            <div className="text-lg font-semibold text-gray-900 mt-1">
+              {Math.round(currentWeather.visibility)} km
+            </div>
+          </div>
+          
+          <div className="kit-glass rounded-lg p-3">
+            <div className="flex items-center space-x-2">
+              <Gauge className="w-4 h-4 text-orange-500" />
+              <span className="text-sm text-gray-600">Pressure</span>
+            </div>
+            <div className="text-lg font-semibold text-gray-900 mt-1">
+              {Math.round(currentWeather.pressure)} mb
             </div>
           </div>
         </div>
 
         {/* 3-Day Forecast */}
-        <div>
-          <h4 className="text-sm font-medium text-gray-900 mb-3">3-Day Forecast</h4>
-          <div className="space-y-2">
-                         {forecast.map((day, index) => (
-               <div key={index} className="flex items-center justify-between py-2">
-                 <div className="flex items-center">
-                   <img 
-                     src={day.condition.icon.startsWith('//') 
-                       ? `https:${day.condition.icon}` 
-                       : day.condition.icon
-                     } 
-                     alt={day.condition.text}
-                     className="w-8 h-8 mr-3"
-                   />
-                   <div>
-                     <div className="text-sm font-medium text-gray-900">
-                       {index === 0 ? 'Today' : 
-                        index === 1 ? 'Tomorrow' : 
-                        new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
-                     </div>
-                     <div className="text-xs text-gray-600 capitalize">
-                       {day.condition.text}
-                     </div>
-                   </div>
-                 </div>
-                 <div className="text-right">
-                   <div className="text-sm font-medium text-gray-900">
-                     {Math.round(day.maxTemp)}°
-                   </div>
-                   <div className="text-xs text-gray-500">
-                     {Math.round(day.minTemp)}°
-                   </div>
-                 </div>
-               </div>
-             ))}
+        <div className="mt-6 pt-4 border-t border-gray-100">
+          <h4 className="text-sm font-semibold text-gray-900 mb-3">3-Day Forecast</h4>
+          <div className="space-y-3">
+            {forecast.slice(0, 3).map((day, index) => (
+              <div key={index} className="kit-glass rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <img 
+                      src={day.condition.icon.startsWith('//') 
+                        ? `https:${day.condition.icon}` 
+                        : day.condition.icon
+                      } 
+                      alt={day.condition.text}
+                      className="w-8 h-8 mr-3"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {index === 0 ? 'Today' : 
+                         index === 1 ? 'Tomorrow' : 
+                         new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {day.condition.text}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-semibold text-gray-900">
+                      {Math.round(day.maxTemp)}° / {Math.round(day.minTemp)}°
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {Math.round(day.totalPrecip * 100)}% rain
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-
-        {/* Location Access Button */}
-        {locationPermission !== 'granted' && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <button
-              onClick={() => fetchWeather(true)}
-              className="w-full flex items-center justify-center px-4 py-2 text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-            >
-              <Navigation className="w-4 h-4 mr-2" />
-              Get weather for my location
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Location Change Prompt */}

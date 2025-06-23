@@ -108,13 +108,7 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
         center,
         zoom,
         mapId: 'DEMO_MAP_ID', // Required for AdvancedMarkerElement
-        styles: [
-          {
-            featureType: 'poi',
-            elementType: 'labels',
-            stylers: [{ visibility: 'off' }]
-          }
-        ],
+        // Remove styles when mapId is present - styles must be controlled via cloud console
         disableDefaultUI: false,
         zoomControl: true,
         mapTypeControl: false,
@@ -139,6 +133,28 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
     }
   }, [center, zoom, onMapClick, map, setMap]);
 
+  // Auto-center map on user location when available
+  useEffect(() => {
+    if (map && userLocation && isTracking) {
+      const userCenter = {
+        lat: userLocation.latitude,
+        lng: userLocation.longitude
+      };
+      
+      // Smoothly pan to user location
+      map.panTo(userCenter);
+      
+      // Set appropriate zoom level based on accuracy
+      if (userLocation.accuracy) {
+        const accuracyZoom = userLocation.accuracy < 50 ? 16 : 
+                           userLocation.accuracy < 200 ? 14 : 
+                           userLocation.accuracy < 1000 ? 12 : 10;
+        map.setZoom(accuracyZoom);
+      }
+    }
+  }, [map, userLocation, isTracking]);
+
+  // Improved marker clustering with zoom-based visibility
   const createAlertMarkers = useCallback(async () => {
     if (!map) return;
 
@@ -151,7 +167,7 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
     
     // Check if AdvancedMarkerElement is available
     if (window.google?.maps?.marker?.AdvancedMarkerElement) {
-      // Use modern AdvancedMarkerElement
+      // Use modern AdvancedMarkerElement with clustering logic
       for (const alert of mockAlerts) {
         try {
           const markerElement = createMarkerElement(alert);
@@ -163,17 +179,26 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
             title: alert.title
           });
 
-          // Create info window
+          // Add zoom-based visibility
+          const updateMarkerVisibility = () => {
+            const currentZoom = map.getZoom() || 12;
+            const shouldShow = currentZoom >= 10; // Only show markers at zoom level 10+
+            marker.map = shouldShow ? map : null;
+          };
+
+          // Initial visibility check
+          updateMarkerVisibility();
+
+          // Listen to zoom changes
+          map.addListener('zoom_changed', updateMarkerVisibility);
+
+          // Create info window with enhanced styling
           const infoWindow = new google.maps.InfoWindow({
             content: `
-              <div style="padding: 12px; max-width: 200px;">
-                <h3 style="font-weight: 600; font-size: 14px; margin: 0 0 8px 0; color: #111827;">${alert.title}</h3>
-                <p style="font-size: 12px; margin: 0 0 8px 0; color: #6b7280;">${alert.description}</p>
-                <div style="padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; display: inline-block; ${
-                  alert.type === 'danger' ? 'background-color: #fef2f2; color: #991b1b;' :
-                  alert.type === 'weather' ? 'background-color: #eff6ff; color: #1e40af;' :
-                  'background-color: #fffbeb; color: #92400e;'
-                }">
+              <div class="kit-info-window">
+                <h3 class="kit-info-title">${alert.title}</h3>
+                <p class="kit-info-description">${alert.description}</p>
+                <div class="kit-info-badge kit-badge-${alert.type}">
                   ${alert.type.charAt(0).toUpperCase() + alert.type.slice(1)}
                 </div>
               </div>
@@ -187,13 +212,13 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
           newMarkers.push(marker);
         } catch (error) {
           console.error('Error creating advanced marker:', error);
-          // Fall back to legacy markers
+          // Fall back to legacy markers with better error handling
           createLegacyMarkers();
           return;
         }
       }
     } else {
-      // Fall back to legacy markers
+      // Enhanced fallback to legacy markers
       createLegacyMarkers();
       return;
     }
@@ -201,7 +226,7 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
     setMarkers(newMarkers);
   }, [map]);
 
-  // Fallback to legacy markers
+  // Enhanced fallback with better styling
   const createLegacyMarkers = useCallback(() => {
     if (!map) return;
 
@@ -213,27 +238,38 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
     const newMarkers: any[] = [];
     
     mockAlerts.forEach(alert => {
+      // Enhanced icon styling for legacy markers
       const icon = {
         path: google.maps.SymbolPath.CIRCLE,
-        scale: 10,
+        scale: 12,
         fillColor: alert.type === 'danger' ? '#ef4444' : alert.type === 'weather' ? '#3b82f6' : '#f59e0b',
-        fillOpacity: 0.8,
+        fillOpacity: 0.9,
         strokeColor: '#ffffff',
-        strokeWeight: 2
+        strokeWeight: 3,
+        strokeOpacity: 1
       };
 
       const marker = new google.maps.Marker({
         position: alert.position,
         map: map,
         icon: icon,
-        title: alert.title
+        title: alert.title,
+        animation: google.maps.Animation.DROP
       });
 
+      // Enhanced info window for legacy markers
       const infoWindow = new google.maps.InfoWindow({
         content: `
-          <div style="padding: 8px;">
-            <h3 style="font-weight: 600; font-size: 14px; margin: 0 0 4px 0;">${alert.title}</h3>
-            <p style="font-size: 12px; margin: 0; color: #6b7280;">${alert.description}</p>
+          <div style="padding: 12px; max-width: 220px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+            <h3 style="font-weight: 600; font-size: 15px; margin: 0 0 8px 0; color: #111827;">${alert.title}</h3>
+            <p style="font-size: 13px; margin: 0 0 10px 0; color: #6b7280; line-height: 1.4;">${alert.description}</p>
+            <div style="padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-block; ${
+              alert.type === 'danger' ? 'background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca;' :
+              alert.type === 'weather' ? 'background-color: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe;' :
+              'background-color: #fffbeb; color: #92400e; border: 1px solid #fed7aa;'
+            }">
+              ${alert.type.charAt(0).toUpperCase() + alert.type.slice(1)}
+            </div>
           </div>
         `
       });
@@ -241,6 +277,15 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
       marker.addListener('click', () => {
         infoWindow.open(map, marker);
       });
+
+      // Add zoom-based visibility for legacy markers too
+      const updateMarkerVisibility = () => {
+        const currentZoom = map.getZoom() || 12;
+        marker.setVisible(currentZoom >= 10);
+      };
+
+      updateMarkerVisibility();
+      map.addListener('zoom_changed', updateMarkerVisibility);
 
       newMarkers.push(marker);
     });
