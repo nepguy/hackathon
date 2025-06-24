@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
-  Home, Globe, Map, Bell, User, Crown
+  Home, Globe, Map, Bell, User
 } from 'lucide-react';
 
 const TabNavigation: React.FC = () => {

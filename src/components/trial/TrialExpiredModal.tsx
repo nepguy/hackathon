@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Crown, Star, Zap, Shield, Globe, ArrowRight, X } from 'lucide-react';
-import { useSubscription } from '../../contexts/SubscriptionContext';
+// import { useSubscription } from '../../contexts/SubscriptionContext'; // Removed unused import
 import { useStatistics } from '../../lib/userDataService';
 
 interface TrialExpiredModalProps {
@@ -11,7 +11,6 @@ interface TrialExpiredModalProps {
 
 const TrialExpiredModal: React.FC<TrialExpiredModalProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
-  const { purchaseProduct } = useSubscription();
   const { stats } = useStatistics();
 
   if (!isOpen) return null;

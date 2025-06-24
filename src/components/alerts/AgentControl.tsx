@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Play, Download, RefreshCw, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Play, Download, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
 import TravelAlertAPI, { ScrapingStatus, CsvFile, AlertRecord } from '../../lib/travelAlertApi';
 
 const AgentControl: React.FC = () => {

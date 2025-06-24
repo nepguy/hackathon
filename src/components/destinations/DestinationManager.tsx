@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useUserDestinations, UserDestination } from '../../contexts/UserDestinationContext';
 import { 
   MapPin, Calendar, Plus, Trash2, Settings, Bell, BellOff, 
-  Edit2, Check, X, Globe, Plane, Clock
+  Globe, Plane, Clock
 } from 'lucide-react';
 
 const DestinationManager: React.FC = () => {
@@ -16,7 +16,7 @@ const DestinationManager: React.FC = () => {
   } = useUserDestinations();
   
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+
   const [newDestination, setNewDestination] = useState({
     name: '',
     country: '',

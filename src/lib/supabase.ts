@@ -3,6 +3,16 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
+// DIAGNOSTIC LOGGING for troubleshooting
+console.group('🔍 Supabase Environment Variables Check');
+console.log('VITE_SUPABASE_URL:', supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : '❌ MISSING');
+console.log('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : '❌ MISSING');
+console.log('URL starts with https://', supabaseUrl?.startsWith('https://'));
+console.log('URL contains supabase.co:', supabaseUrl?.includes('.supabase.co'));
+console.log('Not placeholder URL:', supabaseUrl !== 'your_supabase_url_here');
+console.log('Not placeholder key:', supabaseAnonKey !== 'your_supabase_anon_key_here');
+console.groupEnd();
+
 // Check if we have valid Supabase configuration
 const hasValidSupabaseConfig = () => {
   return supabaseUrl && 
@@ -101,6 +111,70 @@ try {
 
 export { supabase };
 
+// Clear stale authentication sessions
+export const clearAuthSession = async () => {
+  try {
+    console.log('🧹 Clearing stale authentication session...');
+    
+    // Clear Supabase session
+    await supabase.auth.signOut();
+    
+    // Clear localStorage items related to Supabase auth
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('sb-')) {
+        keysToRemove.push(key);
+      }
+    }
+    
+    keysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+      console.log(`Removed localStorage key: ${key}`);
+    });
+    
+    // Clear sessionStorage as well
+    const sessionKeysToRemove = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key && key.startsWith('sb-')) {
+        sessionKeysToRemove.push(key);
+      }
+    }
+    
+    sessionKeysToRemove.forEach(key => {
+      sessionStorage.removeItem(key);
+      console.log(`Removed sessionStorage key: ${key}`);
+    });
+    
+    console.log('✅ Auth session cleared successfully');
+    return true;
+  } catch (error) {
+    console.error('❌ Error clearing auth session:', error);
+    return false;
+  }
+};
+
+// Enhanced auth state monitoring
+export const initializeAuthMonitoring = () => {
+  supabase.auth.onAuthStateChange((event: any, session: any) => {
+    console.log('🔐 Auth state changed:', event, session?.user?.email || 'No user');
+    
+    if (event === 'TOKEN_REFRESHED') {
+      console.log('✅ Token refreshed successfully');
+    } else if (event === 'SIGNED_OUT') {
+      console.log('👋 User signed out');
+    } else if (event === 'SIGNED_IN') {
+      console.log('👋 User signed in:', session?.user?.email);
+    }
+  });
+};
+
+// Initialize auth monitoring when module loads
+if (hasValidSupabaseConfig()) {
+  initializeAuthMonitoring();
+}
+
 // WebSocket connection monitoring
 let wsConnectionAttempts = 0;
 const MAX_WS_ATTEMPTS = 5;
@@ -183,16 +257,25 @@ export const createRealtimeSubscription = (
       } else if (status === 'CHANNEL_ERROR') {
         wsConnectionAttempts++;
         console.error(`❌ Failed to subscribe to ${table} changes. Attempt ${wsConnectionAttempts}/${MAX_WS_ATTEMPTS}`, err);
+        console.error('🔍 WebSocket Error Details:', {
+          status,
+          error: err,
+          supabaseUrl: supabaseUrl?.substring(0, 30) + '...',
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent
+        });
         notifyConnectionChange(false);
         
         if (wsConnectionAttempts >= MAX_WS_ATTEMPTS) {
           console.error('❌ Max WebSocket connection attempts reached. Operating in offline mode.');
+          console.error('💡 Check: 1) .env file exists 2) Supabase credentials valid 3) Realtime enabled in dashboard');
         }
       } else if (status === 'TIMED_OUT') {
         console.warn(`⏰ Subscription to ${table} timed out. Will retry automatically.`);
         notifyConnectionChange(false);
       } else if (status === 'CLOSED') {
         console.info(`🔌 WebSocket connection for ${table} closed. App will work with cached data.`);
+        console.info('🔍 Connection closed details:', { status, error: err, timestamp: new Date().toISOString() });
         notifyConnectionChange(false);
       }
     });

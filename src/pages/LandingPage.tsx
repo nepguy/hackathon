@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { 
   Shield, MapPin, Bell, Users, Star, ArrowRight, 
@@ -14,29 +14,43 @@ const LandingPage: React.FC = () => {
   
   // Get real-time statistics
   const { stats, setStatistics } = useStatistics()
+  
+  // Use refs to track animation state and prevent loops
+  const animationInProgress = useRef(false)
+  const initializedStats = useRef(false)
+  const lastAnimatedStats = useRef({ travelers: 0, countries: 0, rating: 0 })
 
-  // Animate stats when real stats change
-  useEffect(() => {
-    const animateNumber = (target: number, key: string, duration: number = 2000) => {
-      const start = Date.now()
-      const startValue = animatedStats[key as keyof typeof animatedStats] || 0
+  // Memoized animation function to prevent recreation
+  const animateNumber = useCallback((target: number, key: string, duration: number = 2000) => {
+    if (animationInProgress.current) return
+    
+    const start = Date.now()
+    const startValue = lastAnimatedStats.current[key as keyof typeof lastAnimatedStats.current] || 0
+    
+    if (startValue === target) return // No need to animate if values are the same
+    
+    animationInProgress.current = true
+    
+    const animate = () => {
+      const now = Date.now()
+      const progress = Math.min((now - start) / duration, 1)
+      const current = Math.floor(startValue + (target - startValue) * progress)
       
-      const animate = () => {
-        const now = Date.now()
-        const progress = Math.min((now - start) / duration, 1)
-        const current = Math.floor(startValue + (target - startValue) * progress)
-        
-        setAnimatedStats(prev => ({ ...prev, [key]: current }))
-        
-        if (progress < 1) {
-          requestAnimationFrame(animate)
-        }
+      setAnimatedStats(prev => ({ ...prev, [key]: current }))
+      lastAnimatedStats.current = { ...lastAnimatedStats.current, [key]: current }
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate)
+      } else {
+        animationInProgress.current = false
       }
-      animate()
     }
+    animate()
+  }, [])
 
-    // Initialize with some base numbers if starting from 0 to make it look realistic
-    if (stats.safeTravelers === 0) {
+  // Initialize statistics ONCE on mount - separate from animation
+  useEffect(() => {
+    if (!initializedStats.current && stats.safeTravelers === 0) {
       setStatistics({
         safeTravelers: 52000,
         countriesCovered: 195,
@@ -44,13 +58,18 @@ const LandingPage: React.FC = () => {
         incidentsPrevented: 12847,
         activeUsers: 2341
       })
-    } else {
-      // Animate to current real values
+      initializedStats.current = true
+    }
+  }, [setStatistics]) // Only depend on setStatistics, not stats
+
+  // Animate when real stats change - separate effect
+  useEffect(() => {
+    if (initializedStats.current && stats.safeTravelers > 0) {
       animateNumber(stats.safeTravelers, 'travelers')
       animateNumber(stats.countriesCovered, 'countries')
-      animateNumber(Math.round(stats.safetyRating * 10), 'rating') // Convert to display format
+      animateNumber(Math.round(stats.safetyRating * 10), 'rating')
     }
-  }, [stats.safeTravelers, stats.countriesCovered, stats.safetyRating, animatedStats, setStatistics])
+  }, [stats.safeTravelers, stats.countriesCovered, stats.safetyRating, animateNumber])
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode)

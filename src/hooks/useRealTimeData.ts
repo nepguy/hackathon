@@ -2,9 +2,6 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserDestinations } from '../contexts/UserDestinationContext';
 import { databaseService } from '../lib/database';
-import { newsService } from '../lib/newsApi';
-import { eventsService } from '../lib/eventsApi';
-import { weatherService } from '../lib/weatherApi';
 import { SafetyAlert, TravelPlan, Activity } from '../types';
 
 export interface RealTimeData {
