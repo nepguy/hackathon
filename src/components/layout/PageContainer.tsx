@@ -71,7 +71,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
   };
 
   return (
-    <div className={`min-h-screen mobile-safe-area ${className}`}>
+    <div className={`min-h-screen pb-24 sm:pb-28 ${className}`}>
       {title && (
         <>
           {/* Main Header */}

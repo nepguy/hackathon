@@ -42,8 +42,8 @@ const TabNavigation: React.FC = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-white/20 backdrop-blur-xl safe-area-inset-bottom">
-      <div className="flex justify-around items-center py-2 px-2 sm:px-4">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/70 backdrop-blur-lg border-t border-slate-200/80">
+      <div className="container-max flex justify-around items-center h-16 sm:h-20">
         {tabs.map((tab) => {
           const isActive = tab.exactPath
             ? location.pathname === tab.path
@@ -53,20 +53,29 @@ const TabNavigation: React.FC = () => {
             <button
               key={tab.path}
               onClick={() => navigate(tab.path)}
-              className={`tab-item ${isActive ? 'tab-active' : 'tab-inactive'} flex flex-col items-center justify-center min-h-[60px] px-1 sm:px-2 bg-transparent border-none cursor-pointer`}
+              className="flex flex-col items-center justify-center h-full w-full group transition-colors duration-200"
             >
-              <div className={`p-1.5 sm:p-2 rounded-xl transition-all duration-300 ${
-                isActive 
-                  ? 'bg-blue-100 text-blue-600 scale-110' 
-                  : 'hover:bg-slate-100/80'
-              }`}>
-                <tab.icon size={20} className="sm:w-[22px] sm:h-[22px]" />
+              <div className={`
+                relative flex items-center justify-center w-12 h-8
+                transition-all duration-300 ease-out
+              `}>
+                <tab.icon 
+                  className={`
+                    w-6 h-6 transition-all duration-300
+                    ${isActive ? 'text-blue-600' : 'text-slate-500 group-hover:text-blue-500'}
+                  `} 
+                />
               </div>
-              <span className={`text-xs mt-1 font-medium transition-all duration-300 truncate max-w-[60px] sm:max-w-none ${
-                isActive ? 'text-blue-600' : 'text-slate-500'
-              }`}>
+              <span className={`
+                text-xs font-medium transition-all duration-300
+                ${isActive ? 'text-blue-600' : 'text-slate-500 group-hover:text-blue-500'}
+              `}>
                 {tab.label}
               </span>
+
+              {isActive && (
+                <div className="absolute bottom-0 w-8 h-1 bg-blue-600 rounded-t-full animate-scale-in"></div>
+              )}
             </button>
           );
         })}

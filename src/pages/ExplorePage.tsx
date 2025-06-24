@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import PageContainer from '../components/layout/PageContainer';
 import { 
   Search, Filter, MapPin, Heart, MessageCircle, 
-  X, Calendar, Users, Star, Globe,
-  TrendingUp, Share2, ChevronRight, Plus
+  X, Users, Star, Globe, Shield,
+  TrendingUp, Share2, Plus
 } from 'lucide-react';
 import { useTravelStories } from '../lib/travelStoriesService';
 import type { TravelStory } from '../lib/travelStoriesService';
@@ -120,7 +120,7 @@ const ExplorePage: React.FC = () => {
       <div className="space-y-8 stagger-children">
         
         {/* Community Stats */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {communityStats.map((stat, index) => (
             <div key={index} className="card p-4 text-center hover:shadow-lg transition-all duration-300 group">
               <stat.icon className="w-8 h-8 text-blue-600 mx-auto mb-2 group-hover:scale-110 transition-transform duration-300" />
@@ -130,15 +130,15 @@ const ExplorePage: React.FC = () => {
           ))}
         </div>
 
-                  {/* Header with Share Button */}
-        <div className="flex justify-between items-center mb-6">
+        {/* Header with Share Button */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
           <div>
             <h2 className="text-xl font-bold text-slate-900">Travel Stories</h2>
             <p className="text-slate-600">Share your experiences and discover new destinations</p>
           </div>
           <button
             onClick={() => setShowShareModal(true)}
-            className="btn-primary flex items-center space-x-2 hover:shadow-lg transition-all duration-200"
+            className="btn-primary flex items-center space-x-2 hover:shadow-lg transition-all duration-200 mt-4 sm:mt-0 w-full sm:w-auto"
           >
             <Plus className="w-4 h-4" />
             <span>Share Your Story</span>
@@ -194,7 +194,7 @@ const ExplorePage: React.FC = () => {
         </div>
 
         {/* Results Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
           <div>
             <h3 className="text-lg font-bold text-slate-900">
               {filteredStories.length} travel stories found
@@ -205,7 +205,7 @@ const ExplorePage: React.FC = () => {
               </p>
             )}
           </div>
-          <div className="flex items-center space-x-2 text-sm text-slate-600">
+          <div className="flex items-center space-x-2 text-sm text-slate-600 mt-2 sm:mt-0">
             <TrendingUp className="w-4 h-4" />
             <span>Sorted by rating</span>
           </div>
@@ -240,114 +240,87 @@ const ExplorePage: React.FC = () => {
               .map((story) => {
                 const displayData = getStoryDisplayData(story);
                 return (
-                  <div key={story.id} className="card p-6 hover:shadow-xl transition-all duration-300 group">
+                  <div key={story.id} className="card p-4 sm:p-6 hover:shadow-xl transition-all duration-300 group">
                     {/* Author Header */}
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-lg">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-lg flex-shrink-0">
                           {displayData.author.avatar}
                         </div>
                         <div>
                           <div className="flex items-center space-x-2">
-                            <span className="font-semibold text-slate-900">{displayData.author.name}</span>
-                            {displayData.author.verified && (
-                              <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                                <span className="text-white text-xs">✓</span>
-                              </div>
-                            )}
+                            <h4 className="font-bold text-slate-900">{displayData.author.name}</h4>
+                            {displayData.author.verified && 
+                              <Shield className="w-4 h-4 text-blue-500" />
+                            }
                           </div>
-                          <div className="flex items-center space-x-2 text-sm text-slate-500">
-                            <MapPin className="w-3 h-3" />
-                            <span>{displayData.destination.name}, {displayData.destination.country}</span>
-                            <span>•</span>
-                            <Calendar className="w-3 h-3" />
-                            <span>{new Date(story.travel_date).toLocaleDateString()}</span>
-                          </div>
+                          <p className="text-sm text-slate-600">
+                            {displayData.destination.name}, {displayData.destination.country}
+                          </p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-1 text-amber-500">
-                        <Star className="w-4 h-4 fill-current" />
-                        <span className="text-sm font-medium">{story.rating}</span>
+                      <div className="hidden sm:flex items-center space-x-1 text-yellow-500">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className={`w-5 h-5 ${i < story.rating ? 'fill-current' : 'text-slate-300'}`} />
+                        ))}
                       </div>
                     </div>
 
                     {/* Story Content */}
-                    <div className="mb-4">
-                      <h3 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors duration-300">
-                        {story.title}
-                      </h3>
-                      <p className="text-slate-600 leading-relaxed mb-4">
-                        {story.description}
-                      </p>
+                    <div className="sm:pl-13">
+                      <h3 className="text-lg font-bold text-slate-900 mb-2">{story.title}</h3>
                       
-                      {/* Images */}
                       {story.images && story.images.length > 0 && (
-                        <div className="flex space-x-2 mb-4">
+                        <div className="flex space-x-2 mb-4 overflow-x-auto">
                           {story.images.slice(0, 4).map((_, index) => (
-                            <div key={index} className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center text-2xl">
+                            <div key={index} className="w-24 h-24 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center text-4xl flex-shrink-0">
                               📸
                             </div>
                           ))}
                           {story.images.length > 4 && (
-                            <div className="w-16 h-16 bg-slate-200 rounded-lg flex items-center justify-center text-sm text-slate-600">
+                            <div className="w-24 h-24 bg-slate-200 rounded-lg flex items-center justify-center text-lg text-slate-600 flex-shrink-0">
                               +{story.images.length - 4}
                             </div>
                           )}
                         </div>
                       )}
-                      
-                      {/* Travel Details */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-lg mb-4">
-                        <div className="text-center">
-                          <div className="text-sm font-semibold text-slate-900">{story.duration || 'N/A'}</div>
-                          <div className="text-xs text-slate-500">Duration</div>
+
+                      <p className="text-slate-700 leading-relaxed mb-4">
+                        {story.description}
+                      </p>
+
+                      <div className="flex items-center justify-between text-sm text-slate-600">
+                        {/* Tags */}
+                        <div className="flex items-center space-x-2 overflow-x-auto">
+                          {(story.tags || []).slice(0, 3).map((tag, index) => (
+                            <span key={index} className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap">
+                              {tag}
+                            </span>
+                          ))}
                         </div>
-                        <div className="text-center">
-                          <div className="text-sm font-semibold text-slate-900">{story.budget_range || 'N/A'}</div>
-                          <div className="text-xs text-slate-500">Budget</div>
+                        
+                        {/* Date */}
+                        <div className="flex-shrink-0 ml-4">
+                          <span className="font-medium">{new Date(story.travel_date).toLocaleDateString()}</span>
                         </div>
-                        <div className="text-center">
-                          <div className="text-sm font-semibold text-slate-900">{story.travel_style || 'N/A'}</div>
-                          <div className="text-xs text-slate-500">Style</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-sm font-semibold text-slate-900">{story.safety_tips?.length || 0}</div>
-                          <div className="text-xs text-slate-500">Safety Tips</div>
-                        </div>
-                      </div>
-                      
-                      {/* Tags */}
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {story.tags.map((tag, index) => (
-                          <span 
-                            key={index}
-                            className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full"
-                          >
-                            {tag}
-                          </span>
-                        ))}
                       </div>
                     </div>
 
-                    {/* Engagement Footer */}
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                      <div className="flex items-center space-x-6">
-                        <button className="flex items-center space-x-2 text-slate-500 hover:text-red-500 transition-colors duration-200">
-                          <Heart className="w-4 h-4" />
-                          <span className="text-sm">{story.likes_count}</span>
+                    {/* Actions */}
+                    <div className="border-t border-slate-200 mt-4 pt-4 flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <button className="flex items-center space-x-2 text-slate-600 hover:text-red-500 transition-colors duration-200">
+                          <Heart className="w-5 h-5" />
+                          <span className="font-medium">{story.likes_count}</span>
                         </button>
-                        <button className="flex items-center space-x-2 text-slate-500 hover:text-blue-500 transition-colors duration-200">
-                          <MessageCircle className="w-4 h-4" />
-                          <span className="text-sm">{story.comments_count}</span>
-                        </button>
-                        <button className="flex items-center space-x-2 text-slate-500 hover:text-green-500 transition-colors duration-200">
-                          <Share2 className="w-4 h-4" />
-                          <span className="text-sm">{story.shares_count}</span>
+                        <button className="flex items-center space-x-2 text-slate-600 hover:text-blue-500 transition-colors duration-200">
+                          <MessageCircle className="w-5 h-5" />
+                          <span className="font-medium">{story.comments_count}</span>
                         </button>
                       </div>
-                      <button className="btn-primary text-sm flex items-center space-x-2 group">
-                        <span>Read Full Story</span>
-                        <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+                      <button className="btn-ghost flex items-center space-x-2 text-sm">
+                        <Share2 className="w-4 h-4" />
+                        <span>Share</span>
                       </button>
                     </div>
                   </div>
