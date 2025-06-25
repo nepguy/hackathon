@@ -194,28 +194,14 @@ class UserStatisticsService {
 
   /**
    * Subscribe to real-time updates for user statistics
+   * Note: Realtime is disabled to prevent WebSocket errors
    */
   subscribeToUserStatistics(userId: string, callback: (stats: UserStatistics) => void): () => void {
-    const channel = supabase
-      .channel(`user_statistics_${userId}`)
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'user_statistics',
-          filter: `user_id=eq.${userId}`
-        }, 
-        (payload) => {
-          console.log('User statistics updated:', payload);
-          if (payload.new) {
-            callback(payload.new as UserStatistics);
-          }
-        }
-      )
-      .subscribe();
-
+    console.log('🔇 Real-time subscription disabled for user statistics to prevent WebSocket errors');
+    
+    // Return a no-op unsubscribe function since realtime is disabled
     return () => {
-      supabase.removeChannel(channel);
+      console.log('🔇 User statistics subscription cleanup (no-op)');
     };
   }
 }
