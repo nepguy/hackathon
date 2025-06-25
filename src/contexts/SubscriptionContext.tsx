@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { revenueCatService } from '../lib/revenueCat';
 
@@ -37,7 +37,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [willRenew, setWillRenew] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const refreshSubscriptionStatus = async () => {
+  const refreshSubscriptionStatus = useCallback(async () => {
     if (!user) {
       setIsSubscribed(false);
       setIsTrialActive(false);
@@ -62,7 +62,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // Check for simulated purchases in development
       const hasSimulatedPurchase = revenueCatService.hasSimulatedPurchase();
 
-      setIsSubscribed(status.isActive || hasSimulatedPurchase);
+      const newIsSubscribed = status.isActive || hasSimulatedPurchase;
+      setIsSubscribed(newIsSubscribed);
       setIsTrialActive(trialActive);
       setTrialDaysRemaining(trialDays);
       setProductId(status.productId);
@@ -70,32 +71,34 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setWillRenew(status.willRenew);
 
       // Determine overall status
-      if (status.isActive || hasSimulatedPurchase) {
+      let newStatus: 'active' | 'trial' | 'expired' | 'none';
+      if (newIsSubscribed) {
         if (trialActive) {
-          setSubscriptionStatus('trial');
+          newStatus = 'trial';
         } else {
-          setSubscriptionStatus('active');
+          newStatus = 'active';
         }
       } else if (status.expiresDate && status.expiresDate < new Date()) {
-        setSubscriptionStatus('expired');
+        newStatus = 'expired';
       } else {
-        setSubscriptionStatus('none');
+        newStatus = 'none';
       }
+      setSubscriptionStatus(newStatus);
 
       console.log('📊 Subscription status updated:', {
-        isSubscribed: status.isActive || hasSimulatedPurchase,
+        isSubscribed: newIsSubscribed,
         isTrialActive: trialActive,
         trialDaysRemaining: trialDays,
-        status: subscriptionStatus,
+        status: newStatus,
       });
     } catch (error) {
       console.error('❌ Error refreshing subscription status:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
-  const purchaseProduct = async (productId: string): Promise<boolean> => {
+  const purchaseProduct = useCallback(async (productId: string): Promise<boolean> => {
     if (!user) {
       console.error('❌ User not authenticated');
       return false;
@@ -127,9 +130,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, refreshSubscriptionStatus]);
 
-  const restorePurchases = async () => {
+  const restorePurchases = useCallback(async () => {
     if (!user) return;
 
     setIsLoading(true);
@@ -141,12 +144,12 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, refreshSubscriptionStatus]);
 
   // Initialize subscription status when user changes
   useEffect(() => {
     refreshSubscriptionStatus();
-  }, [user]);
+  }, [user, refreshSubscriptionStatus]);
 
   const contextValue: SubscriptionContextType = {
     isSubscribed,

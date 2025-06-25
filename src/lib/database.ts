@@ -269,11 +269,50 @@ class DatabaseService {
         .eq('user_id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // If user preferences don't exist, create default ones
+        if (error.code === 'PGRST116') {
+          console.log('User preferences not found, creating default preferences for:', userId);
+          return await this.createUserPreferences(userId);
+        }
+        throw error;
+      }
 
       return data;
     } catch (error) {
       console.error('Error fetching user preferences:', error);
+      return null;
+    }
+  }
+
+  async createUserPreferences(userId: string, preferencesData?: Partial<DatabaseUserPreferences>): Promise<DatabaseUserPreferences | null> {
+    try {
+      const defaultPreferences: Omit<DatabaseUserPreferences, 'id' | 'created_at' | 'updated_at'> = {
+        user_id: userId,
+        destination: null,
+        notifications_safety: true,
+        notifications_weather: true,
+        notifications_local_news: true,
+        premium_trial_active: false,
+        premium_trial_expires_at: null,
+        ...preferencesData
+      };
+
+      const { data, error } = await supabase
+        .from('user_preferences')
+        .insert(defaultPreferences)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating user preferences:', error);
+        return null;
+      }
+
+      console.log('✅ Created user preferences successfully');
+      return data;
+    } catch (error) {
+      console.error('Error creating user preferences:', error);
       return null;
     }
   }

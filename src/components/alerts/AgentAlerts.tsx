@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { AlertTriangle, Shield, Globe, RefreshCw, Wifi, WifiOff, ExternalLink } from 'lucide-react';
-import { saverTravelAlertService, SaverApiResponse } from '../../lib/travelAlertApi';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Shield, Globe, RefreshCw, Wifi, WifiOff, ExternalLink, Sparkles } from 'lucide-react';
+import { saverTravelAlertService, SaverApiResponse, SaverAlert } from '../../lib/travelAlertApi';
 import { addConnectionListener, subscribeSafetyAlerts, fetchSafetyAlerts } from '../../lib/supabase';
+import { geminiAiService } from '../../lib/geminiAi';
 
 interface AgentAlertsProps {
   searchLocation?: string;
@@ -10,6 +11,12 @@ interface AgentAlertsProps {
 interface ConnectionStatus {
   saver: 'online' | 'offline' | 'loading';
   supabase: 'online' | 'offline' | 'loading';
+}
+
+interface EnhancedAlert {
+  id: string;
+  content: string;
+  isLoading: boolean;
 }
 
 export const AgentAlerts: React.FC<AgentAlertsProps> = () => {
@@ -22,6 +29,7 @@ export const AgentAlerts: React.FC<AgentAlertsProps> = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [systemStatus, setSystemStatus] = useState<any>(null);
   const [safetyAlerts, setSafetyAlerts] = useState<any[]>([]);
+  const [enhancedAlerts, setEnhancedAlerts] = useState<Record<string, EnhancedAlert>>({});
 
   // Check connection status and set up realtime monitoring
   useEffect(() => {
@@ -47,6 +55,36 @@ export const AgentAlerts: React.FC<AgentAlertsProps> = () => {
       removeConnectionListener();
       unsubscribeSafetyAlerts();
     };
+  }, []);
+
+  const handleGenerateEnhancedAlert = useCallback(async (alert: SaverAlert) => {
+    const alertId = alert.id;
+    
+    setEnhancedAlerts(prev => ({
+      ...prev,
+      [alertId]: { id: alertId, content: '', isLoading: true }
+    }));
+
+    const promptData = {
+      headline: alert.title,
+      country_name: alert.location,
+      details: alert.message,
+      advice: 'Stay informed and follow local guidance.' // Placeholder as 'advice' is not in SaverAlert
+    };
+
+    try {
+      const enhancedContent = await geminiAiService.generateEnhancedAlert(promptData);
+      setEnhancedAlerts(prev => ({
+        ...prev,
+        [alertId]: { id: alertId, content: enhancedContent, isLoading: false }
+      }));
+    } catch (error) {
+      console.error('Failed to generate enhanced alert:', error);
+      setEnhancedAlerts(prev => ({
+        ...prev,
+        [alertId]: { id: alertId, content: 'Error generating analysis.', isLoading: false }
+      }));
+    }
   }, []);
 
   const checkConnections = async () => {
@@ -316,40 +354,57 @@ export const AgentAlerts: React.FC<AgentAlertsProps> = () => {
           )}
 
           <div className="space-y-4">
-            {saverAlerts.alerts.map((alert) => (
-              <div key={alert.id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <AlertTriangle className={`h-5 w-5 ${
-                        alert.severity === 'high' ? 'text-red-500' :
-                        alert.severity === 'medium' ? 'text-yellow-500' : 'text-green-500'
-                      }`} />
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        alert.severity === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                        alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                        'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                      }`}>
-                        {alert.severity.toUpperCase()}
-                      </span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        {alert.location}
-                      </span>
-                    </div>
-                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">
-                      {alert.title}
-                    </h4>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">
-                      {alert.message}
-                    </p>
-                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                      <span>Source: {alert.government_source || alert.source}</span>
-                      <span>{new Date(alert.created_at).toLocaleDateString()}</span>
-                    </div>
+            {saverAlerts.alerts.map((alert) => {
+              const alertId = alert.id;
+              const enhancedAlert = enhancedAlerts[alertId];
+
+              return (
+                <div key={alert.id} className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-bold text-lg text-red-600 dark:text-red-400">{alert.title}</h4>
+                    <span className="text-sm text-gray-500">{new Date(alert.created_at).toLocaleDateString()}</span>
                   </div>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">{alert.message}</p>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    <strong>Source:</strong> {alert.source}
+                  </div>
+
+                  {enhancedAlert ? (
+                    <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-800">
+                      {enhancedAlert.isLoading ? (
+                        <div className="flex items-center space-x-2 text-blue-700 dark:text-blue-300">
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                          <span>Generating AI insights...</span>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-blue-800 dark:text-blue-200">{enhancedAlert.content}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleGenerateEnhancedAlert(alert)}
+                      className="flex items-center space-x-2 px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      <span>Get AI Insights</span>
+                    </button>
+                  )}
+                  
+                  {alert.url && (
+                    <div className="mt-3 text-right">
+                      <a
+                        href={alert.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center justify-end"
+                      >
+                        View Original Source <ExternalLink className="h-4 w-4 ml-1" />
+                      </a>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           
           {saverAlerts.alerts.length === 0 && (

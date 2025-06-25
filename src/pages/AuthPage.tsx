@@ -27,15 +27,23 @@ const AuthPage: React.FC = () => {
     setLoading(true)
     setError('')
 
+    if (!isSignUp && formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match')
+      setLoading(false)
+      return
+    }
+
+    if (!isSignUp && formData.password.length < 6) {
+      setError('Password must be at least 6 characters long')
+      setLoading(false)
+      return
+    }
+
     try {
       if (isSignUp) {
-        if (formData.password !== formData.confirmPassword) {
-          setError('Passwords do not match')
-          setLoading(false)
-          return
-        }
-        
-        const { error } = await signUp(formData.email, formData.password, formData.fullName)
+        const { error } = await signUp(formData.email, formData.password, {
+          full_name: formData.fullName
+        })
         if (error) {
           setError(error.message)
         } else {

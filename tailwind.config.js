@@ -55,6 +55,8 @@ export default {
           800: '#991b1b',
           900: '#7f1d1d',
         },
+        'brand-primary': '#4F46E5',
+        'brand-secondary': '#10B981',
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
@@ -75,8 +77,22 @@ export default {
           '0%': { transform: 'translateY(-10px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
+        'shimmer': {
+          '100%': {
+            'transform': 'translateX(100%)',
+          },
+        },
+      },
+      boxShadow: {
+        '3xl': '0 35px 60px -15px rgba(0, 0, 0, 0.3)',
       },
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/forms'),
+  ],
+  safelist: [
+    'bg-red-500', 'bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-orange-500',
+    'text-red-500', 'text-blue-500', 'text-purple-500', 'text-green-500', 'text-orange-500'
+  ],
 };

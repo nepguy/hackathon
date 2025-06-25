@@ -136,13 +136,13 @@ const ShareStoryModal: React.FC<ShareStoryModalProps> = ({ isOpen, onClose, onSu
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900">Share Your Travel Story</h2>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Share Your Travel Story</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             disabled={loading}
           >
             <X className="w-5 h-5" />
@@ -153,7 +153,7 @@ const ShareStoryModal: React.FC<ShareStoryModalProps> = ({ isOpen, onClose, onSu
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Title */}
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Story Title *
             </label>
             <input
@@ -162,7 +162,7 @@ const ShareStoryModal: React.FC<ShareStoryModalProps> = ({ isOpen, onClose, onSu
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Give your story an engaging title..."
-              className="input w-full"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
               required
               disabled={loading}
             />
@@ -171,7 +171,7 @@ const ShareStoryModal: React.FC<ShareStoryModalProps> = ({ isOpen, onClose, onSu
           {/* Location and Date Row */}
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <MapPin className="w-4 h-4 inline mr-1" />
                 Location *
               </label>
@@ -181,14 +181,14 @@ const ShareStoryModal: React.FC<ShareStoryModalProps> = ({ isOpen, onClose, onSu
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="e.g., Tokyo, Japan"
-                className="input w-full"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                 required
                 disabled={loading}
               />
             </div>
             
             <div>
-              <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <Calendar className="w-4 h-4 inline mr-1" />
                 Travel Date *
               </label>
@@ -197,7 +197,7 @@ const ShareStoryModal: React.FC<ShareStoryModalProps> = ({ isOpen, onClose, onSu
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="input w-full"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                 required
                 disabled={loading}
               />
@@ -206,7 +206,7 @@ const ShareStoryModal: React.FC<ShareStoryModalProps> = ({ isOpen, onClose, onSu
 
           {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Your Story *
             </label>
             <textarea
@@ -215,7 +215,7 @@ const ShareStoryModal: React.FC<ShareStoryModalProps> = ({ isOpen, onClose, onSu
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
               placeholder="Share your travel experience, tips, and memorable moments..."
-              className="input w-full resize-none"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white resize-none"
               required
               disabled={loading}
             />
@@ -223,7 +223,7 @@ const ShareStoryModal: React.FC<ShareStoryModalProps> = ({ isOpen, onClose, onSu
 
           {/* Tags */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <Tag className="w-4 h-4 inline mr-1" />
               Travel Style Tags
             </label>
@@ -235,7 +235,7 @@ const ShareStoryModal: React.FC<ShareStoryModalProps> = ({ isOpen, onClose, onSu
                   className={
                     selectedTags.includes(tag)
                       ? 'bg-blue-600 text-white hover:bg-blue-700'
-                      : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                      : 'bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-500'
                   }
                 >
                   {tag}
@@ -246,7 +246,7 @@ const ShareStoryModal: React.FC<ShareStoryModalProps> = ({ isOpen, onClose, onSu
 
           {/* Rating */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <Star className="w-4 h-4 inline mr-1" />
               Overall Rating
             </label>
@@ -257,7 +257,7 @@ const ShareStoryModal: React.FC<ShareStoryModalProps> = ({ isOpen, onClose, onSu
                   type="button"
                   onClick={() => setRating(star)}
                   className={`p-1 transition-colors ${
-                    star <= rating ? 'text-yellow-400' : 'text-gray-300'
+                    star <= rating ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'
                   }`}
                   disabled={loading}
                 >
@@ -270,7 +270,7 @@ const ShareStoryModal: React.FC<ShareStoryModalProps> = ({ isOpen, onClose, onSu
           {/* Additional Details Row */}
           <div className="grid md:grid-cols-3 gap-4">
             <div>
-              <label htmlFor="budget" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="budget" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Budget Range
               </label>
               <input
@@ -279,13 +279,13 @@ const ShareStoryModal: React.FC<ShareStoryModalProps> = ({ isOpen, onClose, onSu
                 value={budgetRange}
                 onChange={(e) => setBudgetRange(e.target.value)}
                 placeholder="$50-100/day"
-                className="input w-full"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                 disabled={loading}
               />
             </div>
             
             <div>
-              <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="duration" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Duration
               </label>
               <input
@@ -294,20 +294,20 @@ const ShareStoryModal: React.FC<ShareStoryModalProps> = ({ isOpen, onClose, onSu
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
                 placeholder="7 days"
-                className="input w-full"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                 disabled={loading}
               />
             </div>
             
             <div>
-              <label htmlFor="style" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="style" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Travel Style
               </label>
               <select
                 id="style"
                 value={travelStyle}
                 onChange={(e) => setTravelStyle(e.target.value)}
-                className="input w-full"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                 disabled={loading}
               >
                 <option value="">Select style</option>
@@ -321,7 +321,7 @@ const ShareStoryModal: React.FC<ShareStoryModalProps> = ({ isOpen, onClose, onSu
 
           {/* Image Upload */}
           <div>
-            <label htmlFor="images" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="images" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <Upload className="w-4 h-4 inline mr-1" />
               Upload Images (Optional)
             </label>
@@ -331,10 +331,10 @@ const ShareStoryModal: React.FC<ShareStoryModalProps> = ({ isOpen, onClose, onSu
               accept="image/*"
               multiple
               onChange={(e) => setImages(e.target.files)}
-              className="input w-full"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               disabled={loading}
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               You can upload multiple images to showcase your travel experience
             </p>
           </div>
@@ -344,14 +344,14 @@ const ShareStoryModal: React.FC<ShareStoryModalProps> = ({ isOpen, onClose, onSu
             <button
               type="button"
               onClick={onClose}
-              className="btn-ghost"
+              className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               disabled={loading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="btn-primary flex items-center space-x-2"
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={loading}
             >
               {loading ? (

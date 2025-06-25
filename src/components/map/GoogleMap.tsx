@@ -2,18 +2,20 @@ import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
 import { MapPin, AlertTriangle, Cloud, Navigation } from 'lucide-react';
 import { useLocation } from '../../contexts/LocationContext';
+import { TravelEvent } from '../../lib/eventsApi'; // Import TravelEvent
 
 interface GoogleMapProps {
   center?: google.maps.LatLngLiteral;
   zoom?: number;
   onMapClick?: (location: google.maps.LatLngLiteral) => void;
   activeLayer?: string;
+  events?: TravelEvent[];
 }
 
 interface AlertMarker {
   id: string;
   position: google.maps.LatLngLiteral;
-  type: 'danger' | 'warning' | 'weather';
+  type: 'danger' | 'warning' | 'weather' | 'event';
   title: string;
   description: string;
 }
@@ -97,6 +99,7 @@ const getMarkerBackground = (type: string): string => {
     case 'danger': return 'linear-gradient(135deg, #ef4444, #dc2626)';
     case 'weather': return 'linear-gradient(135deg, #3b82f6, #2563eb)';
     case 'warning': return 'linear-gradient(135deg, #f59e0b, #d97706)';
+    case 'event': return 'linear-gradient(135deg, #4285f4, #2563eb)';
     default: return 'linear-gradient(135deg, #6b7280, #4b5563)';
   }
 };
@@ -107,6 +110,7 @@ const getMarkerIcon = (type: string): string => {
     case 'danger': return '⚠️';
     case 'weather': return '🌧️';
     case 'warning': return '🚧';
+    case 'event': return '📅';
     default: return '📍';
   }
 };
@@ -209,6 +213,7 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
   zoom = 12,
   onMapClick,
   activeLayer,
+  events,
   map,
   setMap
 }) => {
@@ -217,12 +222,18 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
   const [userMarker, setUserMarker] = useState<google.maps.marker.AdvancedMarkerElement | null>(null);
   const { userLocation, isTracking } = useLocation();
 
+  const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
+  markersRef.current = markers;
+
+  const userMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
+  userMarkerRef.current = userMarker;
+
   const initializeMap = useCallback(() => {
     if (ref.current && !map) {
       const newMap = new window.google.maps.Map(ref.current, {
         center,
         zoom,
-        mapId: 'DEMO_MAP_ID', // Required for AdvancedMarkerElement
+        mapId: 'DEMO_MAP_ID', // Use your Cloud-based Map ID
         // Enhanced map options for better UX
         disableDefaultUI: false,
         zoomControl: true,
@@ -232,15 +243,7 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
         rotateControl: false,
         fullscreenControl: true,
         gestureHandling: 'greedy',
-        clickableIcons: false,
-        // Modern map styling
-        styles: [
-          {
-            featureType: 'poi',
-            elementType: 'labels',
-            stylers: [{ visibility: 'off' }]
-          }
-        ]
+        clickableIcons: false
       });
       
       setMap(newMap);
@@ -289,7 +292,7 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
     if (!map) return;
 
     // Clear existing markers
-    markers.forEach(marker => {
+    markersRef.current.forEach(marker => {
       if (marker.map) marker.map = null;
     });
     
@@ -355,7 +358,7 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
         // Add click listener
         marker.addListener('click', () => {
           // Close any open info windows
-          markers.forEach(m => {
+          markersRef.current.forEach(m => {
             if ((m as any).infoWindow) {
               (m as any).infoWindow.close();
             }
@@ -379,15 +382,54 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
     }
     
     setMarkers(newMarkers);
-  }, [map, markers]);
+  }, [map]);
+
+  const createEventMarkers = useCallback(async () => {
+    if (!map || !events) return;
+    
+    const newMarkers: google.maps.marker.AdvancedMarkerElement[] = [];
+    if (!window.google?.maps?.marker?.AdvancedMarkerElement) {
+      console.error('AdvancedMarkerElement not available.');
+      return;
+    }
+
+    try {
+      for (const event of events) {
+        if (!event.location.coordinates.lat || !event.location.coordinates.lng) continue;
+
+        const markerElement = createAdvancedMarkerElement({
+          id: event.id,
+          position: event.location.coordinates,
+          type: 'event' as any, // Cast for now, can be a new type
+          title: event.title,
+          description: event.description,
+        });
+        
+        const marker = new google.maps.marker.AdvancedMarkerElement({
+          position: event.location.coordinates,
+          map: map,
+          content: markerElement,
+          title: event.title,
+          gmpClickable: true
+        });
+
+        newMarkers.push(marker);
+      }
+      console.log(`✅ Created ${newMarkers.length} Event markers`);
+    } catch (error) {
+      console.error('Error creating Event markers:', error);
+    }
+    
+    setMarkers(newMarkers);
+  }, [map, events]);
 
   // Update user location marker with AdvancedMarkerElement
   const updateUserLocationMarker = useCallback(async () => {
     if (!map || !userLocation) return;
 
     // Remove existing user marker
-    if (userMarker) {
-      userMarker.map = null;
+    if (userMarkerRef.current) {
+      userMarkerRef.current.map = null;
     }
 
     try {
@@ -428,7 +470,7 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
     } catch (error) {
       console.error('Error creating user location AdvancedMarkerElement:', error);
     }
-  }, [map, userLocation, userMarker]);
+  }, [map, userLocation]);
 
   // Initialize map
   useEffect(() => {
@@ -437,16 +479,20 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
 
   // Handle alert markers based on active layer
   useEffect(() => {
-    if (map && activeLayer === 'alerts') {
-      createAdvancedMarkers();
-    } else if (map) {
-      // Clear markers when alerts layer is not active
-      markers.forEach(marker => {
-        if (marker.map) marker.map = null;
-      });
-      setMarkers([]);
+    // Always clear markers when layer changes
+    markersRef.current.forEach(marker => {
+      if (marker.map) marker.map = null;
+    });
+    setMarkers([]);
+
+    if (map) {
+      if (activeLayer === 'alerts') {
+        createAdvancedMarkers();
+      } else if (activeLayer === 'events') {
+        createEventMarkers();
+      }
     }
-  }, [map, activeLayer, createAdvancedMarkers]);
+  }, [map, activeLayer, createAdvancedMarkers, createEventMarkers]);
 
   // Update user location marker
   useEffect(() => {
