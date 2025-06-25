@@ -11,12 +11,10 @@ import EventCard from '../components/home/EventCard';
 import WeatherCard from '../components/home/WeatherCard';
 import TrialExpiredModal from '../components/trial/TrialExpiredModal';
 import { eventsService, TravelEvent } from '../lib/eventsApi';
-import { userDataService } from '../lib/userDataService';
-import { useUserStatistics } from '../lib/userStatisticsService';
 import { useUserStatistics } from '../lib/userStatisticsService';
 import { 
   MapPin, Calendar, Shield, Clock, 
-  Plus, ArrowRight, Zap, Globe, AlertTriangle,
+  Plus, Zap, Globe, AlertTriangle,
   RefreshCw, Crown
 } from 'lucide-react';
 
@@ -28,8 +26,7 @@ const HomePage: React.FC = () => {
   const { requestLocationForContext } = useLocationPermissionRequest();
   const { safetyAlerts, isLoading, error, refreshData } = useRealTimeData();
   const navigate = useNavigate();
-  const { statistics, loading: statsLoading } = useUserStatistics();
-  const { statistics, loading: statsLoading } = useUserStatistics();
+  const { statistics } = useUserStatistics();
   const [events, setEvents] = useState<TravelEvent[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false);
@@ -261,20 +258,6 @@ const HomePage: React.FC = () => {
     fetchEvents();
   }, [currentDestination, userLocation?.latitude, userLocation?.longitude, locationPermission, isTracking]);
 
-  const handleRequestLocationForFeatures = () => {
-    requestLocationForContext({
-      reason: 'feature_request',
-      feature: 'Enhanced Travel Experience',
-      importance: 'high',
-      benefits: [
-        'Get personalized recommendations for your area',
-        'Receive location-based safety alerts',
-        'Discover local events and activities',
-        'Access real-time weather and travel conditions'
-      ]
-    });
-  };
-
   if (isLoading) {
     return (
       <PageContainer 
@@ -400,7 +383,7 @@ const HomePage: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="font-semibold text-red-800">{alert.title}</h4>
-                      <p className="text-sm text-red-700">{alert.summary}</p>
+                      <p className="text-sm text-red-700">{alert.description}</p>
                     </div>
                   </div>
                 ))}

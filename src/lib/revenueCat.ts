@@ -1,6 +1,8 @@
 /**
  * RevenueCat Service for GuardNomad
  * Handles subscription management, trial periods, and purchases
+ * 
+ * Note: This service provides both real RevenueCat integration and development fallbacks
  */
 
 interface SubscriptionStatus {
@@ -18,10 +20,20 @@ interface PurchaseResult {
   error?: string;
 }
 
+interface RevenueCatProduct {
+  identifier: string;
+  description: string;
+  title: string;
+  price: string;
+  priceString: string;
+  currencyCode: string;
+}
+
 class RevenueCatService {
   private apiKey: string;
   private isInitialized: boolean = false;
   private userId: string | null = null;
+  private isConfigured: boolean = false;
   
   // Store simulated purchases for development
   private simulatedPurchases: Record<string, {
@@ -36,9 +48,55 @@ class RevenueCatService {
   }
 
   /**
+   * Configure RevenueCat SDK (call this once at app startup)
+   */
+  async configure(): Promise<boolean> {
+    if (this.isConfigured) {
+      return true;
+    }
+
+    try {
+      console.log('🔧 Configuring RevenueCat SDK...');
+      
+      // In development mode, just mark as configured
+      if (import.meta.env.DEV) {
+        this.isConfigured = true;
+        console.log('✅ RevenueCat SDK configured (development mode)');
+        return true;
+      }
+
+      // In production, attempt to load and configure the actual SDK
+      try {
+        const { Purchases } = await import('@revenuecat/purchases-js');
+        
+        // Configure RevenueCat with API key and user ID
+        await Purchases.configure(this.apiKey, this.userId || `anonymous_${Date.now()}`);
+
+        this.isConfigured = true;
+        console.log('✅ RevenueCat SDK configured successfully');
+        return true;
+      } catch (sdkError) {
+        console.warn('⚠️ RevenueCat SDK not available, falling back to simulation mode');
+        this.isConfigured = true; // Still mark as configured for fallback mode
+        return true;
+      }
+    } catch (error) {
+      console.error('❌ Failed to configure RevenueCat SDK:', error);
+      return false;
+    }
+  }
+
+  /**
    * Initialize RevenueCat with user ID
    */
   async initialize(userId: string): Promise<boolean> {
+    if (!this.isConfigured) {
+      const configured = await this.configure();
+      if (!configured) {
+        return false;
+      }
+    }
+
     if (this.isInitialized && this.userId === userId) {
       return true;
     }
@@ -46,13 +104,10 @@ class RevenueCatService {
     try {
       console.log('🔄 Initializing RevenueCat for user:', userId);
       
-      // In a real implementation, this would initialize the RevenueCat SDK
-      // RevenueCat.configure(this.apiKey, userId);
-      
       this.isInitialized = true;
       this.userId = userId;
       
-      // Load any existing purchases from localStorage (for development)
+      // Load any existing purchases from localStorage (for development fallback)
       this.loadSimulatedPurchases();
       
       console.log('✅ RevenueCat initialized successfully');
@@ -69,19 +124,13 @@ class RevenueCatService {
   async getSubscriptionStatus(): Promise<SubscriptionStatus> {
     if (!this.isInitialized) {
       console.warn('⚠️ RevenueCat not initialized, returning default status');
-      return {
-        isActive: false,
-        productId: null,
-        expiresDate: null,
-        willRenew: false,
-        periodType: 'none'
-      };
+      return this.getDefaultSubscriptionStatus();
     }
 
     try {
       console.log('🔍 Checking subscription status for user:', this.userId);
       
-      // In development, use simulated purchases
+      // In development or when SDK is not available, use simulated purchases
       if (import.meta.env.DEV) {
         const purchase = this.getActiveSimulatedPurchase();
         if (purchase) {
@@ -95,26 +144,12 @@ class RevenueCatService {
         }
       }
       
-      // In production, this would call the RevenueCat SDK
-      // const customerInfo = await RevenueCat.getCustomerInfo();
-      
-      // For now, return a default inactive status
-      return {
-        isActive: false,
-        productId: null,
-        expiresDate: null,
-        willRenew: false,
-        periodType: 'none'
-      };
+      // TODO: Add real RevenueCat API calls here when SDK is properly configured
+      // For now, return default status
+      return this.getDefaultSubscriptionStatus();
     } catch (error) {
       console.error('❌ Error getting subscription status:', error);
-      return {
-        isActive: false,
-        productId: null,
-        expiresDate: null,
-        willRenew: false,
-        periodType: 'none'
-      };
+      return this.getDefaultSubscriptionStatus();
     }
   }
 
@@ -127,12 +162,8 @@ class RevenueCatService {
     }
 
     try {
-      // In a real implementation, this would check with RevenueCat
-      // const customerInfo = await RevenueCat.getCustomerInfo();
-      // return customerInfo.entitlements.active['premium']?.periodType === 'trial';
-      
-      // For now, check with database via user preferences
-      return false;
+      const status = await this.getSubscriptionStatus();
+      return status.periodType === 'trial';
     } catch (error) {
       console.error('❌ Error checking trial status:', error);
       return false;
@@ -148,17 +179,38 @@ class RevenueCatService {
     }
 
     try {
-      // In a real implementation, this would calculate from RevenueCat data
-      // const customerInfo = await RevenueCat.getCustomerInfo();
-      // const trialExpiry = customerInfo.entitlements.active['premium']?.expirationDate;
-      // if (!trialExpiry) return 0;
-      // return Math.max(0, Math.ceil((trialExpiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+      const status = await this.getSubscriptionStatus();
       
-      // For now, return 0 (will be handled by TrialContext)
+      if (status.periodType === 'trial' && status.expiresDate) {
+        const now = new Date();
+        const diffTime = status.expiresDate.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return Math.max(0, diffDays);
+      }
+      
       return 0;
     } catch (error) {
       console.error('❌ Error getting trial days remaining:', error);
       return 0;
+    }
+  }
+
+  /**
+   * Get available offerings/products
+   */
+  async getOfferings(): Promise<any[]> {
+    if (!this.isInitialized) {
+      console.warn('⚠️ RevenueCat not initialized');
+      return [];
+    }
+
+    try {
+      // TODO: Add real RevenueCat API calls here
+      // For now, return empty array
+      return [];
+    } catch (error) {
+      console.error('❌ Error getting offerings:', error);
+      return [];
     }
   }
 
@@ -183,10 +235,8 @@ class RevenueCatService {
         return this.simulatePurchase(productId);
       }
       
-      // In production, this would call the RevenueCat SDK
-      // const purchaseResult = await RevenueCat.purchaseProduct(productId);
-      
-      // For now, return a simulated success
+      // TODO: Add real RevenueCat purchase logic here
+      // For now, simulate success
       return {
         success: true,
         productId,
@@ -194,6 +244,12 @@ class RevenueCatService {
       };
     } catch (error) {
       console.error('❌ Purchase error:', error);
+      
+      // Fallback to simulation in case of error
+      if (import.meta.env.DEV) {
+        return this.simulatePurchase(productId);
+      }
+      
       return {
         success: false,
         productId,
@@ -208,22 +264,23 @@ class RevenueCatService {
    */
   async restorePurchases(): Promise<boolean> {
     if (!this.isInitialized) {
+      console.warn('⚠️ RevenueCat not initialized');
       return false;
     }
 
     try {
-      console.log('🔄 Restoring purchases for user:', this.userId);
+      console.log('🔄 Restoring purchases...');
       
-      // In production, this would call the RevenueCat SDK
-      // await RevenueCat.restorePurchases();
-      
-      // For development, just check simulated purchases
+      // In development, check simulated purchases
       if (import.meta.env.DEV) {
         this.loadSimulatedPurchases();
-        return this.hasSimulatedPurchase();
+        const hasActivePurchases = this.hasSimulatedPurchase();
+        console.log(hasActivePurchases ? '✅ Purchases restored (simulated)' : 'ℹ️ No active purchases found');
+        return hasActivePurchases;
       }
       
-      return true;
+      // TODO: Add real RevenueCat restore logic here
+      return false;
     } catch (error) {
       console.error('❌ Error restoring purchases:', error);
       return false;
@@ -231,42 +288,21 @@ class RevenueCatService {
   }
 
   /**
-   * Get available products
+   * Get products for display
    */
-  async getProducts(): Promise<any[]> {
+  async getProducts(): Promise<RevenueCatProduct[]> {
     if (!this.isInitialized) {
-      return [];
+      console.warn('⚠️ RevenueCat not initialized, returning default products');
+      return this.getDefaultProducts();
     }
 
     try {
-      // In production, this would fetch from RevenueCat
-      // const offerings = await RevenueCat.getOfferings();
-      // return offerings.current?.availablePackages || [];
-      
-      // For now, return mock products
-      return [
-        {
-          identifier: 'premium_monthly',
-          title: 'Premium Monthly',
-          description: 'Full access to all premium features',
-          price: 10.99,
-          priceString: '€10.99',
-          currencyCode: 'EUR',
-          period: 'month'
-        },
-        {
-          identifier: 'premium_yearly',
-          title: 'Premium Yearly',
-          description: 'Full access to all premium features',
-          price: 99.99,
-          priceString: '€99.99',
-          currencyCode: 'EUR',
-          period: 'year'
-        }
-      ];
+      // TODO: Add real RevenueCat product fetching here
+      // For now, return default products
+      return this.getDefaultProducts();
     } catch (error) {
       console.error('❌ Error getting products:', error);
-      return [];
+      return this.getDefaultProducts();
     }
   }
 
@@ -279,64 +315,88 @@ class RevenueCatService {
     }
 
     try {
-      // In production, this would check with RevenueCat
-      // const customerInfo = await RevenueCat.getCustomerInfo();
-      // return !!customerInfo.entitlements.active[entitlementId];
-      
-      // For development, check simulated purchases
-      if (import.meta.env.DEV) {
-        return this.hasSimulatedPurchase();
-      }
-      
-      return false;
+      const status = await this.getSubscriptionStatus();
+      // In future, we can check specific entitlements by entitlementId
+      console.log(`🔍 Checking entitlement: ${entitlementId}`);
+      return status.isActive;
     } catch (error) {
       console.error('❌ Error checking entitlement:', error);
       return false;
     }
   }
 
-  // Development helpers for simulating RevenueCat behavior
+  /**
+   * Log out current user
+   */
+  async logOut(): Promise<void> {
+    if (!this.isInitialized) {
+      return;
+    }
+
+    try {
+      this.isInitialized = false;
+      this.userId = null;
+      console.log('✅ User logged out from RevenueCat');
+    } catch (error) {
+      console.error('❌ Error logging out:', error);
+    }
+  }
 
   /**
-   * Simulate a purchase (for development only)
+   * Get default subscription status
+   */
+  private getDefaultSubscriptionStatus(): SubscriptionStatus {
+    return {
+      isActive: false,
+      productId: null,
+      expiresDate: null,
+      willRenew: false,
+      periodType: 'none'
+    };
+  }
+
+  /**
+   * Get default products for development/fallback
+   */
+  private getDefaultProducts(): RevenueCatProduct[] {
+    return [
+      {
+        identifier: 'guardnomad_premium_monthly',
+        description: 'Premium monthly subscription with unlimited alerts and features',
+        title: 'GuardNomad Premium Monthly',
+        price: '9.99',
+        priceString: '$9.99',
+        currencyCode: 'USD'
+      },
+      {
+        identifier: 'guardnomad_premium_yearly',
+        description: 'Premium yearly subscription with unlimited alerts and features',
+        title: 'GuardNomad Premium Yearly',
+        price: '99.99',
+        priceString: '$99.99',
+        currencyCode: 'USD'
+      }
+    ];
+  }
+
+  /**
+   * Simulate a purchase for development
    */
   async simulatePurchase(productId: string): Promise<PurchaseResult> {
-    if (!this.userId) {
-      return {
-        success: false,
-        productId,
-        transactionId: null,
-        error: 'User not authenticated'
-      };
-    }
-
-    console.log('🧪 Simulating purchase for product:', productId);
+    console.log('🎭 Simulating purchase for development:', productId);
     
-    // Create expiration date based on product
-    const now = new Date();
-    let expiresDate: Date;
-    
-    if (productId.includes('monthly')) {
-      expiresDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
-    } else if (productId.includes('yearly')) {
-      expiresDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000); // 365 days
-    } else {
-      expiresDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days default
-    }
-    
-    // Store the simulated purchase
     const purchase = {
       productId,
-      purchaseDate: now,
-      expiresDate,
+      purchaseDate: new Date(),
+      expiresDate: new Date(Date.now() + (productId.includes('yearly') ? 365 : 30) * 24 * 60 * 60 * 1000),
       isActive: true
     };
-    
-    this.simulatedPurchases[this.userId] = purchase;
-    this.saveSimulatedPurchases();
-    
-    console.log('✅ Simulated purchase successful:', purchase);
-    
+
+    if (this.userId) {
+      this.simulatedPurchases[this.userId] = purchase;
+      this.saveSimulatedPurchases();
+    }
+
     return {
       success: true,
       productId,
@@ -345,50 +405,41 @@ class RevenueCatService {
   }
 
   /**
-   * Check if user has a simulated purchase
+   * Check if user has simulated purchase (development only)
    */
   hasSimulatedPurchase(): boolean {
-    if (!this.userId) return false;
-    
-    const purchase = this.simulatedPurchases[this.userId];
-    if (!purchase) return false;
-    
-    // Check if purchase is still active
-    const now = new Date();
-    if (purchase.expiresDate < now) {
-      purchase.isActive = false;
-      this.saveSimulatedPurchases();
+    if (!this.userId || !import.meta.env.DEV) {
       return false;
     }
     
-    return purchase.isActive;
+    const purchase = this.simulatedPurchases[this.userId];
+    return purchase?.isActive && purchase.expiresDate > new Date();
   }
 
   /**
    * Get active simulated purchase
    */
   getActiveSimulatedPurchase() {
-    if (!this.userId) return null;
-    
-    const purchase = this.simulatedPurchases[this.userId];
-    if (!purchase) return null;
-    
-    // Check if purchase is still active
-    const now = new Date();
-    if (purchase.expiresDate < now) {
-      purchase.isActive = false;
-      this.saveSimulatedPurchases();
+    if (!this.userId || !import.meta.env.DEV) {
       return null;
     }
     
-    return purchase.isActive ? purchase : null;
+    const purchase = this.simulatedPurchases[this.userId];
+    if (purchase?.isActive && purchase.expiresDate > new Date()) {
+      return purchase;
+    }
+    return null;
   }
 
   /**
    * Save simulated purchases to localStorage
    */
   private saveSimulatedPurchases() {
-    localStorage.setItem('guardnomad_simulated_purchases', JSON.stringify(this.simulatedPurchases));
+    try {
+      localStorage.setItem('guardnomad_simulated_purchases', JSON.stringify(this.simulatedPurchases));
+    } catch (error) {
+      console.warn('Could not save simulated purchases:', error);
+    }
   }
 
   /**
@@ -399,20 +450,15 @@ class RevenueCatService {
       const saved = localStorage.getItem('guardnomad_simulated_purchases');
       if (saved) {
         const parsed = JSON.parse(saved);
-        
         // Convert date strings back to Date objects
         Object.keys(parsed).forEach(userId => {
-          if (parsed[userId]) {
-            parsed[userId].purchaseDate = new Date(parsed[userId].purchaseDate);
-            parsed[userId].expiresDate = new Date(parsed[userId].expiresDate);
-          }
+          parsed[userId].purchaseDate = new Date(parsed[userId].purchaseDate);
+          parsed[userId].expiresDate = new Date(parsed[userId].expiresDate);
         });
-        
         this.simulatedPurchases = parsed;
       }
     } catch (error) {
-      console.error('❌ Error loading simulated purchases:', error);
-      this.simulatedPurchases = {};
+      console.warn('Could not load simulated purchases:', error);
     }
   }
 }
@@ -420,3 +466,6 @@ class RevenueCatService {
 // Export singleton instance
 export const revenueCatService = new RevenueCatService();
 export default revenueCatService;
+
+// Export types
+export type { SubscriptionStatus, PurchaseResult, RevenueCatProduct };

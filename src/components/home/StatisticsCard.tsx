@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUserStatistics } from '../../lib/userStatisticsService';
 import { useAuth } from '../../contexts/AuthContext';
-import { Calendar, Shield, Clock } from 'lucide-react';
+import { useLocation } from '../../contexts/LocationContext';
+import { locationSafetyService } from '../../lib/locationSafetyService';
+import { Calendar, Shield, Clock, MapPin } from 'lucide-react';
 
 interface StatisticsCardProps {
   className?: string;
@@ -10,6 +12,60 @@ interface StatisticsCardProps {
 const StatisticsCard: React.FC<StatisticsCardProps> = ({ className = '' }) => {
   const { statistics, loading } = useUserStatistics();
   const { user } = useAuth();
+  const { userLocation } = useLocation();
+  const [locationSafetyScore, setLocationSafetyScore] = useState<{
+    score: number;
+    riskLevel: string;
+    location: string;
+  } | null>(null);
+  const [loadingSafety, setLoadingSafety] = useState(false);
+
+  // Function to get location info from coordinates
+  const getLocationInfo = async (lat: number, lng: number) => {
+    try {
+      const response = await fetch(
+        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
+      );
+      const data = await response.json();
+      return {
+        city: data.city || data.locality || undefined,
+        country: data.countryName || 'Unknown'
+      };
+    } catch (error) {
+      console.warn('Could not determine location info:', error);
+      return { country: 'Unknown' };
+    }
+  };
+
+  // Fetch location-based safety score
+  useEffect(() => {
+    if (user && userLocation) {
+      const fetchSafetyScore = async () => {
+        setLoadingSafety(true);
+        try {
+          const info = await getLocationInfo(userLocation.latitude, userLocation.longitude);
+          
+          // Update user location in safety service
+          await locationSafetyService.updateUserLocation(user.id, {
+            lat: userLocation.latitude,
+            lng: userLocation.longitude,
+            city: info.city,
+            country: info.country || 'Unknown'
+          });
+
+          // Get safety score
+          const safetyScore = await locationSafetyService.getUserLocationSafetyScore(user.id);
+          setLocationSafetyScore(safetyScore);
+        } catch (error) {
+          console.error('Error fetching location safety score:', error);
+        } finally {
+          setLoadingSafety(false);
+        }
+      };
+
+      fetchSafetyScore();
+    }
+  }, [user, userLocation]);
 
   if (!user || loading) {
     return (
@@ -24,22 +80,44 @@ const StatisticsCard: React.FC<StatisticsCardProps> = ({ className = '' }) => {
   }
 
   const getSafetyScoreColor = (score: number) => {
-    if (score >= 90) return 'text-green-600';
-    if (score >= 70) return 'text-yellow-600';
+    if (score >= 80) return 'text-green-600';
+    if (score >= 60) return 'text-yellow-600';
+    if (score >= 40) return 'text-orange-600';
     return 'text-red-600';
   };
 
   const getSafetyScoreBg = (score: number) => {
-    if (score >= 90) return 'bg-green-50';
-    if (score >= 70) return 'bg-yellow-50';
+    if (score >= 80) return 'bg-green-50';
+    if (score >= 60) return 'bg-yellow-50';
+    if (score >= 40) return 'bg-orange-50';
     return 'bg-red-50';
   };
 
   const getSafetyScoreBorder = (score: number) => {
-    if (score >= 90) return 'border-green-200';
-    if (score >= 70) return 'border-yellow-200';
+    if (score >= 80) return 'border-green-200';
+    if (score >= 60) return 'border-yellow-200';
+    if (score >= 40) return 'border-orange-200';
     return 'border-red-200';
   };
+
+  const getRiskLevelColor = (riskLevel: string) => {
+    switch (riskLevel) {
+      case 'low':
+        return 'text-green-600';
+      case 'medium':
+        return 'text-yellow-600';
+      case 'high':
+        return 'text-orange-600';
+      case 'critical':
+        return 'text-red-600';
+      default:
+        return 'text-gray-600';
+    }
+  };
+
+  const currentSafetyScore = locationSafetyScore?.score || 75;
+  const currentRiskLevel = locationSafetyScore?.riskLevel || 'medium';
+  const currentLocation = locationSafetyScore?.location || 'Unknown Location';
 
   const stats = [
     {
@@ -52,13 +130,21 @@ const StatisticsCard: React.FC<StatisticsCardProps> = ({ className = '' }) => {
       description: 'Active travel destinations and plans'
     },
     {
-      label: 'Safety Score',
-      value: `${statistics?.safety_score || 95}%`,
+      label: 'Location Safety',
+      value: loadingSafety ? '...' : `${currentSafetyScore}/100`,
       icon: Shield,
-      color: getSafetyScoreColor(statistics?.safety_score || 95),
-      bgColor: getSafetyScoreBg(statistics?.safety_score || 95),
-      borderColor: getSafetyScoreBorder(statistics?.safety_score || 95),
-      description: 'Current safety status for your locations'
+      color: getSafetyScoreColor(currentSafetyScore),
+      bgColor: getSafetyScoreBg(currentSafetyScore),
+      borderColor: getSafetyScoreBorder(currentSafetyScore),
+      description: loadingSafety ? 'Loading safety data...' : `${currentRiskLevel.toUpperCase()} risk - ${currentLocation}`,
+      subtitle: locationSafetyScore ? (
+        <div className="flex items-center space-x-1 mt-1">
+          <MapPin className="h-3 w-3 text-gray-400" />
+          <span className={`text-xs font-medium ${getRiskLevelColor(currentRiskLevel)}`}>
+            {currentRiskLevel.toUpperCase()} RISK
+          </span>
+        </div>
+      ) : null
     },
     {
       label: 'Days Tracked',
@@ -89,6 +175,7 @@ const StatisticsCard: React.FC<StatisticsCardProps> = ({ className = '' }) => {
           <div>
             <h3 className="text-md font-semibold text-slate-800">{stat.label}</h3>
             <p className="text-xs text-slate-500">{stat.description}</p>
+            {stat.subtitle && stat.subtitle}
           </div>
         </div>
       ))}

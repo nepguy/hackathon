@@ -185,7 +185,7 @@ const MapPage: React.FC = () => {
 
         {/* My Location Button */}
         <div className="absolute top-4 right-4 z-10">
-          <button
+            <button
             onClick={handleGetLocation}
             className={`flex items-center justify-center w-12 h-12 rounded-full shadow-lg transition-all duration-300
               ${locationError ? 'bg-red-500 hover:bg-red-600' : (isTracking && userLocation) ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'}
@@ -196,8 +196,8 @@ const MapPage: React.FC = () => {
               <div className="w-6 h-6 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>
             ) : (
               <Navigation className="w-6 h-6" />
-            )}
-          </button>
+              )}
+            </button>
         </div>
 
         {/* Bottom Layer Controls */}
@@ -210,7 +210,7 @@ const MapPage: React.FC = () => {
                   onClick={() => handleLayerChange(layer.id)}
                   className={`flex flex-col items-center justify-center space-y-1 p-2 rounded-lg w-20 h-20 transition-all duration-200
                     ${
-                      activeLayer === layer.id
+                    activeLayer === layer.id
                         ? `bg-${layer.color}-500 text-white shadow-lg scale-105`
                         : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                     }`
@@ -223,7 +223,7 @@ const MapPage: React.FC = () => {
                         <span className={`flex items-center justify-center h-5 w-5 bg-${layer.color}-500 text-white text-xs font-bold rounded-full border-2 border-white dark:border-gray-800`}>
                           {layer.count}
                         </span>
-                      </div>
+                  </div>
                     )}
                   </div>
                   <span className="text-xs font-medium">{layer.label}</span>
