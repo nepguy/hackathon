@@ -5,6 +5,7 @@ import { useLocation as useLocationContext } from '../contexts/LocationContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { useLocationPermissionRequest } from '../components/common/PermissionManager';
 import { useRealTimeData } from '../hooks/useRealTimeData';
+import { useUserStatistics } from '../lib/userStatisticsService';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '../components/layout/PageContainer';
 import EventCard from '../components/home/EventCard';

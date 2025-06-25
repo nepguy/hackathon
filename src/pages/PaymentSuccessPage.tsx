@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Check, Crown, Shield, Zap, ArrowRight, Receipt, Download, Mail, Calendar } from 'lucide-react';
+import { Check, Crown, Shield, Zap, ArrowRight, Receipt, Download, Mail } from 'lucide-react';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import PageContainer from '../components/layout/PageContainer';
 
@@ -15,14 +15,7 @@ interface InvoiceData {
   paymentMethod: string;
 }
 
-interface PlanDetails {
-  name: string;
-  price: string;
-  currency: string;
-  period: string;
-  description: string;
-  nextBilling: number;
-}
+
 
 const PaymentSuccessPage: React.FC = () => {
   const navigate = useNavigate();
@@ -31,7 +24,6 @@ const PaymentSuccessPage: React.FC = () => {
   
   // Get invoice data from navigation state
   const invoiceData = location.state?.invoiceData as InvoiceData | undefined;
-  const planDetails = location.state?.planDetails as PlanDetails | undefined;
 
   useEffect(() => {
     // In a real implementation, you would:
