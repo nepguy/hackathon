@@ -3,6 +3,8 @@ import useGeolocation, { UserLocation, GeolocationError } from '../hooks/useGeol
 import { statisticsService } from '../lib/userDataService';
 import { userStatisticsService } from '../lib/userStatisticsService';
 import { useAuth } from './AuthContext';
+import { userStatisticsService } from '../lib/userStatisticsService';
+import { useAuth } from './AuthContext';
 
 interface LocationContextType {
   userLocation: UserLocation | null;
@@ -42,9 +44,11 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({
   trackingInterval = 30000, // 30 seconds
 }) => {
   const { user } = useAuth();
+  const { user } = useAuth();
   const [isTracking, setIsTracking] = useState(false);
   const [locationPermission, setLocationPermission] = useState<PermissionState | 'unknown'>('prompt');
   const [visitedCountries, setVisitedCountries] = useState<Set<string>>(new Set());
+  const [trackingStartDate, setTrackingStartDate] = useState<Date | null>(null);
   const [trackingStartDate, setTrackingStartDate] = useState<Date | null>(null);
 
   // Function to get country from coordinates using reverse geocoding
@@ -68,6 +72,11 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({
       console.log('🌍 New country visited:', country);
       setVisitedCountries(prev => new Set([...prev, country]));
       statisticsService.updateStatistic('country_visited');
+
+      // Update user statistics in Supabase
+      if (user) {
+        userStatisticsService.incrementStatistic(user.id, 'days_tracked');
+      }
 
       // Update user statistics in Supabase
       if (user) {
@@ -171,7 +180,13 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({
     
     setIsTracking(true);
     setTrackingStartDate(new Date());
+    setTrackingStartDate(new Date());
     startWatching();
+    
+    // Update days tracked when starting tracking
+    if (user) {
+      userStatisticsService.incrementStatistic(user.id, 'days_tracked');
+    }
     
     // Update days tracked when starting tracking
     if (user) {

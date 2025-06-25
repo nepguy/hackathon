@@ -13,6 +13,7 @@ import TrialExpiredModal from '../components/trial/TrialExpiredModal';
 import { eventsService, TravelEvent } from '../lib/eventsApi';
 import { userDataService } from '../lib/userDataService';
 import { useUserStatistics } from '../lib/userStatisticsService';
+import { useUserStatistics } from '../lib/userStatisticsService';
 import { 
   MapPin, Calendar, Shield, Clock, 
   Plus, ArrowRight, Zap, Globe, AlertTriangle,
@@ -27,6 +28,7 @@ const HomePage: React.FC = () => {
   const { requestLocationForContext } = useLocationPermissionRequest();
   const { safetyAlerts, isLoading, error, refreshData } = useRealTimeData();
   const navigate = useNavigate();
+  const { statistics, loading: statsLoading } = useUserStatistics();
   const { statistics, loading: statsLoading } = useUserStatistics();
   const [events, setEvents] = useState<TravelEvent[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);

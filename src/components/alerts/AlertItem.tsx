@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { userStatisticsService } from '../../lib/userStatisticsService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface AlertItemProps {
   alert: SafetyAlert;
@@ -13,6 +14,7 @@ interface AlertItemProps {
 }
 
 const AlertItem: React.FC<AlertItemProps> = ({ alert, onMarkAsRead }) => {
+  const { user } = useAuth();
   const { user } = useAuth();
   const [showTips, setShowTips] = useState(false);
 
@@ -164,6 +166,12 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onMarkAsRead }) => {
                   if (user && (alert.severity === 'high' || alert.severity === 'medium')) {
                     console.log('🛡️ Incident potentially prevented by alert acknowledgment');
                     // Update safety score based on alert severity
+                    const scoreChange = alert.severity === 'high' ? -5 : -2;
+                    userStatisticsService.getUserStatistics(user.id).then(stats => {
+                      if (stats) {
+                        userStatisticsService.updateSafetyScore(user.id, stats.safety_score + scoreChange);
+                      }
+                    });
                     const scoreChange = alert.severity === 'high' ? -5 : -2;
                     const currentScore = 95; // Default if not available
                     userStatisticsService.updateSafetyScore(user.id, currentScore + scoreChange);

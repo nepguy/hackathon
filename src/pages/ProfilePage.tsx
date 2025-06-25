@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/TranslationContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
+import { useUserStatistics } from '../lib/userStatisticsService';
 import { databaseService } from '../lib/database';
-import { userDataService, UserStats } from '../lib/userDataService';
 import PageContainer from '../components/layout/PageContainer';
 import LanguageSelector from '../components/common/LanguageSelector';
 import SubscriptionManagement from '../components/payment/SubscriptionManagement';
@@ -31,12 +31,12 @@ const ProfilePage: React.FC = () => {
   const { user, signOut } = useAuth();
   const { t, currentLanguage } = useTranslation();
   const { isSubscribed } = useSubscription();
+  const { statistics } = useUserStatistics();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [editForm, setEditForm] = useState({
     fullName: '',
     email: ''
@@ -71,12 +71,8 @@ const ProfilePage: React.FC = () => {
         // Load profile and preferences from database
         const [profile, prefs] = await Promise.all([
           databaseService.getUserProfile(user.id),
-          databaseService.getUserPreferences(user.id)
+          databaseService.getUserPreferences(user.id),
         ]);
-
-        // Load real user statistics
-        const stats = await userDataService.calculateUserStats(user.id);
-        setUserStats(stats);
 
         setUserProfile(profile);
 
@@ -99,7 +95,7 @@ const ProfilePage: React.FC = () => {
           }));
         }
 
-        console.log('✅ User profile and stats loaded:', { profile, stats });
+        console.log('✅ User profile loaded:', profile);
       } catch (err) {
         console.error('Error loading user data:', err);
         setError('Failed to load profile data');
@@ -198,22 +194,22 @@ const ProfilePage: React.FC = () => {
   const avatarUrl = userProfile?.avatar_url || user?.user_metadata?.avatar_url || 
     `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=3b82f6&color=fff&size=128`;
 
-  // Calculate stats from real data
-  const stats = userStats ? [
+  // Use real statistics from Supabase
+  const stats = statistics ? [
     { 
       label: 'Destinations Visited', 
-      value: userStats.destinationsVisited.toString(),
-      trend: userStats.destinationsVisited > 10 ? 'World Explorer' : userStats.destinationsVisited > 5 ? 'Active Traveler' : 'Getting Started'
+      value: statistics.travel_plans_count.toString(),
+      trend: statistics.travel_plans_count > 10 ? 'World Explorer' : statistics.travel_plans_count > 5 ? 'Active Traveler' : 'Getting Started'
     },
     { 
       label: 'Safety Score', 
-      value: `${userStats.safetyScore}%`,
-      trend: userStats.safetyScore >= 95 ? 'Excellent' : userStats.safetyScore >= 85 ? 'Very Good' : 'Good'
+      value: `${statistics.safety_score}%`,
+      trend: statistics.safety_score >= 95 ? 'Excellent' : statistics.safety_score >= 85 ? 'Very Good' : 'Good'
     },
     { 
       label: 'Days Traveled', 
-      value: userStats.daysTracked.toString(),
-      trend: userStats.daysTracked > 100 ? 'Experienced' : userStats.daysTracked > 30 ? 'Regular' : 'Beginner'
+      value: statistics.days_tracked.toString(),
+      trend: statistics.days_tracked > 100 ? 'Experienced' : statistics.days_tracked > 30 ? 'Regular' : 'Beginner'
     }
   ] : [
     // Fallback while loading

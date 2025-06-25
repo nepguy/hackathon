@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { userStatisticsService } from '../lib/userStatisticsService';
 import { useAuth } from './AuthContext';
+import { userStatisticsService } from '../lib/userStatisticsService';
+import { useAuth } from './AuthContext';
 
 export interface UserDestination {
   id: string;
@@ -33,6 +35,7 @@ export const useUserDestinations = () => {
 };
 
 export const UserDestinationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const { user } = useAuth();
   const [destinations, setDestinations] = useState<UserDestination[]>([]);
   const [currentDestination, setCurrentDestination] = useState<UserDestination | null>(null);
@@ -85,6 +88,15 @@ export const UserDestinationProvider: React.FC<{ children: React.ReactNode }> = 
     }
   }, [user, destinations.length]);
 
+  // Update travel plans count in user statistics when destinations change
+  useEffect(() => {
+    if (user && destinations.length > 0) {
+      userStatisticsService.updateUserStatistics(user.id, {
+        travel_plans_count: destinations.length
+      });
+    }
+  }, [user, destinations.length]);
+
   // Save destinations to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('userDestinations', JSON.stringify(destinations));
@@ -101,12 +113,24 @@ export const UserDestinationProvider: React.FC<{ children: React.ReactNode }> = 
     if (user) {
       userStatisticsService.incrementStatistic(user.id, 'travel_plans_count');
     }
+    
+    // Update user statistics
+    if (user) {
+      userStatisticsService.incrementStatistic(user.id, 'travel_plans_count');
+    }
   };
 
   const removeDestination = (id: string) => {
     setDestinations(prev => prev.filter(d => d.id !== id));
     if (currentDestination?.id === id) {
       setCurrentDestination(null);
+    }
+    
+    // Update user statistics
+    if (user && destinations.length > 0) {
+      userStatisticsService.updateUserStatistics(user.id, {
+        travel_plans_count: destinations.length - 1
+      });
     }
     
     // Update user statistics

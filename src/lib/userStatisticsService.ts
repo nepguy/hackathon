@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 export interface UserStatistics {
   id: string;
@@ -223,12 +225,12 @@ export const userStatisticsService = new UserStatisticsService();
 
 // React hook for components
 export const useUserStatistics = () => {
-  const [statistics, setStatistics] = React.useState<UserStatistics | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+  const [statistics, setStatistics] = useState<UserStatistics | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!user) {
       setStatistics(null);
       setLoading(false);
@@ -286,6 +288,3 @@ export const useUserStatistics = () => {
     }
   };
 };
-
-import React from 'react';
-import { useAuth } from '../contexts/AuthContext';
