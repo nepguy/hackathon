@@ -11,7 +11,6 @@ import EventCard from '../components/home/EventCard';
 import WeatherCard from '../components/home/WeatherCard';
 import TrialExpiredModal from '../components/trial/TrialExpiredModal';
 import { eventsService, TravelEvent } from '../lib/eventsApi';
-import { useUserStatistics } from '../lib/userStatisticsService';
 import { 
   MapPin, Calendar, Shield, Clock, 
   Plus, Zap, Globe, AlertTriangle,
