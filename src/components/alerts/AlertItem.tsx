@@ -4,7 +4,8 @@ import {
   AlertTriangle, CloudRain, Stethoscope, Bus, Shield, ShieldAlert, 
   ChevronDown, ChevronUp, Info, ExternalLink, Clock, MapPin
 } from 'lucide-react';
-import { statisticsService } from '../../lib/userDataService';
+import { userStatisticsService } from '../../lib/userStatisticsService';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface AlertItemProps {
   alert: SafetyAlert;
@@ -12,6 +13,7 @@ interface AlertItemProps {
 }
 
 const AlertItem: React.FC<AlertItemProps> = ({ alert, onMarkAsRead }) => {
+  const { user } = useAuth();
   const [showTips, setShowTips] = useState(false);
 
   const getTypeIcon = (type: string) => {
@@ -159,9 +161,12 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onMarkAsRead }) => {
                 onClick={() => {
                   onMarkAsRead(alert.id);
                   // Track incident prevention when user acknowledges a safety alert
-                  if (alert.severity === 'high' || alert.severity === 'medium') {
+                  if (user && (alert.severity === 'high' || alert.severity === 'medium')) {
                     console.log('🛡️ Incident potentially prevented by alert acknowledgment');
-                    statisticsService.updateStatistic('incident_prevented');
+                    // Update safety score based on alert severity
+                    const scoreChange = alert.severity === 'high' ? -5 : -2;
+                    const currentScore = 95; // Default if not available
+                    userStatisticsService.updateSafetyScore(user.id, currentScore + scoreChange);
                   }
                 }}
                 className="btn-ghost text-sm"

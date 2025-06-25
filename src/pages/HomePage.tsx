@@ -11,7 +11,8 @@ import EventCard from '../components/home/EventCard';
 import WeatherCard from '../components/home/WeatherCard';
 import TrialExpiredModal from '../components/trial/TrialExpiredModal';
 import { eventsService, TravelEvent } from '../lib/eventsApi';
-import { userDataService, UserStats } from '../lib/userDataService';
+import { userDataService } from '../lib/userDataService';
+import { useUserStatistics } from '../lib/userStatisticsService';
 import { 
   MapPin, Calendar, Shield, Clock, 
   Plus, ArrowRight, Zap, Globe, AlertTriangle,
@@ -26,10 +27,10 @@ const HomePage: React.FC = () => {
   const { requestLocationForContext } = useLocationPermissionRequest();
   const { safetyAlerts, isLoading, error, refreshData } = useRealTimeData();
   const navigate = useNavigate();
+  const { statistics, loading: statsLoading } = useUserStatistics();
   const [events, setEvents] = useState<TravelEvent[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false);
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [greeting] = useState(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -60,70 +61,43 @@ const HomePage: React.FC = () => {
     }
   }, [isTrialExpired, isPremiumUser]);
 
-  // Load real user data
-  useEffect(() => {
-    const loadUserData = async () => {
-      if (!user?.id) return;
-      
-      try {
-        console.log('📊 Loading real user data for:', user.id);
-        
-        // Load user statistics
-        const stats = await userDataService.calculateUserStats(user.id);
-        setUserStats(stats);
-        
-        // Track page view activity
-        await userDataService.trackActivity(user.id, 'home_page_viewed', {
-          timestamp: new Date().toISOString(),
-          user_agent: navigator.userAgent
-        });
-        
-        console.log('✅ Real user data loaded successfully');
-      } catch (error) {
-        console.error('❌ Error loading user data:', error);
-      }
-    };
-
-    loadUserData();
-  }, [user?.id]);
-
   // Stats for dashboard - using real data with proper fallbacks
   const stats = [
     {
       label: 'Travel Plans',
-      value: userStats?.totalTrips || destinations.length || 0,
+      value: statistics?.travel_plans_count || destinations.length || 0,
       icon: Calendar,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
       borderColor: 'border-blue-200',
       description: 'Active travel destinations and plans',
-      trend: (userStats?.totalTrips || destinations.length) > 0 ? 'Active explorer' : 'Start planning your next adventure'
+      trend: (statistics?.travel_plans_count || destinations.length) > 0 ? 'Active explorer' : 'Start planning your next adventure'
     },
     {
       label: 'Safety Score',
-      value: userStats ? `${userStats.safetyScore}%` : (safetyAlerts.length === 0 ? '95%' : `${Math.max(60, 95 - safetyAlerts.length * 10)}%`),
+      value: statistics ? `${statistics.safety_score}%` : (safetyAlerts.length === 0 ? '95%' : `${Math.max(60, 95 - safetyAlerts.length * 10)}%`),
       icon: Shield,
-      color: userStats ? 
-        (userStats.safetyScore >= 90 ? 'text-green-600' : userStats.safetyScore >= 70 ? 'text-yellow-600' : 'text-red-600') :
+      color: statistics ? 
+        (statistics.safety_score >= 90 ? 'text-green-600' : statistics.safety_score >= 70 ? 'text-yellow-600' : 'text-red-600') :
         (safetyAlerts.length === 0 ? 'text-green-600' : 'text-yellow-600'),
-      bgColor: userStats ? 
-        (userStats.safetyScore >= 90 ? 'bg-green-50' : userStats.safetyScore >= 70 ? 'bg-yellow-50' : 'bg-red-50') :
+      bgColor: statistics ? 
+        (statistics.safety_score >= 90 ? 'bg-green-50' : statistics.safety_score >= 70 ? 'bg-yellow-50' : 'bg-red-50') :
         (safetyAlerts.length === 0 ? 'bg-green-50' : 'bg-yellow-50'),
-      borderColor: userStats ? 
-        (userStats.safetyScore >= 90 ? 'border-green-200' : userStats.safetyScore >= 70 ? 'border-yellow-200' : 'border-red-200') :
+      borderColor: statistics ? 
+        (statistics.safety_score >= 90 ? 'border-green-200' : statistics.safety_score >= 70 ? 'border-yellow-200' : 'border-red-200') :
         (safetyAlerts.length === 0 ? 'border-green-200' : 'border-yellow-200'),
       description: 'Current safety status for your locations',
       trend: safetyAlerts.length === 0 ? 'Excellent safety record' : `${safetyAlerts.length} alert${safetyAlerts.length > 1 ? 's' : ''} to review`
     },
     {
       label: 'Days Tracked',
-      value: userStats?.daysTracked || Math.max(1, Math.floor((Date.now() - (user?.created_at ? new Date(user.created_at).getTime() : Date.now())) / (1000 * 60 * 60 * 24))),
+      value: statistics?.days_tracked || Math.max(1, Math.floor((Date.now() - (user?.created_at ? new Date(user.created_at).getTime() : Date.now())) / (1000 * 60 * 60 * 24))),
       icon: Clock,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
       borderColor: 'border-purple-200',
       description: 'Total days of travel tracking',
-      trend: (userStats?.daysTracked || 1) > 30 ? 'Experienced traveler' : 'Building your travel history'
+      trend: (statistics?.days_tracked || 1) > 30 ? 'Experienced traveler' : 'Building your travel history'
     }
   ];
 
