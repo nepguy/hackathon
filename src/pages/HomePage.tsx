@@ -186,6 +186,7 @@ const HomePage: React.FC = () => {
     <PageContainer>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8">
         <div>
+          <h1 className="text-2xl font-bold text-slate-900">
             {`${greeting}, ${getUserName()}`}
           </h1>
           <p className="text-slate-600 mt-1">
