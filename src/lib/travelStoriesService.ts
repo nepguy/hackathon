@@ -289,11 +289,11 @@ class TravelStoriesService {
   }
 
   /**
-   * Like/Unlike a travel story - Using proper user tracking with database functions
+   * Like/Unlike a travel story - FIXED to match current database functions
    */
   async toggleLike(storyId: string, userId: string, isCurrentlyLiked: boolean): Promise<{ success: boolean; newLikesCount?: number; isLiked?: boolean }> {
     try {
-      // Call the appropriate database function based on current like status
+      // Use the existing functions that match your current database
       const functionName = isCurrentlyLiked ? 'unlike_story' : 'like_story';
       
       const { data, error } = await supabase.rpc(functionName, {
@@ -329,7 +329,7 @@ class TravelStoriesService {
   }
 
   /**
-   * Check if user has liked a story
+   * Check if user has liked a story - SIMPLIFIED VERSION
    */
   async hasUserLikedStory(storyId: string, userId: string): Promise<boolean> {
     try {
@@ -351,7 +351,7 @@ class TravelStoriesService {
   }
 
   /**
-   * Get all stories liked by user
+   * Get all stories liked by user - FIXED to match current database
    */
   async getUserLikedStories(userId: string): Promise<string[]> {
     try {

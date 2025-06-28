@@ -9,8 +9,27 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    strictPort: false,
-    hmr: true,
     host: true,
+    hmr: {
+      port: 5173,
+      host: 'localhost'
+    }
   },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          supabase: ['@supabase/supabase-js'],
+          maps: ['@googlemaps/react-wrapper']
+        }
+      }
+    }
+  },
+  preview: {
+    port: 4173,
+    host: true
+  }
 });

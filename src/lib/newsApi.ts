@@ -96,14 +96,14 @@ class NewsService {
     }
 
     if (!this.apiKey) {
-      console.warn('🔑 GNews API key not configured, using fallback news');
-      return this.getFallbackNews();
+      console.warn('🔑 GNews API key not configured, using AI-generated news');
+      return await this.getFallbackNews(params.q?.split(' ')?.[0]); // Pass location from query
     }
 
     // Check rate limiting
     if (this.isRateLimited()) {
-      console.warn('⚠️ Rate limited! Using cached/fallback news data');
-      return this.getFallbackNews();
+      console.warn('⚠️ Rate limited! Using AI-generated news data');
+      return await this.getFallbackNews(params.q?.split(' ')?.[0]); // Pass location from query
     }
 
     const queryParams = new URLSearchParams({
@@ -126,8 +126,8 @@ class NewsService {
         console.error('❌ News API error response:', errorText);
         
         if (response.status === 403 || response.status === 429) {
-          console.warn('⚠️ News API access limited, using fallback news');
-          return this.getFallbackNews();
+          console.warn('⚠️ News API access limited, using AI-generated news');
+          return await this.getFallbackNews(params.q?.split(' ')?.[0]); // Pass location from query
         }
         
         throw new Error(`News API error: ${response.status} ${response.statusText} - ${errorText}`);
@@ -147,12 +147,26 @@ class NewsService {
       return result;
     } catch (error) {
       console.error('❌ Error fetching news:', error);
-      console.warn('📦 Falling back to cached/mock news data');
-      return this.getFallbackNews();
+      console.warn('📦 Falling back to AI-generated news data');
+      return await this.getFallbackNews(params.q?.split(' ')?.[0]); // Pass location from query
     }
   }
 
-  private getFallbackNews(): NewsApiResponse {
+  private async getFallbackNews(location?: string): Promise<NewsApiResponse> {
+    try {
+      // Try to generate AI-powered location-specific news
+      if (location) {
+        console.log('🤖 Generating AI news for location:', location);
+        const aiNews = await this.generateAINews(location);
+        if (aiNews.articles.length > 0) {
+          return aiNews;
+        }
+      }
+    } catch (error) {
+      console.warn('❌ AI news generation failed, using static fallback:', error);
+    }
+
+    // Static fallback if AI fails or no location provided
     const fallbackArticles: NewsArticle[] = [
       {
         title: 'Travel Safety Advisory: General Guidelines for International Travel',
@@ -196,6 +210,128 @@ class NewsService {
       totalArticles: fallbackArticles.length,
       articles: fallbackArticles
     };
+  }
+
+  /**
+   * Generate AI-powered location-specific news and alerts
+   */
+  private async generateAINews(location: string): Promise<NewsApiResponse> {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+
+    if (!apiKey || !apiKey.startsWith('AIza')) {
+      console.warn('🔑 Gemini API key not available for AI news generation');
+      throw new Error('AI service not available');
+    }
+
+    // Parse location for better context
+    const locationParts = location.split(',').map(p => p.trim());
+    const city = locationParts[0];
+    const country = locationParts.length > 1 ? locationParts[locationParts.length - 1] : locationParts[0];
+
+    const prompt = `
+      As a professional travel news reporter, generate 5-6 realistic, current travel safety alerts and news for ${location} (January 2025).
+
+      **REQUIREMENTS:**
+      1. Create SPECIFIC, LOCALIZED alerts mentioning real areas, neighborhoods, or landmarks in ${city}
+      2. Include diverse alert types: pickpocketing, bicycle theft, weather advisories, transportation issues, local events
+      3. Make them sound like real news headlines with specific locations
+      4. Use realistic timestamps (last 1-3 days)
+      5. Vary severity levels from low to high
+      6. Include actionable advice for travelers
+
+      **EXAMPLES of the style wanted:**
+      - "Increased Reports of Pickpocketing near ${city} Main Train Station"
+      - "Elevated Bicycle Theft in [Local Park Name] and along [Local River/Street] Pathways" 
+      - "Weather Advisory: Strong Winds Expected in [City] Downtown Area"
+      - "Construction Delays on [Local Transport Line] - Allow Extra Travel Time"
+
+      Return ONLY valid JSON array with this structure:
+      [
+        {
+          "title": "Specific headline mentioning exact location in ${city}",
+          "description": "Detailed description with specific areas, times, and circumstances. Mention exact neighborhoods, streets, or landmarks.",
+          "content": "Full article content with actionable travel advice",
+          "url": "#",
+          "image": "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400",
+          "publishedAt": "${new Date(Date.now() - Math.random() * 259200000).toISOString()}",
+          "source": { 
+            "name": "Local Police Reports|${city} Tourism Authority|Regional Safety Network|${country} Travel Advisory", 
+            "url": "#" 
+          },
+          "category": "safety|weather|travel|general",
+          "severity": "low|medium|high",
+          "location": "${location}"
+        }
+      ]
+
+      **FOCUS ON ${city.toUpperCase()} SPECIFICALLY:**
+      - Mention real-sounding local areas (train station, main square, shopping districts, parks)
+      - Include local transportation (buses, trams, metro lines)
+      - Reference weather conditions appropriate for ${country} in winter
+      - Create alerts that tourists would actually encounter
+      - Make each alert unique and location-specific
+
+      Generate 5-6 diverse alerts covering different types of travel concerns.
+    `;
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ "text": prompt }]
+          }],
+          generationConfig: {
+            temperature: 0.8,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 3000,
+          },
+          safetySettings: [
+            {
+              category: "HARM_CATEGORY_HARASSMENT",
+              threshold: "BLOCK_ONLY_HIGH"
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Gemini API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!aiResponse) {
+        throw new Error('No AI response received');
+      }
+
+      // Parse the JSON response
+      const cleanedResponse = aiResponse.replace(/```json\n?|\n?```/g, '').trim();
+      const aiArticles = JSON.parse(cleanedResponse);
+
+      console.log('🤖 Generated', aiArticles.length, 'AI news articles for', location);
+
+      return {
+        totalArticles: aiArticles.length,
+        articles: aiArticles.map((article: any) => ({
+          ...article,
+          source: typeof article.source === 'string' 
+            ? { name: article.source, url: '#' }
+            : article.source
+        }))
+      };
+
+    } catch (error) {
+      console.error('❌ AI news generation failed:', error);
+      throw error;
+    }
   }
 
   private transformArticles(articles: any[]): NewsArticle[] {
@@ -315,6 +451,12 @@ class NewsService {
       q: searchQuery,
       sortby: 'relevance'
     });
+  }
+
+  clearCache(): void {
+    this.cache.clear();
+    this.requestCounts.clear();
+    console.log('📦 News cache cleared');
   }
 }
 

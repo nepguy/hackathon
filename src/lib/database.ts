@@ -287,6 +287,8 @@ class DatabaseService {
 
   async createUserPreferences(userId: string, preferencesData?: Partial<DatabaseUserPreferences>): Promise<DatabaseUserPreferences | null> {
     try {
+      console.log('🔧 Creating user preferences for user:', userId);
+      
       const defaultPreferences: Omit<DatabaseUserPreferences, 'id' | 'created_at' | 'updated_at'> = {
         user_id: userId,
         destination: null,
@@ -298,6 +300,8 @@ class DatabaseService {
         ...preferencesData
       };
 
+      console.log('📝 Default preferences to insert:', defaultPreferences);
+
       const { data, error } = await supabase
         .from('user_preferences')
         .insert(defaultPreferences)
@@ -305,20 +309,28 @@ class DatabaseService {
         .single();
 
       if (error) {
-        console.error('Error creating user preferences:', error);
+        console.error('❌ Supabase error creating user preferences:', error);
+        console.error('Error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
         return null;
       }
 
-      console.log('✅ Created user preferences successfully');
+      console.log('✅ Created user preferences successfully:', data);
       return data;
     } catch (error) {
-      console.error('Error creating user preferences:', error);
+      console.error('❌ Exception creating user preferences:', error);
       return null;
     }
   }
 
   async updateUserPreferences(userId: string, updates: Partial<DatabaseUserPreferences>): Promise<DatabaseUserPreferences | null> {
     try {
+      console.log('🔧 Updating user preferences for user:', userId, 'with:', updates);
+      
       const { data, error } = await supabase
         .from('user_preferences')
         .update(updates)
@@ -326,11 +338,15 @@ class DatabaseService {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase error updating user preferences:', error);
+        throw error;
+      }
 
+      console.log('✅ User preferences updated successfully:', data);
       return data;
     } catch (error) {
-      console.error('Error updating user preferences:', error);
+      console.error('❌ Exception updating user preferences:', error);
       return null;
     }
   }

@@ -67,11 +67,6 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({
       console.log('🌍 New country visited:', country);
       setVisitedCountries(prev => new Set([...prev, country]));
       statisticsService.updateStatistic('country_visited');
-
-      // Update user statistics in Supabase
-      if (user) {
-        userStatisticsService.incrementStatistic(user.id, 'days_tracked');
-      }
       
       // Save to localStorage
       const savedCountries = Array.from(visitedCountries);
@@ -171,10 +166,7 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({
     setIsTracking(true);
     startWatching();
     
-    // Update days tracked when starting tracking
-    if (user) {
-      userStatisticsService.incrementStatistic(user.id, 'days_tracked');
-    }
+    console.log('🌍 Location tracking started');
   };
 
   const stopLocationTracking = () => {

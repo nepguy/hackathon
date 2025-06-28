@@ -155,6 +155,43 @@ class UserStatisticsService {
   }
 
   /**
+   * Track daily activity - ensures only one increment per calendar day
+   */
+  async trackDailyActivity(userId: string): Promise<boolean> {
+    try {
+      const today = new Date().toDateString();
+      const lastActiveKey = `lastDayTracked_${userId}`;
+      const lastTrackedDay = localStorage.getItem(lastActiveKey);
+
+      // Only increment if this is a new calendar day
+      if (lastTrackedDay !== today) {
+        const success = await this.incrementStatistic(userId, 'days_tracked', 1);
+        if (success) {
+          localStorage.setItem(lastActiveKey, today);
+          console.log('📊 New day tracked:', today);
+          return true;
+        }
+      } else {
+        console.log('📊 Day already tracked:', today);
+      }
+      return false;
+    } catch (error) {
+      console.error('Error tracking daily activity:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get total days since user registration (for reference)
+   */
+  getDaysSinceRegistration(userCreatedAt: string): number {
+    const createdDate = new Date(userCreatedAt);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - createdDate.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  /**
    * Update safety score
    */
   async updateSafetyScore(userId: string, score: number): Promise<boolean> {
@@ -275,6 +312,13 @@ export const useUserStatistics = () => {
     updateSafetyScore: async (score: number) => {
       if (!user) return false;
       return userStatisticsService.updateSafetyScore(user.id, score);
+    },
+    trackDailyActivity: async () => {
+      if (!user) return false;
+      return userStatisticsService.trackDailyActivity(user.id);
+    },
+    getDaysSinceRegistration: (userCreatedAt: string) => {
+      return userStatisticsService.getDaysSinceRegistration(userCreatedAt);
     }
   };
 };

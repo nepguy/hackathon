@@ -289,14 +289,17 @@ const HomePage: React.FC = () => {
     if (!user) return;
 
     try {
-      // Track daily activity (increment days tracked)
+      // Track daily activity (increment days tracked) - FIXED: Only once per calendar day
       const lastActiveDate = localStorage.getItem(`lastActive_${user.id}`);
       const today = new Date().toDateString();
 
       if (lastActiveDate !== today) {
-        await incrementDaysTracked();
+        // Only increment days_tracked by 1 per calendar day
+        await incrementDaysTracked(1);
         localStorage.setItem(`lastActive_${user.id}`, today);
-        console.log('📊 Daily activity tracked');
+        console.log('📊 Daily activity tracked for:', today);
+      } else {
+        console.log('📊 Already tracked today:', today);
       }
     } catch (error) {
       console.error('Error updating daily activity:', error);
@@ -336,13 +339,13 @@ const HomePage: React.FC = () => {
     },
     {
       label: 'Days Tracked',
-      value: statistics?.days_tracked || Math.max(1, Math.floor((Date.now() - (user?.created_at ? new Date(user.created_at).getTime() : Date.now())) / (1000 * 60 * 60 * 24))),
+      value: statistics?.days_tracked || 0, // FIXED: Always use database value, no fallback calculation
       icon: Clock,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
       borderColor: 'border-purple-200',
       description: 'Days active on GuardNomad platform',
-      trend: (statistics?.days_tracked || 1) > 30 ? 'Experienced traveler' : 'Building your travel history'
+      trend: (statistics?.days_tracked || 0) > 30 ? 'Experienced traveler' : 'Building your travel history'
     }
   ];
 

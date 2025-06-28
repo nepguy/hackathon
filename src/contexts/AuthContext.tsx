@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { statisticsService } from '../lib/userDataService'
+import { databaseService } from '../lib/database'
 
 interface AuthContextType {
   user: User | null
@@ -70,19 +71,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       async (event: string, session: any) => {
         console.log('Auth state changed:', event, session?.user?.id);
         
-        // Track user statistics for real-time updates
-        if (event === 'SIGNED_IN' && session?.user) {
-          console.log('🔥 User joined - updating statistics');
-          statisticsService.updateStatistic('user_joined');
-        } else if (event === 'SIGNED_OUT') {
-          console.log('👋 User left - updating statistics');
-          statisticsService.updateStatistic('user_left');
-        }
-        
+        // Update state immediately for fast UI response
         if (mounted) {
           setUser(session?.user ?? null);
           setSession(session);
           setLoading(false);
+        }
+
+        // Track user statistics and ensure user data exists (non-blocking)
+        if (event === 'SIGNED_IN' && session?.user) {
+          console.log('🔥 User joined - updating statistics and ensuring user data');
+          statisticsService.updateStatistic('user_joined');
+          
+          // Ensure user profile and preferences exist in background
+          // This runs async and doesn't block the UI
+          (async () => {
+            try {
+              const userId = session.user.id;
+              
+              // Check and create user profile if needed
+              let profile = await databaseService.getUserProfile(userId);
+              if (!profile) {
+                console.log('Creating user profile for:', userId);
+                profile = await databaseService.createUserProfile(userId);
+              }
+              
+              // Check and create user preferences if needed
+              let preferences = await databaseService.getUserPreferences(userId);
+              if (!preferences) {
+                console.log('Creating user preferences for:', userId);
+                preferences = await databaseService.createUserPreferences(userId);
+                if (preferences) {
+                  console.log('✅ User preferences created successfully');
+                } else {
+                  console.error('❌ Failed to create user preferences');
+                }
+              }
+              
+            } catch (error) {
+              console.error('Error ensuring user data:', error);
+            }
+          })();
+        } else if (event === 'SIGNED_OUT') {
+          console.log('👋 User left - updating statistics');
+          statisticsService.updateStatistic('user_left');
         }
       }
     );

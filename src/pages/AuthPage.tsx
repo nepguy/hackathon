@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Shield, Mail, Lock, User, Eye, EyeOff, ArrowLeft } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -15,7 +15,28 @@ const AuthPage: React.FC = () => {
     confirmPassword: ''
   })
 
-  const { signIn, signUp, user } = useAuth()
+  const { signIn, signUp, user, loading: authLoading } = useAuth()
+
+  // Safety timeout to prevent infinite loading
+  useEffect(() => {
+    if (loading) {
+      const timeout = setTimeout(() => {
+        console.warn('⚠️ Login timeout - resetting loading state')
+        setLoading(false)
+        setError('Login is taking longer than expected. Please try again.')
+      }, 10000) // 10 second timeout
+
+      return () => clearTimeout(timeout)
+    }
+  }, [loading])
+
+  // Reset local loading when auth succeeds
+  useEffect(() => {
+    if (user && loading) {
+      console.log('🎉 User authenticated, clearing loading state')
+      setLoading(false)
+    }
+  }, [user, loading])
 
   // Redirect if already authenticated
   if (user) {
@@ -46,19 +67,26 @@ const AuthPage: React.FC = () => {
         })
         if (error) {
           setError(error.message)
+          setLoading(false)
         } else {
           setError('')
-          // Show success message or redirect
+          // Don't set loading to false here - let the redirect happen
+          // The Navigate component will handle the redirect
         }
       } else {
         const { error } = await signIn(formData.email, formData.password)
         if (error) {
           setError(error.message)
+          setLoading(false)
+        } else {
+          // Don't set loading to false here - let the redirect happen
+          // The Navigate component will handle the redirect
+          console.log('✅ Sign in successful, redirecting...')
         }
       }
     } catch (err) {
+      console.error('Auth error:', err)
       setError('An unexpected error occurred')
-    } finally {
       setLoading(false)
     }
   }

@@ -3,6 +3,12 @@
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
+// Validate API key format (Google API keys start with AIza and are typically 39 characters)
+function isValidGeminiApiKey(key: string | undefined): boolean {
+  if (!key) return false;
+  return key.startsWith('AIza') && key.length >= 35;
+}
+
 interface GeminiResponse {
   candidates: Array<{
     content: {
@@ -71,8 +77,9 @@ function generateLocationKey(lat: number, lng: number): string {
 export const getLocationSafetyData = async (
   location: LocationContext
 ): Promise<LocationSafetyData> => {
-  if (!API_KEY) {
-    console.error("VITE_GEMINI_API_KEY is not set in .env file");
+  if (!isValidGeminiApiKey(API_KEY)) {
+    console.warn("⚠️ Gemini API key is missing or invalid - using fallback safety data");
+    console.info("💡 To enable AI-powered safety alerts, add a valid VITE_GEMINI_API_KEY to your .env file");
     return getDefaultSafetyData(location);
   }
 
