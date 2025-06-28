@@ -194,20 +194,21 @@ const HomePage: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center space-x-2 mt-4 sm:mt-0">
-        <div className="flex items-center space-x-2 mt-4 sm:mt-0">
-          <button 
-            onClick={handleRefreshData}
-            className="btn btn-ghost p-2"
-          >
-            <RefreshCw className={`w-5 h-5 ${(isLoading || isLoadingAISafety) ? 'animate-spin' : ''}`} />
-          </button>
-          <button 
-            onClick={() => navigate('/add-destination')}
-            className="btn btn-primary hidden sm:flex items-center space-x-2"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Destination</span>
-          </button>
+          <div className="flex items-center space-x-2 mt-4 sm:mt-0">
+            <button 
+              onClick={handleRefreshData}
+              className="btn btn-ghost p-2"
+            >
+              <RefreshCw className={`w-5 h-5 ${(isLoading || isLoadingAISafety) ? 'animate-spin' : ''}`} />
+            </button>
+            <button 
+              onClick={() => navigate('/add-destination')}
+              className="btn btn-primary hidden sm:flex items-center space-x-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Destination</span>
+            </button>
+          </div>
         </div>
       </div>
 
