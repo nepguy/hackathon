@@ -9,7 +9,7 @@ import { StatisticsCard } from '../components/home/StatisticsCard';
 import { WeatherCard } from '../components/home/WeatherCard';
 import { SafetyTipCard } from '../components/home/SafetyTipCard';
 import { TravelPlanItem } from '../components/home/TravelPlanItem';
-import { ActivityItem } from '../components/home/ActivityItem';
+import ActivityItem from '../components/home/ActivityItem';
 import { EventCard } from '../components/home/EventCard';
 import { QuickActionButtons } from '../components/home/QuickActionButtons';
 import { CreatePlanModal } from '../components/home/CreatePlanModal';
