@@ -164,15 +164,15 @@ const HomePage: React.FC = () => {
     <PageContainer>
       <div className="mb-6">
         <div className="flex items-center justify-between">
-          <div>
+        <div>
             <h1 className="text-2xl font-bold text-slate-900">
               Welcome back, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Traveler'}!
-            </h1>
-            <p className="text-slate-600 mt-1">
+          </h1>
+          <p className="text-slate-600 mt-1">
               Stay safe and informed with your travel dashboard
-            </p>
-          </div>
-          <button
+          </p>
+        </div>
+          <button 
             onClick={handleRefreshData}
             disabled={isLoading}
             className="btn btn-ghost btn-sm"
@@ -186,24 +186,24 @@ const HomePage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
         <div className="lg:col-span-3 space-y-6">
           {isTrialActive && <TrialBanner />}
-          
+
           {/* Statistics Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="card p-6 text-center hover:shadow-lg transition-shadow duration-300">
               <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-full bg-blue-100">
                 <MapPin className="w-6 h-6 text-blue-600" />
-              </div>
+                  </div>
               <h3 className="text-2xl font-bold text-slate-900">{userStats.travel_plans_count}</h3>
               <p className="text-sm text-slate-600">Travel Plans</p>
-            </div>
+                  </div>
             
             <div className="card p-6 text-center hover:shadow-lg transition-shadow duration-300">
               <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-full bg-green-100">
                 <Shield className="w-6 h-6 text-green-600" />
-              </div>
+                </div>
               <h3 className="text-2xl font-bold text-slate-900">{userStats.safety_score}%</h3>
               <p className="text-sm text-slate-600">Safety Score</p>
-            </div>
+                </div>
             
             <div className="card p-6 text-center hover:shadow-lg transition-shadow duration-300">
               <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-full bg-purple-100">
@@ -220,25 +220,25 @@ const HomePage: React.FC = () => {
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {/* Travel Plans Section */}
             <div className="card p-6 hover:shadow-lg transition-shadow duration-300">
-              <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold flex items-center">
                   <MapPin className="w-5 h-5 mr-2 text-blue-600" />
                   Travel Plans
                 </h2>
-                <button 
-                  onClick={() => setShowCreatePlanModal(true)}
-                  className="btn btn-primary btn-sm"
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Plan
-                </button>
-              </div>
+              <button 
+                onClick={() => setShowCreatePlanModal(true)}
+                className="btn btn-primary btn-sm"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Plan
+              </button>
+            </div>
               <div className="space-y-4">
-                {travelPlans.length > 0 ? (
+              {travelPlans.length > 0 ? (
                   travelPlans.map((plan) => (
-                    <TravelPlanItem key={plan.id} plan={plan} />
-                  ))
-                ) : (
+                  <TravelPlanItem key={plan.id} plan={plan} />
+                ))
+              ) : (
                   <div className="text-center py-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-dashed border-blue-200">
                     <MapPin className="w-12 h-12 text-blue-400 mx-auto mb-3" />
                     <h3 className="text-lg font-medium text-slate-700 mb-2">Ready for your next adventure?</h3>

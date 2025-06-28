@@ -38,14 +38,18 @@ const AuthPage: React.FC = () => {
   useEffect(() => {
     if (loading) {
       const timeout = setTimeout(() => {
-        console.warn('⚠️ Login timeout - resetting loading state')
+        console.warn('⚠️ Operation timeout - resetting loading state')
         setLoading(false)
-        setError('Login is taking longer than expected. Please try again.')
-      }, 10000) // 10 second timeout
+        if (isForgotPassword) {
+          setError('Password reset is taking longer than expected. Please try again.')
+        } else {
+          setError('Login is taking longer than expected. Please try again.')
+        }
+      }, 15000) // 15 second timeout (increased for password reset emails)
 
       return () => clearTimeout(timeout)
     }
-  }, [loading])
+  }, [loading, isForgotPassword])
 
   // Reset local loading when auth succeeds
   useEffect(() => {
@@ -67,20 +71,38 @@ const AuthPage: React.FC = () => {
     setSuccess('')
 
     if (isForgotPassword) {
+      // Validate email before attempting reset
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(formData.email)) {
+        setError('Please enter a valid email address')
+        setLoading(false)
+        return
+      }
+
       // Handle password reset
       try {
+        console.log('🔄 Sending password reset email to:', formData.email)
         const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
           redirectTo: 'https://guardnomad.com/password-reset'
         })
         
         if (error) {
-          setError(error.message)
+          console.error('Password reset error:', error)
+          // Handle specific error cases
+          if (error.message.includes('rate limit')) {
+            setError('Too many reset attempts. Please wait a few minutes before trying again.')
+          } else if (error.message.includes('invalid')) {
+            setError('Please enter a valid email address.')
+          } else {
+            setError(`Password reset failed: ${error.message}`)
+          }
         } else {
-          setSuccess('Password reset email sent! Check your inbox for further instructions.')
+          console.log('✅ Password reset email sent successfully')
+          setSuccess('Password reset email sent! Check your inbox and spam folder for further instructions.')
         }
       } catch (err) {
         console.error('Password reset error:', err)
-        setError('An unexpected error occurred')
+        setError('Unable to send password reset email. Please check your internet connection and try again.')
       }
       setLoading(false)
       return
