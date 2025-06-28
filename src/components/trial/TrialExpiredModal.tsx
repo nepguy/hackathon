@@ -150,3 +150,4 @@ const TrialExpiredModal: React.FC<TrialExpiredModalProps> = ({ isOpen, onClose }
 };
 
 export default TrialExpiredModal;
+export { TrialExpiredModal };

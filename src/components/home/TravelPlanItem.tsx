@@ -47,3 +47,5 @@ const TravelPlanItem: React.FC<TravelPlanItemProps> = ({ plan }) => {
 };
 
 export default TravelPlanItem;
+
+export { TravelPlanItem };

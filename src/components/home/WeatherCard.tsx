@@ -389,3 +389,4 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
 };
 
 export default WeatherCard;
+export { WeatherCard };

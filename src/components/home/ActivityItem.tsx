@@ -46,3 +46,5 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ activity }) => {
 };
 
 export default ActivityItem;
+
+export { ActivityItem };

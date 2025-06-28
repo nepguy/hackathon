@@ -43,3 +43,5 @@ const QuickActionButtons: React.FC = () => {
 };
 
 export default QuickActionButtons;
+
+export { QuickActionButtons };

@@ -146,3 +146,5 @@ const EventCard: React.FC<EventCardProps> = ({ event, showExternalLink = false }
 };
 
 export default EventCard;
+
+export { EventCard };

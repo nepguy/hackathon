@@ -184,3 +184,5 @@ const StatisticsCard: React.FC<StatisticsCardProps> = ({ className = '' }) => {
 };
 
 export default StatisticsCard;
+
+export { StatisticsCard };

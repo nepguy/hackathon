@@ -114,3 +114,4 @@ const TrialBanner: React.FC = () => {
 };
 
 export default TrialBanner;
+export { TrialBanner };

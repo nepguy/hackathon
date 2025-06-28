@@ -28,3 +28,5 @@ const SafetyTipCard: React.FC<SafetyTipCardProps> = ({ tip }) => {
 };
 
 export default SafetyTipCard;
+
+export { SafetyTipCard };

@@ -1,45 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTrial } from '../contexts/TrialContext';
 import { useLocation } from '../contexts/LocationContext';
 import { useRealTimeData } from '../hooks/useRealTimeData';
 import { PageContainer } from '../components/layout/PageContainer';
-import { StatisticsCard } from '../components/home/StatisticsCard';
-import WeatherCard from '../components/home/WeatherCard';
-import SafetyTipCard from '../components/home/SafetyTipCard';
-import TravelPlanItem from '../components/home/TravelPlanItem';
-import ActivityItem from '../components/home/ActivityItem';
-import EventCard from '../components/home/EventCard';
-import QuickActionButtons from '../components/home/QuickActionButtons';
-import CreatePlanModal from '../components/home/CreatePlanModal';
-import TrialExpiredModal from '../components/trial/TrialExpiredModal';
-import TrialBanner from '../components/trial/TrialBanner';
-import { 
-  MapPin, 
-  Calendar, 
-  Shield, 
-  TrendingUp, 
-  Plus, 
-  RefreshCw,
-  Clock,
-  Users,
-  Star,
-  AlertTriangle
-} from 'lucide-react';
+import { WeatherCard } from '../components/home/WeatherCard';
+import { SafetyTipCard } from '../components/home/SafetyTipCard';
+import { TravelPlanItem } from '../components/home/TravelPlanItem';
+import { ActivityItem } from '../components/home/ActivityItem';
+import { EventCard, Event } from '../components/home/EventCard';
+import { QuickActionButtons } from '../components/home/QuickActionButtons';
+import { CreatePlanModal } from '../components/home/CreatePlanModal';
+import { TrialExpiredModal } from '../components/trial/TrialExpiredModal';
+import { TrialBanner } from '../components/trial/TrialBanner';
+import { Shield, MapPin, Calendar, Plus, RefreshCw } from 'lucide-react';
 import { getUserStatistics } from '../lib/userStatisticsService';
 import { getTravelPlans } from '../lib/travelPlansService';
 import { getAISafetyInsights } from '../lib/aiSafetyService';
+import { TravelPlan, Activity, SafetyTip } from '../types';
+import { AISafetyAlert } from '../lib/aiSafetyService';
 
 const HomePage: React.FC = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
-  const { isTrialActive, isTrialExpired, daysLeft } = useTrial();
-  const { currentLocation } = useLocation();
+  const { isTrialActive, isTrialExpired } = useTrial();
+  const { userLocation } = useLocation();
   const { 
-    weatherData, 
-    safetyAlerts, 
-    localEvents, 
+    recentActivity,
     isLoading, 
     refreshData 
   } = useRealTimeData();
@@ -49,8 +35,9 @@ const HomePage: React.FC = () => {
     safety_score: 95,
     days_tracked: 0
   });
-  const [travelPlans, setTravelPlans] = useState([]);
-  const [aiSafetyInsights, setAiSafetyInsights] = useState([]);
+  
+  const [travelPlans, setTravelPlans] = useState<TravelPlan[]>([]);
+  const [aiSafetyInsights, setAiSafetyInsights] = useState<SafetyTip[]>([]);
   const [isLoadingAISafety, setIsLoadingAISafety] = useState(false);
   const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);
   const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false);
@@ -75,22 +62,38 @@ const HomePage: React.FC = () => {
       ]);
 
       setUserStats(stats || { travel_plans_count: 0, safety_score: 95, days_tracked: 0 });
-      setTravelPlans(plans || []);
+      setTravelPlans(plans.map(plan => ({
+        id: plan.id,
+        destination: plan.destination,
+        startDate: plan.start_date,
+        endDate: plan.end_date,
+        imageUrl: `https://source.unsplash.com/800x600/?${encodeURIComponent(plan.destination)}`,
+        safetyScore: 85
+      })));
     } catch (error) {
       console.error('Error loading user data:', error);
     }
   };
 
   const loadAISafetyInsights = async () => {
-    if (!user || !currentLocation) return;
+    if (!user || !userLocation) return;
 
     setIsLoadingAISafety(true);
     try {
       const insights = await getAISafetyInsights(
         user.id,
-        currentLocation.city || 'Current Location'
-      );
-      setAiSafetyInsights(insights || []);
+        userLocation.latitude.toString() + ',' + userLocation.longitude.toString()
+      ) as AISafetyAlert[];
+      
+      // Convert AISafetyAlert to SafetyTip
+      const safetyTips = insights.map(alert => ({
+        id: alert.id,
+        title: alert.title,
+        description: alert.message || alert.title,
+        imageUrl: `https://source.unsplash.com/800x600/?${encodeURIComponent(alert.type)}`
+      }));
+      
+      setAiSafetyInsights(safetyTips);
     } catch (error) {
       console.error('Error loading AI safety insights:', error);
     } finally {
@@ -99,10 +102,10 @@ const HomePage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (currentLocation && user) {
+    if (userLocation && user) {
       loadAISafetyInsights();
     }
-  }, [currentLocation, user]);
+  }, [userLocation, user]);
 
   const handleRefreshData = async () => {
     await Promise.all([
@@ -112,252 +115,160 @@ const HomePage: React.FC = () => {
     ]);
   };
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
-  };
-
-  const getUserName = () => {
-    return user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Traveler';
-  };
-
-  const greeting = getGreeting();
-
-  const stats = [
+  const recentActivities: Activity[] = [
     {
-      icon: MapPin,
-      label: 'Travel Plans',
-      value: userStats.travel_plans_count,
-      description: 'Active destinations',
-      trend: '+2 this month',
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-      borderColor: 'border-blue-500'
+      id: '1',
+      type: 'plan',
+      title: 'New Travel Plan Created',
+      description: 'Trip to Paris planned for next month',
+      timestamp: new Date().toISOString()
     },
     {
-      icon: Shield,
-      label: 'Safety Score',
-      value: `${userStats.safety_score}%`,
-      description: 'Current rating',
-      trend: '+5% this week',
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-      borderColor: 'border-green-500'
+      id: '2',
+      type: 'alert',
+      title: 'Weather Alert',
+      description: 'Heavy rain expected in your area',
+      timestamp: new Date(Date.now() - 86400000).toISOString()
     },
     {
-      icon: Calendar,
-      label: 'Days Tracked',
-      value: userStats.days_tracked,
-      description: 'Total monitoring',
-      trend: 'Since joining',
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-      borderColor: 'border-purple-500'
-    }
-  ];
-
-  const recentActivities = [
-    {
-      icon: Shield,
-      title: 'Safety alert reviewed',
-      description: 'Weather warning for Tokyo',
-      time: '2 hours ago',
-      type: 'safety'
-    },
-    {
-      icon: MapPin,
-      title: 'New destination added',
-      description: 'Paris, France',
-      time: '1 day ago',
-      type: 'destination'
-    },
-    {
-      icon: Star,
-      title: 'Travel story shared',
-      description: 'Amazing experience in Bali',
-      time: '3 days ago',
-      type: 'story'
+      id: '3',
+      type: 'tip',
+      title: 'Safety Tip',
+      description: 'Always keep your documents secure while traveling',
+      timestamp: new Date(Date.now() - 172800000).toISOString()
     }
   ];
 
   return (
     <PageContainer>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">
-            {`${greeting}, ${getUserName()}`}
-          </h1>
-          <p className="text-slate-600 mt-1">
-            Welcome back! Here's your personalized travel dashboard.
-          </p>
-        </div>
-        <div className="flex items-center space-x-2 mt-4 sm:mt-0">
-          <div className="flex items-center space-x-2 mt-4 sm:mt-0">
-            <button 
-              onClick={handleRefreshData}
-              className="btn btn-ghost p-2"
-            >
-              <RefreshCw className={`w-5 h-5 ${(isLoading || isLoadingAISafety) ? 'animate-spin' : ''}`} />
-            </button>
-            <button 
-              onClick={() => navigate('/add-destination')}
-              className="btn btn-primary hidden sm:flex items-center space-x-2"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Destination</span>
-            </button>
+      <div className="mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">
+              Welcome back, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Traveler'}!
+            </h1>
+            <p className="text-slate-600 mt-1">
+              Stay safe and informed with your travel dashboard
+            </p>
           </div>
+          <button
+            onClick={handleRefreshData}
+            disabled={isLoading}
+            className="btn btn-ghost btn-sm"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        {/* Left Column - Stats and Quick Actions */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Trial Banner */}
-          {isTrialActive && (
-            <TrialBanner daysLeft={daysLeft} />
-          )}
-
-          {/* Stats Grid */}
+          {isTrialActive && <TrialBanner />}
+          
+          {/* Statistics Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {stats.map((stat, index) => (
-              <div
-                key={index}
-                className={`card p-4 border-l-4 ${stat.borderColor}`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                    <stat.icon className={`w-6 h-6 ${stat.color}`} />
-                  </div>
-                  <div className={`text-2xl font-bold ${stat.color}`}>
-                    {stat.value}
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-800">{stat.label}</h3>
-                  <p className="text-xs text-slate-500">{stat.description}</p>
-                  <p className="text-xs text-slate-400 mt-1">{stat.trend}</p>
-                </div>
+            <div className="card p-6 text-center">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-full bg-blue-100">
+                <MapPin className="w-6 h-6 text-blue-600" />
               </div>
-            ))}
+              <h3 className="text-2xl font-bold text-slate-900">{userStats.travel_plans_count}</h3>
+              <p className="text-sm text-slate-600">Travel Plans</p>
+            </div>
+            
+            <div className="card p-6 text-center">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-full bg-green-100">
+                <Shield className="w-6 h-6 text-green-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900">{userStats.safety_score}%</h3>
+              <p className="text-sm text-slate-600">Safety Score</p>
+            </div>
+            
+            <div className="card p-6 text-center">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-full bg-purple-100">
+                <Calendar className="w-6 h-6 text-purple-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900">{userStats.days_tracked}</h3>
+              <p className="text-sm text-slate-600">Days Tracked</p>
+            </div>
           </div>
 
-          {/* Quick Actions */}
-          <QuickActionButtons onCreatePlan={() => setShowCreatePlanModal(true)} />
+          <QuickActionButtons />
 
-          {/* Travel Plans */}
           <div className="card p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-slate-900">Your Travel Plans</h2>
+              <h2 className="text-xl font-semibold">Travel Plans</h2>
               <button 
                 onClick={() => setShowCreatePlanModal(true)}
-                className="btn btn-primary btn-sm"
+                className="btn btn-ghost btn-sm"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 Add Plan
               </button>
             </div>
-            <div className="space-y-3">
-              {travelPlans.length > 0 ? (
-                travelPlans.slice(0, 3).map((plan) => (
-                  <TravelPlanItem key={plan.id} plan={plan} />
-                ))
-              ) : (
-                <div className="text-center py-8 text-slate-500">
-                  <MapPin className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                  <p>No travel plans yet</p>
-                  <p className="text-sm">Create your first plan to get started!</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Recent Activity */}
-          <div className="card p-6">
-            <h2 className="text-xl font-semibold text-slate-900 mb-4">Recent Activity</h2>
-            <div className="space-y-3">
-              {recentActivities.map((activity, index) => (
-                <ActivityItem key={index} activity={activity} />
+            <div className="space-y-4">
+              {travelPlans.map((plan) => (
+                <TravelPlanItem key={plan.id} plan={plan} />
               ))}
             </div>
           </div>
         </div>
 
-        {/* Right Column - Weather, Safety, Events */}
         <div className="space-y-6">
-          {/* Weather Card */}
-          {weatherData && (
-            <WeatherCard 
-              weather={weatherData} 
-              location={currentLocation?.city || 'Current Location'} 
-            />
-          )}
+          <WeatherCard />
 
-          {/* Safety Tips */}
           <div className="card p-6">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
-              <Shield className="w-5 h-5 mr-2 text-green-600" />
-              AI Safety Insights
-            </h2>
+            <h2 className="text-xl font-semibold mb-4">Safety Insights</h2>
             {isLoadingAISafety ? (
-              <div className="flex items-center justify-center py-8">
-                <RefreshCw className="w-6 h-6 animate-spin text-slate-400" />
-              </div>
+              <div className="text-center py-4">Loading safety insights...</div>
             ) : aiSafetyInsights.length > 0 ? (
               <div className="space-y-3">
-                {aiSafetyInsights.slice(0, 3).map((tip, index) => (
-                  <SafetyTipCard key={index} tip={tip} />
+                {aiSafetyInsights.slice(0, 3).map((tip) => (
+                  <SafetyTipCard key={tip.id} tip={tip} />
                 ))}
               </div>
             ) : (
-              <div className="text-center py-6 text-slate-500">
-                <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                <p className="text-sm">No safety insights available</p>
+              <div className="text-center py-4 text-slate-500">
+                No safety insights available
               </div>
             )}
           </div>
 
-          {/* Safety Alerts */}
-          {safetyAlerts && safetyAlerts.length > 0 && (
-            <div className="card p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
-                <AlertTriangle className="w-5 h-5 mr-2 text-orange-600" />
-                Safety Alerts
-              </h2>
-              <div className="space-y-3">
-                {safetyAlerts.slice(0, 2).map((alert, index) => (
-                  <div key={index} className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                    <h3 className="font-medium text-orange-900">{alert.title}</h3>
-                    <p className="text-sm text-orange-700 mt-1">{alert.message}</p>
-                  </div>
-                ))}
-              </div>
+          <div className="card p-6">
+            <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
+            <div className="space-y-4">
+              {recentActivities.map((activity) => (
+                <ActivityItem key={activity.id} activity={activity} />
+              ))}
             </div>
-          )}
+          </div>
 
-          {/* Local Events */}
-          {localEvents && localEvents.length > 0 && (
-            <div className="card p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
-                <Calendar className="w-5 h-5 mr-2 text-blue-600" />
-                Local Events
-              </h2>
-              <div className="space-y-3">
-                {localEvents.slice(0, 2).map((event, index) => (
-                  <EventCard key={index} event={event} />
-                ))}
-              </div>
+          <div className="card p-6">
+            <h2 className="text-xl font-semibold mb-4">Local Events</h2>
+            <div className="space-y-3">
+              {recentActivity.filter(activity => activity.type === 'plan').map((activity) => {
+                const event: Event = {
+                  id: activity.id,
+                  title: activity.title,
+                  description: activity.description,
+                  date: activity.timestamp,
+                  time: new Date(activity.timestamp).toLocaleTimeString(),
+                  location: 'Local',
+                  imageUrl: `https://source.unsplash.com/800x600/?${encodeURIComponent(activity.type)}`,
+                  attendees: 0,
+                  category: activity.type
+                };
+                return <EventCard key={activity.id} event={event} />;
+              })}
             </div>
-          )}
+          </div>
         </div>
       </div>
 
       <CreatePlanModal
         isOpen={showCreatePlanModal}
         onClose={() => setShowCreatePlanModal(false)}
-        onPlanCreated={loadUserData}
+        onSubmit={loadUserData}
       />
 
       <TrialExpiredModal

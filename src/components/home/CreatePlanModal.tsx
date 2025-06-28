@@ -125,4 +125,5 @@ const CreatePlanModal: React.FC<CreatePlanModalProps> = ({
   );
 };
 
-export default CreatePlanModal
+export default CreatePlanModal;
+export { CreatePlanModal };

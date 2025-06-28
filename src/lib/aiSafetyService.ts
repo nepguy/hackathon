@@ -725,4 +725,13 @@ class AISafetyService {
   }
 }
 
-export const aiSafetyService = new AISafetyService(); 
+export const aiSafetyService = new AISafetyService();
+
+export const getAISafetyInsights = async (_userId: string, destination: string) => {
+  // Wrapper for backward compatibility
+  return aiSafetyService.generateSafetyAlerts({
+    destination,
+    country: 'Unknown',
+    city: destination
+  });
+}; 

@@ -204,4 +204,6 @@ class TravelPlansService {
 }
 
 // Create and export singleton instance
-export const travelPlansService = new TravelPlansService(); 
+export const travelPlansService = new TravelPlansService();
+
+export const getTravelPlans = (userId: string) => travelPlansService.getUserTravelPlans(userId); 

@@ -124,3 +124,4 @@ const PageContainer: React.FC<PageContainerProps> = ({
 };
 
 export default PageContainer;
+export { PageContainer };

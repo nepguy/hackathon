@@ -322,3 +322,5 @@ export const useUserStatistics = () => {
     }
   };
 };
+
+export const getUserStatistics = (userId: string) => userStatisticsService.getUserStatistics(userId);
