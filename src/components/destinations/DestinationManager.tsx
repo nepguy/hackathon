@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useUserDestinations, UserDestination } from '../../contexts/UserDestinationContext';
 import { 
   MapPin, Calendar, Plus, Trash2, Settings, Bell, BellOff, 
-  Globe, Plane, Clock
+  Globe, Plane, Clock, Edit, RefreshCw, AlertTriangle
 } from 'lucide-react';
 
 const DestinationManager: React.FC = () => {
@@ -12,50 +12,136 @@ const DestinationManager: React.FC = () => {
     addDestination, 
     removeDestination, 
     setCurrentDestination,
-    updateDestination 
+    updateDestination,
+    refreshDestinations
   } = useUserDestinations();
   
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingDestination, setEditingDestination] = useState<UserDestination | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [newDestination, setNewDestination] = useState({
-    name: '',
-    country: '',
+    destination: '',
     startDate: '',
     endDate: '',
-    isActive: false,
+    status: 'planned' as const,
     alertsEnabled: true
   });
 
-  const handleAddDestination = (e: React.FormEvent) => {
+  const [editFormData, setEditFormData] = useState({
+    destination: '',
+    startDate: '',
+    endDate: '',
+    status: 'planned' as 'planned' | 'active' | 'completed' | 'cancelled',
+    alertsEnabled: true
+  });
+
+  const handleAddDestination = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newDestination.name && newDestination.country && newDestination.startDate && newDestination.endDate) {
-      addDestination(newDestination);
-      setNewDestination({
-        name: '',
-        country: '',
-        startDate: '',
-        endDate: '',
-        isActive: false,
-        alertsEnabled: true
-      });
-      setShowAddForm(false);
+    setError(null);
+    
+    if (newDestination.destination && newDestination.startDate && newDestination.endDate) {
+      try {
+        await addDestination(newDestination);
+        setNewDestination({
+          destination: '',
+          startDate: '',
+          endDate: '',
+          status: 'planned',
+          alertsEnabled: true
+        });
+        setShowAddForm(false);
+      } catch (error) {
+        console.error('Failed to add destination:', error);
+        setError('Failed to add destination. Please try again.');
+      }
     }
   };
 
-  const toggleAlerts = (destination: UserDestination) => {
-    updateDestination(destination.id, { alertsEnabled: !destination.alertsEnabled });
+  const handleEditDestination = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingDestination) return;
+    
+    setError(null);
+    try {
+      await updateDestination(editingDestination.id, editFormData);
+      setShowEditModal(false);
+      setEditingDestination(null);
+    } catch (error) {
+      console.error('Failed to update destination:', error);
+      setError('Failed to update destination. This record may not exist in the database. Try refreshing.');
+      // Auto-refresh to sync data
+      handleRefresh();
+    }
   };
 
-  const setAsActive = (destination: UserDestination) => {
-    // Set all destinations as inactive first
-    destinations.forEach(d => {
-      if (d.isActive) {
-        updateDestination(d.id, { isActive: false });
-      }
+  const openEditModal = (destination: UserDestination) => {
+    setEditingDestination(destination);
+    setEditFormData({
+      destination: destination.destination,
+      startDate: destination.startDate,
+      endDate: destination.endDate,
+      status: destination.status,
+      alertsEnabled: destination.alertsEnabled
     });
-    // Set selected destination as active
-    updateDestination(destination.id, { isActive: true });
-    setCurrentDestination(destination);
+    setShowEditModal(true);
+    setError(null);
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    setError(null);
+    try {
+      await refreshDestinations();
+    } catch (error) {
+      console.error('Failed to refresh destinations:', error);
+      setError('Failed to refresh data. Please check your connection.');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const toggleAlerts = async (destination: UserDestination) => {
+    setError(null);
+    try {
+      await updateDestination(destination.id, { alertsEnabled: !destination.alertsEnabled });
+    } catch (error) {
+      console.error('Failed to toggle alerts:', error);
+      setError('Failed to update alerts. This record may not exist. Try refreshing.');
+      handleRefresh();
+    }
+  };
+
+  const setAsActive = async (destination: UserDestination) => {
+    setError(null);
+    try {
+      // Set all destinations as inactive first
+      for (const d of destinations) {
+        if (d.status === 'active') {
+          await updateDestination(d.id, { status: 'planned' });
+        }
+      }
+      // Set selected destination as active
+      await updateDestination(destination.id, { status: 'active' });
+      setCurrentDestination(destination);
+    } catch (error) {
+      console.error('Failed to set active destination:', error);
+      setError('Failed to set active destination. Try refreshing.');
+      handleRefresh();
+    }
+  };
+
+  const handleRemoveDestination = async (id: string) => {
+    setError(null);
+    try {
+      await removeDestination(id);
+    } catch (error) {
+      console.error('Failed to remove destination:', error);
+      setError('Failed to remove destination. Try refreshing.');
+      handleRefresh();
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -66,14 +152,16 @@ const DestinationManager: React.FC = () => {
     });
   };
 
-  const getDestinationStatus = (startDate: string, endDate: string) => {
+  const getDestinationStatus = (startDate: string, _endDate: string, status: string) => {
+    if (status === 'active') return { status: 'active', color: 'bg-emerald-100 text-emerald-800' };
+    if (status === 'completed') return { status: 'completed', color: 'bg-slate-100 text-slate-600' };
+    if (status === 'cancelled') return { status: 'cancelled', color: 'bg-red-100 text-red-600' };
+    
     const now = new Date();
     const start = new Date(startDate);
-    const end = new Date(endDate);
     
     if (now < start) return { status: 'upcoming', color: 'bg-blue-100 text-blue-800' };
-    if (now >= start && now <= end) return { status: 'current', color: 'bg-emerald-100 text-emerald-800' };
-    return { status: 'past', color: 'bg-slate-100 text-slate-600' };
+    return { status: 'planned', color: 'bg-amber-100 text-amber-800' };
   };
 
   return (
@@ -90,14 +178,38 @@ const DestinationManager: React.FC = () => {
             Manage your travel destinations and alert preferences
           </p>
         </div>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="btn-primary flex items-center space-x-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Destination</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className={`p-2 rounded-xl transition-all duration-300 ${
+              isRefreshing 
+                ? 'bg-slate-100 text-slate-400' 
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+            }`}
+            title="Refresh destinations"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="btn-primary flex items-center space-x-2"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Destination</span>
+          </button>
+        </div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="card p-4 bg-red-50 border-red-200">
+          <div className="flex items-center space-x-2 text-red-800">
+            <AlertTriangle className="w-5 h-5" />
+            <span className="font-medium">{error}</span>
+          </div>
+        </div>
+      )}
 
       {/* Current Active Destination */}
       {currentDestination && (
@@ -113,7 +225,7 @@ const DestinationManager: React.FC = () => {
                   <span className="text-sm font-medium text-blue-800">Currently Active</span>
                 </div>
                 <h3 className="text-xl font-bold text-blue-900">
-                  {currentDestination.name}, {currentDestination.country}
+                  {currentDestination.destination}
                 </h3>
                 <p className="text-blue-700">
                   {formatDate(currentDestination.startDate)} - {formatDate(currentDestination.endDate)}
@@ -138,29 +250,16 @@ const DestinationManager: React.FC = () => {
           
           <form onSubmit={handleAddDestination} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  City/Destination
+                  Destination
                 </label>
                 <input
                   type="text"
-                  value={newDestination.name}
-                  onChange={(e) => setNewDestination({ ...newDestination, name: e.target.value })}
+                  value={newDestination.destination}
+                  onChange={(e) => setNewDestination({ ...newDestination, destination: e.target.value })}
                   className="input"
-                  placeholder="e.g., Bangkok, Tokyo, Paris"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Country
-                </label>
-                <input
-                  type="text"
-                  value={newDestination.country}
-                  onChange={(e) => setNewDestination({ ...newDestination, country: e.target.value })}
-                  className="input"
-                  placeholder="e.g., Thailand, Japan, France"
+                  placeholder="e.g., Bangkok, Thailand or Paris, France"
                   required
                 />
               </div>
@@ -194,11 +293,11 @@ const DestinationManager: React.FC = () => {
               <label className="flex items-center space-x-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={newDestination.isActive}
-                  onChange={(e) => setNewDestination({ ...newDestination, isActive: e.target.checked })}
+                  checked={newDestination.alertsEnabled}
+                  onChange={(e) => setNewDestination({ ...newDestination, alertsEnabled: e.target.checked })}
                   className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
                 />
-                <span className="text-sm text-slate-700">Set as active destination</span>
+                <span className="text-sm text-slate-700">Enable safety alerts</span>
               </label>
             </div>
             
@@ -215,6 +314,103 @@ const DestinationManager: React.FC = () => {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && editingDestination && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] animate-fadeIn">
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full mx-4 animate-slideUp">
+            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center">
+              <Edit className="w-5 h-5 mr-2 text-blue-600" />
+              Edit Destination
+            </h3>
+            
+            <form onSubmit={handleEditDestination} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Destination
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.destination}
+                  onChange={(e) => setEditFormData({ ...editFormData, destination: e.target.value })}
+                  className="input"
+                  placeholder="e.g., Bangkok, Thailand or Paris, France"
+                  required
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editFormData.startDate}
+                    onChange={(e) => setEditFormData({ ...editFormData, startDate: e.target.value })}
+                    className="input"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editFormData.endDate}
+                    onChange={(e) => setEditFormData({ ...editFormData, endDate: e.target.value })}
+                    className="input"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Status
+                </label>
+                <select
+                  value={editFormData.status}
+                  onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as any })}
+                  className="input"
+                >
+                  <option value="planned">Planned</option>
+                  <option value="active">Active</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="editAlertsEnabled"
+                  checked={editFormData.alertsEnabled}
+                  onChange={(e) => setEditFormData({ ...editFormData, alertsEnabled: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="editAlertsEnabled" className="text-sm text-slate-700 cursor-pointer">
+                  Enable safety alerts
+                </label>
+              </div>
+              
+              <div className="flex space-x-3 pt-4">
+                <button type="submit" className="btn-primary flex-1">
+                  Save Changes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="btn-outline flex-1"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
@@ -236,29 +432,24 @@ const DestinationManager: React.FC = () => {
           </div>
         ) : (
           destinations.map((destination) => {
-            const status = getDestinationStatus(destination.startDate, destination.endDate);
+            const status = getDestinationStatus(destination.startDate, destination.endDate, destination.status);
             
             return (
               <div
                 key={destination.id}
                 className={`card p-6 transition-all duration-300 ${
-                  destination.isActive ? 'ring-2 ring-blue-200 shadow-lg' : ''
+                  destination.status === 'active' ? 'ring-2 ring-blue-200 shadow-lg' : ''
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-3">
                       <h3 className="text-lg font-bold text-slate-900">
-                        {destination.name}, {destination.country}
+                        {destination.destination}
                       </h3>
                       <span className={`px-3 py-1 text-xs font-medium rounded-full ${status.color}`}>
                         {status.status}
                       </span>
-                      {destination.isActive && (
-                        <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                          Active
-                        </span>
-                      )}
                     </div>
                     
                     <div className="flex items-center space-x-6 text-sm text-slate-600 mb-4">
@@ -288,10 +479,18 @@ const DestinationManager: React.FC = () => {
                       {destination.alertsEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
                     </button>
                     
-                    {!destination.isActive && (
+                    <button
+                      onClick={() => openEditModal(destination)}
+                      className="p-2 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-xl transition-all duration-300"
+                      title="Edit destination"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    
+                    {destination.status !== 'active' && (
                       <button
                         onClick={() => setAsActive(destination)}
-                        className="p-2 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-xl transition-all duration-300"
+                        className="p-2 bg-emerald-100 text-emerald-600 hover:bg-emerald-200 rounded-xl transition-all duration-300"
                         title="Set as active destination"
                       >
                         <Settings className="w-4 h-4" />
@@ -299,7 +498,7 @@ const DestinationManager: React.FC = () => {
                     )}
                     
                     <button
-                      onClick={() => removeDestination(destination.id)}
+                      onClick={() => handleRemoveDestination(destination.id)}
                       className="p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-xl transition-all duration-300"
                       title="Remove destination"
                     >

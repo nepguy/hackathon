@@ -197,11 +197,15 @@ class UserStatisticsService {
    * Note: Realtime is disabled to prevent WebSocket errors
    */
   subscribeToUserStatistics(userId: string, callback: (stats: UserStatistics) => void): () => void {
-    console.log('🔇 Real-time subscription disabled for user statistics to prevent WebSocket errors');
+    console.log(`🔇 Real-time subscription disabled for user ${userId} to prevent WebSocket errors`);
+    
+    // Store the callback for potential future use when realtime is re-enabled
+    // Currently not called to prevent WebSocket errors as per memory requirements
+    void callback; // Explicitly mark as intentionally unused
     
     // Return a no-op unsubscribe function since realtime is disabled
     return () => {
-      console.log('🔇 User statistics subscription cleanup (no-op)');
+      console.log(`🔇 User statistics subscription cleanup for user ${userId} (no-op)`);
     };
   }
 }

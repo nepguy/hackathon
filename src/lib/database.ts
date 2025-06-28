@@ -67,7 +67,7 @@ class DatabaseService {
 
       if (error) throw error;
 
-      return (data || []).map(this.mapDatabaseAlertToSafetyAlert);
+      return (data || []).map((alert: DatabaseSafetyAlert) => this.mapDatabaseAlertToSafetyAlert(alert));
     } catch (error) {
       console.error('Error fetching safety alerts:', error);
       return [];
@@ -139,7 +139,7 @@ class DatabaseService {
 
       if (error) throw error;
 
-      return (data || []).map(this.mapDatabasePlanToTravelPlan);
+      return (data || []).map((plan: DatabaseTravelPlan) => this.mapDatabasePlanToTravelPlan(plan));
     } catch (error) {
       console.error('Error fetching travel plans:', error);
       return [];

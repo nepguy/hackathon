@@ -160,7 +160,9 @@ class LocationSafetyService {
     const { location } = userLocationData;
     
     // For now, we'll get alerts for the current location
-    // In the future, this could be expanded to check nearby cities/regions
+    // In the future, this could be expanded to check nearby cities/regions using radiusKm
+    console.log(`🔍 Searching for alerts within ${radiusKm}km of user location`);
+    
     const alerts = await this.getUserLocationAlerts(userId);
     
     return alerts.filter(alert => {

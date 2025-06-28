@@ -59,6 +59,12 @@ const PermissionManager: React.FC<PermissionManagerProps> = ({ children }) => {
 
   // Determine if we should prompt for location based on context
   const shouldPromptForLocation = useCallback((context: PermissionPromptContext): boolean => {
+    // Defensive programming: check if context exists
+    if (!context) {
+      console.warn('shouldPromptForLocation called without valid context');
+      return false;
+    }
+
     // Never prompt if already granted
     if (locationPermission === 'granted') return false;
     
@@ -109,6 +115,12 @@ const PermissionManager: React.FC<PermissionManagerProps> = ({ children }) => {
 
   // Smart location prompting based on app context
   const requestLocationForContext = useCallback((context: PermissionPromptContext) => {
+    // Defensive programming: ensure context is valid
+    if (!context) {
+      console.warn('requestLocationForContext called without valid context');
+      return;
+    }
+
     if (shouldPromptForLocation(context)) {
       setPromptContext(context);
       setShowLocationPrompt(true);
@@ -181,6 +193,8 @@ const PermissionManager: React.FC<PermissionManagerProps> = ({ children }) => {
     if (!showLocationPrompt || !promptContext) return null;
 
     const getPromptTitle = () => {
+      if (!promptContext) return 'Enable location access';
+      
       switch (promptContext.reason) {
         case 'app_startup':
         case 'returning_user':
@@ -195,6 +209,8 @@ const PermissionManager: React.FC<PermissionManagerProps> = ({ children }) => {
     };
 
     const getPriorityColor = () => {
+      if (!promptContext) return 'text-blue-600 bg-blue-50 border-blue-200';
+      
       switch (promptContext.importance) {
         case 'critical':
           return 'text-red-600 bg-red-50 border-red-200';
@@ -231,15 +247,15 @@ const PermissionManager: React.FC<PermissionManagerProps> = ({ children }) => {
           {/* Priority indicator */}
           <div className={`mb-4 p-3 rounded-lg border ${getPriorityColor()}`}>
             <div className="flex items-center">
-              {promptContext.importance === 'critical' ? (
+              {promptContext?.importance === 'critical' ? (
                 <AlertTriangle className="w-4 h-4 mr-2" />
               ) : (
                 <Shield className="w-4 h-4 mr-2" />
               )}
               <span className="text-sm font-medium">
-                {promptContext.importance === 'critical' ? 'Critical for Safety' :
-                 promptContext.importance === 'high' ? 'Highly Recommended' :
-                 promptContext.importance === 'medium' ? 'Recommended' : 'Optional'}
+                {promptContext?.importance === 'critical' ? 'Critical for Safety' :
+                 promptContext?.importance === 'high' ? 'Highly Recommended' :
+                 promptContext?.importance === 'medium' ? 'Recommended' : 'Optional'}
               </span>
             </div>
           </div>
@@ -255,7 +271,7 @@ const PermissionManager: React.FC<PermissionManagerProps> = ({ children }) => {
             
             {/* Benefits list */}
             <ul className="space-y-2">
-              {promptContext.benefits.map((benefit, index) => (
+              {(promptContext?.benefits || []).map((benefit, index) => (
                 <li key={index} className="flex items-start text-sm text-gray-600">
                   <Navigation className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
                   {benefit}

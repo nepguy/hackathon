@@ -35,6 +35,80 @@ export interface CreateTravelStoryData {
 }
 
 class TravelStoriesService {
+  private requestCache = new Map<string, { data: any; timestamp: number }>();
+  private readonly CACHE_DURATION = 2 * 60 * 1000; // 2 minutes cache
+  private activeRequests = new Set<string>();
+  private ongoingPromises = new Map<string, Promise<any>>(); // Share ongoing promises
+
+  /**
+   * Execute request with intelligent caching and request deduplication
+   */
+  private async executeWithCache<T>(
+    key: string, 
+    requestFn: () => Promise<T>,
+    skipCache: boolean = false
+  ): Promise<T> {
+    // Check if this request is already in progress
+    if (this.ongoingPromises.has(key)) {
+      console.log(`🔄 Waiting for ongoing request: ${key}`);
+      // Wait for and share the result of the ongoing request
+      try {
+        return await this.ongoingPromises.get(key)!;
+      } catch (error) {
+        // If ongoing request fails, remove it and try again
+        this.ongoingPromises.delete(key);
+        this.activeRequests.delete(key);
+        throw error;
+      }
+    }
+
+    // Check cache first (unless skipped)
+    if (!skipCache) {
+      const cached = this.requestCache.get(key);
+      if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+        console.log(`💾 Using cached data for: ${key}`);
+        return cached.data;
+      }
+    }
+
+    // Create and store the promise for sharing
+    const promise = this.executeRequest<T>(key, requestFn);
+    this.ongoingPromises.set(key, promise);
+
+    try {
+      const result = await promise;
+      return result;
+    } finally {
+      // Clean up the ongoing promise
+      this.ongoingPromises.delete(key);
+    }
+  }
+
+  /**
+   * Execute the actual request with proper cleanup
+   */
+  private async executeRequest<T>(key: string, requestFn: () => Promise<T>): Promise<T> {
+    // Mark request as active
+    this.activeRequests.add(key);
+
+    try {
+      console.log(`🌐 Making fresh request for: ${key}`);
+      const result = await requestFn();
+      
+      // Cache the result
+      this.requestCache.set(key, {
+        data: result,
+        timestamp: Date.now()
+      });
+
+      console.log(`✅ Request completed successfully: ${key}`);
+      return result;
+    } finally {
+      // Remove from active requests
+      this.activeRequests.delete(key);
+    }
+  }
+
   /**
    * Fetch all travel stories with optional filtering
    */
@@ -44,46 +118,50 @@ class TravelStoriesService {
     limit?: number;
     offset?: number;
   }): Promise<TravelStory[]> {
-    try {
-      let query = supabase
-        .from('travel_stories')
-        .select('*')
-        .order('created_at', { ascending: false });
+    const cacheKey = `stories-${JSON.stringify(filters || {})}`;
+    
+    return this.executeWithCache(cacheKey, async () => {
+      try {
+        let query = supabase
+          .from('travel_stories')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      // Apply filters
-      if (filters?.location) {
-        query = query.ilike('location', `%${filters.location}%`);
-      }
-
-      if (filters?.tags && filters.tags.length > 0) {
-        query = query.overlaps('tags', filters.tags);
-      }
-
-      if (filters?.limit) {
-        query = query.limit(filters.limit);
-      }
-
-      if (filters?.offset) {
-        query = query.range(filters.offset, filters.offset + (filters.limit || 10) - 1);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        if (error.code === '42P01') {
-          console.warn('⚠️ travel_stories table does not exist. Please run the database migration.');
-          console.warn('📋 See DATABASE_SETUP_INSTRUCTIONS.md for setup steps.');
-        } else {
-          console.error('Error fetching travel stories:', error);
+        // Apply filters
+        if (filters?.location) {
+          query = query.ilike('location', `%${filters.location}%`);
         }
+
+        if (filters?.tags && filters.tags.length > 0) {
+          query = query.overlaps('tags', filters.tags);
+        }
+
+        if (filters?.limit) {
+          query = query.limit(filters.limit);
+        }
+
+        if (filters?.offset) {
+          query = query.range(filters.offset, filters.offset + (filters.limit || 10) - 1);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+          if (error.code === '42P01') {
+            console.warn('⚠️ travel_stories table does not exist. Please run the database migration.');
+            console.warn('📋 See DATABASE_SETUP_INSTRUCTIONS.md for setup steps.');
+          } else {
+            console.error('Error fetching travel stories:', error);
+          }
+          return [];
+        }
+
+        return data || [];
+      } catch (error) {
+        console.error('Error in getTravelStories:', error);
         return [];
       }
-
-      return data || [];
-    } catch (error) {
-      console.error('Error in getTravelStories:', error);
-      return [];
-    }
+    });
   }
 
   /**
@@ -153,6 +231,9 @@ class TravelStoriesService {
         throw error;
       }
 
+      // Clear cache when new story is created
+      this.requestCache.clear();
+      console.log('🗑️ Cache cleared after new story creation');
       console.log('✅ Travel story created successfully:', data);
       return data;
     } catch (error) {
@@ -208,24 +289,85 @@ class TravelStoriesService {
   }
 
   /**
-   * Like/Unlike a travel story
+   * Like/Unlike a travel story - Using proper user tracking with database functions
    */
-  async toggleLike(storyId: string, increment: boolean = true): Promise<boolean> {
+  async toggleLike(storyId: string, userId: string, isCurrentlyLiked: boolean): Promise<{ success: boolean; newLikesCount?: number; isLiked?: boolean }> {
     try {
-      const { error } = await supabase.rpc('increment_story_likes', {
-        story_id: storyId,
-        increment_by: increment ? 1 : -1
+      // Call the appropriate database function based on current like status
+      const functionName = isCurrentlyLiked ? 'unlike_story' : 'like_story';
+      
+      const { data, error } = await supabase.rpc(functionName, {
+        story_id_param: storyId,
+        user_id_param: userId
       });
 
       if (error) {
-        console.error('Error toggling like:', error);
+        console.error(`Error ${isCurrentlyLiked ? 'unliking' : 'liking'} story:`, error);
+        return { success: false };
+      }
+
+      if (!data || !data.success) {
+        console.log(`Cannot ${isCurrentlyLiked ? 'unlike' : 'like'} story: ${data?.message || 'Unknown error'}`);
+        return { success: false };
+      }
+
+      // Clear cache to ensure fresh data on next fetch
+      this.requestCache.clear();
+      
+      const newIsLiked = data.action === 'liked';
+      console.log(`✅ ${data.action} story ${storyId}. New count: ${data.new_likes_count}`);
+      
+      return { 
+        success: true, 
+        newLikesCount: data.new_likes_count,
+        isLiked: newIsLiked
+      };
+    } catch (error) {
+      console.error('Error in toggleLike:', error);
+      return { success: false };
+    }
+  }
+
+  /**
+   * Check if user has liked a story
+   */
+  async hasUserLikedStory(storyId: string, userId: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase.rpc('user_liked_story', {
+        story_id_param: storyId,
+        user_id_param: userId
+      });
+
+      if (error) {
+        console.error('Error checking if user liked story:', error);
         return false;
       }
 
-      return true;
+      return data || false;
     } catch (error) {
-      console.error('Error in toggleLike:', error);
+      console.error('Error in hasUserLikedStory:', error);
       return false;
+    }
+  }
+
+  /**
+   * Get all stories liked by user
+   */
+  async getUserLikedStories(userId: string): Promise<string[]> {
+    try {
+      const { data, error } = await supabase.rpc('get_user_liked_stories', {
+        user_id_param: userId
+      });
+
+      if (error) {
+        console.error('Error getting user liked stories:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in getUserLikedStories:', error);
+      return [];
     }
   }
 
@@ -262,19 +404,56 @@ class TravelStoriesService {
     totalTags: string[];
     averageRating: number;
   }> {
-    try {
-      // Single optimized query to get all data at once
-      const { data: allStories, error } = await supabase
-        .from('travel_stories')
-        .select('location, tags, rating');
+    const cacheKey = 'stories-stats';
+    
+    return this.executeWithCache(cacheKey, async () => {
+      try {
+        // Single optimized query to get all data at once
+        const { data: allStories, error } = await supabase
+          .from('travel_stories')
+          .select('location, tags, rating');
 
-      if (error) {
-        if (error.code === '42P01') {
-          console.warn('⚠️ travel_stories table does not exist. Please run the database migration.');
-          console.warn('📋 See DATABASE_SETUP_INSTRUCTIONS.md for setup steps.');
-        } else {
-          console.error('Error getting stories stats:', error);
+        if (error) {
+          if (error.code === '42P01') {
+            console.warn('⚠️ travel_stories table does not exist. Please run the database migration.');
+            console.warn('📋 See DATABASE_SETUP_INSTRUCTIONS.md for setup steps.');
+          } else {
+            console.error('Error getting stories stats:', error);
+          }
+          return {
+            totalStories: 0,
+            totalLocations: 0,
+            totalTags: [],
+            averageRating: 0
+          };
         }
+
+        if (!allStories || allStories.length === 0) {
+          return {
+            totalStories: 0,
+            totalLocations: 0,
+            totalTags: [],
+            averageRating: 0
+          };
+        }
+
+        // Process data efficiently
+        const uniqueLocations = new Set(allStories.map((story: any) => story.location));
+        const allTagsFlat = allStories.flatMap((story: any) => story.tags || []);
+        const uniqueTags = Array.from(new Set(allTagsFlat.filter((tag: any) => typeof tag === 'string'))) as string[];
+        const validRatings = allStories.filter((story: any) => story.rating > 0).map((story: any) => story.rating);
+        const averageRating = validRatings.length > 0 
+          ? validRatings.reduce((sum: number, rating: number) => sum + rating, 0) / validRatings.length 
+          : 0;
+
+        return {
+          totalStories: allStories.length,
+          totalLocations: uniqueLocations.size,
+          totalTags: uniqueTags,
+          averageRating: Number(averageRating.toFixed(1))
+        };
+      } catch (error: any) {
+        console.error('Error getting stories stats:', error);
         return {
           totalStories: 0,
           totalLocations: 0,
@@ -282,40 +461,7 @@ class TravelStoriesService {
           averageRating: 0
         };
       }
-
-      if (!allStories || allStories.length === 0) {
-        return {
-          totalStories: 0,
-          totalLocations: 0,
-          totalTags: [],
-          averageRating: 0
-        };
-      }
-
-      // Process data efficiently
-      const uniqueLocations = new Set(allStories.map((story: any) => story.location));
-      const allTagsFlat = allStories.flatMap((story: any) => story.tags || []);
-      const uniqueTags = Array.from(new Set(allTagsFlat.filter((tag: any) => typeof tag === 'string'))) as string[];
-      const validRatings = allStories.filter((story: any) => story.rating > 0).map((story: any) => story.rating);
-      const averageRating = validRatings.length > 0 
-        ? validRatings.reduce((sum: number, rating: number) => sum + rating, 0) / validRatings.length 
-        : 0;
-
-      return {
-        totalStories: allStories.length,
-        totalLocations: uniqueLocations.size,
-        totalTags: uniqueTags,
-        averageRating: Number(averageRating.toFixed(1))
-      };
-    } catch (error: any) {
-      console.error('Error getting stories stats:', error);
-      return {
-        totalStories: 0,
-        totalLocations: 0,
-        totalTags: [],
-        averageRating: 0
-      };
-    }
+    });
   }
 }
 
@@ -332,6 +478,8 @@ export const useTravelStories = () => {
     updateTravelStory: travelStoriesService.updateTravelStory.bind(travelStoriesService),
     deleteTravelStory: travelStoriesService.deleteTravelStory.bind(travelStoriesService),
     toggleLike: travelStoriesService.toggleLike.bind(travelStoriesService),
+    hasUserLikedStory: travelStoriesService.hasUserLikedStory.bind(travelStoriesService),
+    getUserLikedStories: travelStoriesService.getUserLikedStories.bind(travelStoriesService),
     searchTravelStories: travelStoriesService.searchTravelStories.bind(travelStoriesService),
     getStoriesStats: travelStoriesService.getStoriesStats.bind(travelStoriesService),
   };

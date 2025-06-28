@@ -6,6 +6,8 @@ import { useSubscription } from '../contexts/SubscriptionContext';
 import { useLocationPermissionRequest } from '../components/common/PermissionManager';
 import { useRealTimeData } from '../hooks/useRealTimeData';
 import { useUserStatistics } from '../lib/userStatisticsService';
+import { locationSafetyService } from '../lib/locationSafetyService';
+import { aiSafetyService } from '../lib/aiSafetyService';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '../components/layout/PageContainer';
 import EventCard from '../components/home/EventCard';
@@ -15,21 +17,23 @@ import { eventsService, TravelEvent } from '../lib/eventsApi';
 import { 
   MapPin, Calendar, Shield, Clock, 
   Plus, Zap, Globe, AlertTriangle,
-  RefreshCw, Crown
+  RefreshCw, Crown, Plane
 } from 'lucide-react';
 
 const HomePage: React.FC = () => {
   const { user } = useAuth();
-  const { currentDestination, destinations } = useUserDestinations();
+  const { currentDestination, destinations, getUpcomingDestinations, refreshDestinations } = useUserDestinations();
   const { userLocation, locationPermission, isTracking, startLocationTracking } = useLocationContext();
   const { isTrialActive, trialDaysRemaining, subscriptionStatus, isSubscribed } = useSubscription();
   const { requestLocationForContext } = useLocationPermissionRequest();
   const { safetyAlerts, isLoading, error, refreshData } = useRealTimeData();
   const navigate = useNavigate();
-  const { statistics } = useUserStatistics();
+  const { statistics, updateSafetyScore, incrementDaysTracked } = useUserStatistics();
   const [events, setEvents] = useState<TravelEvent[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false);
+  const [aiSafetyAlerts, setAiSafetyAlerts] = useState<any[]>([]);
+  const [isLoadingAISafety, setIsLoadingAISafety] = useState(false);
   const [greeting] = useState(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -60,7 +64,249 @@ const HomePage: React.FC = () => {
     }
   }, [isTrialExpired, isPremiumUser]);
 
+  // Initialize location tracking if permission granted and not already tracking
+  useEffect(() => {
+    if (user && locationPermission === 'granted' && !isTracking && !userLocation) {
+      console.log('🗺️ Starting location tracking for safety monitoring');
+      startLocationTracking();
+    }
+  }, [user, locationPermission, isTracking, userLocation, startLocationTracking]);
+
+  // Request location permission if needed for enhanced features
+  useEffect(() => {
+    if (user && locationPermission === 'prompt' && destinations.length > 0) {
+      console.log('📍 Requesting location permission for enhanced travel safety');
+      requestLocationForContext({
+        reason: 'feature_request',
+        feature: 'Enhanced Travel Safety',
+        importance: 'critical',
+        benefits: [
+          'Real-time safety alerts for your current location',
+          'Location-specific weather and emergency updates',
+          'Nearby events and travel information',
+          'Enhanced scam detection based on location patterns'
+        ]
+      });
+    }
+  }, [user, locationPermission, destinations.length, requestLocationForContext]);
+
+  // Initialize AI-based safety alerts and location tracking
+  useEffect(() => {
+    if (user) {
+      initializeLocationBasedServices();
+      updateDailyActivity();
+    }
+  }, [user, userLocation, currentDestination, destinations.length]);
+
+  const initializeLocationBasedServices = async () => {
+    if (!user) return;
+
+    setIsLoadingAISafety(true);
+    try {
+      let context = null;
+
+      // If user has active destinations, use the current destination
+      if (currentDestination) {
+        // Get coordinates for destination if not available
+        let coordinates = undefined;
+        if (!coordinates && currentDestination.destination) {
+          try {
+            // Try alternative geocoding approach with error handling
+            console.log(`🌍 Attempting to geocode: ${currentDestination.destination}`);
+            
+            // Use a more reliable geocoding service or fallback approach
+            const geocodeResponse = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(currentDestination.destination)}&limit=1`
+            );
+            
+            if (!geocodeResponse.ok) {
+              throw new Error(`Geocoding failed: ${geocodeResponse.status}`);
+            }
+            
+            const geocodeData = await geocodeResponse.json();
+            if (geocodeData && geocodeData.length > 0) {
+              const result = geocodeData[0];
+              coordinates = {
+                lat: parseFloat(result.lat),
+                lng: parseFloat(result.lon)
+              };
+              console.log(`✅ Geocoded ${currentDestination.destination}:`, coordinates);
+            } else {
+              console.warn(`⚠️ No geocoding results for: ${currentDestination.destination}`);
+            }
+          } catch (error) {
+            console.warn('🔄 Geocoding failed, using fallback location data:', error);
+            // Continue without coordinates - the AI service will work with text location
+          }
+        }
+
+        // Extract country from destination
+        const destinationParts = currentDestination.destination.split(',');
+        const country = destinationParts.length > 1 
+          ? destinationParts[destinationParts.length - 1].trim() 
+          : destinationParts[0];
+        const city = destinationParts.length > 1 
+          ? destinationParts[0].trim() 
+          : undefined;
+
+        context = {
+          destination: currentDestination.destination,
+          coordinates,
+          country,
+          city,
+          travel_dates: {
+            start: currentDestination.startDate,
+            end: currentDestination.endDate
+          }
+        };
+      } 
+      // If no destination but has location, use current location
+      else if (userLocation) {
+        let locationInfo = {
+          country: 'Unknown',
+          city: undefined as string | undefined
+        };
+
+        try {
+          const response = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${userLocation.latitude}&longitude=${userLocation.longitude}&localityLanguage=en`
+          );
+          const data = await response.json();
+          locationInfo.country = data.countryName || 'Unknown';
+          locationInfo.city = data.city || data.locality;
+        } catch (error) {
+          console.warn('Could not determine location info:', error);
+        }
+
+        context = {
+          destination: `${locationInfo.city || 'Current Location'}, ${locationInfo.country}`,
+          coordinates: {
+            lat: userLocation.latitude,
+            lng: userLocation.longitude
+          },
+          country: locationInfo.country,
+          city: locationInfo.city,
+          user_location: {
+            lat: userLocation.latitude,
+            lng: userLocation.longitude,
+            country: locationInfo.country,
+            city: locationInfo.city
+          }
+        };
+
+        // Update location in safety service for legacy support and backup tracking
+        locationSafetyService.updateUserLocation(user.id, {
+          lat: userLocation.latitude,
+          lng: userLocation.longitude,
+          country: locationInfo.country,
+          city: locationInfo.city
+        });
+        console.log('🗺️ Updated location safety service with current coordinates');
+      }
+
+      if (context) {
+        console.log('🤖 Generating AI safety alerts for:', context.destination);
+        
+        // Use the new AI safety service
+        const alerts = await aiSafetyService.generateSafetyAlerts(context);
+        
+        // Transform to match the expected format
+        const transformedAlerts = alerts.map(alert => ({
+          id: alert.id,
+          type: alert.type,
+          severity: alert.severity,
+          title: alert.title,
+          message: alert.message,
+          location: alert.location,
+          timestamp: alert.timestamp,
+          actionable_advice: alert.actionable_advice,
+          relevant_links: alert.relevant_links
+        }));
+
+        setAiSafetyAlerts(transformedAlerts);
+        console.log(`✅ Generated ${transformedAlerts.length} AI safety alerts`);
+
+        // Update safety score based on alerts
+        const criticalCount = alerts.filter(a => a.severity === 'critical').length;
+        const highCount = alerts.filter(a => a.severity === 'high').length;
+        const mediumCount = alerts.filter(a => a.severity === 'medium').length;
+        
+        // Calculate safety score (95 baseline, reduce for each alert)
+        let newSafetyScore = 95;
+        newSafetyScore -= criticalCount * 15; // -15 for each critical
+        newSafetyScore -= highCount * 10;     // -10 for each high
+        newSafetyScore -= mediumCount * 5;    // -5 for each medium
+        newSafetyScore = Math.max(30, Math.min(100, newSafetyScore)); // Keep between 30-100
+
+        // Update safety score in statistics
+        await updateSafetyScore(newSafetyScore);
+
+        console.log(`📊 Updated safety score to ${newSafetyScore} based on ${alerts.length} alerts`);
+      } else {
+        console.log('⚠️ No context available for AI safety alerts (no destination or location)');
+        
+        // Still try to provide some basic safety guidance
+        setAiSafetyAlerts([{
+          id: `general-${Date.now()}`,
+          type: 'safety',
+          severity: 'medium',
+          title: 'General Travel Safety',
+          message: 'Stay alert and follow general safety practices. Consider adding a destination to get location-specific safety insights.',
+          location: 'General',
+          timestamp: new Date().toISOString(),
+          actionable_advice: [
+            'Keep important documents secure',
+            'Stay aware of your surroundings',
+            'Have emergency contacts available',
+            'Add a travel destination for personalized alerts'
+          ]
+        }]);
+      }
+
+    } catch (error) {
+      console.error('Error initializing location-based services:', error);
+      // Fallback to basic alert
+      setAiSafetyAlerts([{
+        id: `fallback-${Date.now()}`,
+        type: 'safety',
+        severity: 'medium',
+        title: 'Stay Alert',
+        message: 'Always stay aware of your surroundings and follow general safety practices.',
+        location: 'General',
+        timestamp: new Date().toISOString(),
+        actionable_advice: [
+          'Keep important documents secure',
+          'Stay aware of your surroundings',
+          'Have emergency contacts available'
+        ]
+      }]);
+    } finally {
+      setIsLoadingAISafety(false);
+    }
+  };
+
+  const updateDailyActivity = async () => {
+    if (!user) return;
+
+    try {
+      // Track daily activity (increment days tracked)
+      const lastActiveDate = localStorage.getItem(`lastActive_${user.id}`);
+      const today = new Date().toDateString();
+
+      if (lastActiveDate !== today) {
+        await incrementDaysTracked();
+        localStorage.setItem(`lastActive_${user.id}`, today);
+        console.log('📊 Daily activity tracked');
+      }
+    } catch (error) {
+      console.error('Error updating daily activity:', error);
+    }
+  };
+
   // Stats for dashboard - using real data with proper fallbacks
+  const upcomingTrips = getUpcomingDestinations();
+  const activeTrips = destinations.filter(d => d.status === 'active');
+  
   const stats = [
     {
       label: 'Travel Plans',
@@ -74,19 +320,19 @@ const HomePage: React.FC = () => {
     },
     {
       label: 'Safety Score',
-      value: statistics ? `${statistics.safety_score}%` : (safetyAlerts.length === 0 ? '95%' : `${Math.max(60, 95 - safetyAlerts.length * 10)}%`),
+      value: statistics ? `${statistics.safety_score}%` : (aiSafetyAlerts.length === 0 ? '95%' : `${Math.max(60, 95 - aiSafetyAlerts.length * 10)}%`),
       icon: Shield,
       color: statistics ? 
         (statistics.safety_score >= 90 ? 'text-green-600' : statistics.safety_score >= 70 ? 'text-yellow-600' : 'text-red-600') :
-        (safetyAlerts.length === 0 ? 'text-green-600' : 'text-yellow-600'),
+        (aiSafetyAlerts.length === 0 ? 'text-green-600' : 'text-yellow-600'),
       bgColor: statistics ? 
         (statistics.safety_score >= 90 ? 'bg-green-50' : statistics.safety_score >= 70 ? 'bg-yellow-50' : 'bg-red-50') :
-        (safetyAlerts.length === 0 ? 'bg-green-50' : 'bg-yellow-50'),
+        (aiSafetyAlerts.length === 0 ? 'bg-green-50' : 'bg-yellow-50'),
       borderColor: statistics ? 
         (statistics.safety_score >= 90 ? 'border-green-200' : statistics.safety_score >= 70 ? 'border-yellow-200' : 'border-red-200') :
-        (safetyAlerts.length === 0 ? 'border-green-200' : 'border-yellow-200'),
-      description: 'Current safety status for your locations',
-      trend: safetyAlerts.length === 0 ? 'Excellent safety record' : `${safetyAlerts.length} alert${safetyAlerts.length > 1 ? 's' : ''} to review`
+        (aiSafetyAlerts.length === 0 ? 'border-green-200' : 'border-yellow-200'),
+      description: 'AI-powered location safety assessment',
+      trend: aiSafetyAlerts.length === 0 ? 'Excellent safety record' : `${aiSafetyAlerts.length} AI alert${aiSafetyAlerts.length > 1 ? 's' : ''} to review`
     },
     {
       label: 'Days Tracked',
@@ -95,7 +341,7 @@ const HomePage: React.FC = () => {
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
       borderColor: 'border-purple-200',
-      description: 'Total days of travel tracking',
+      description: 'Days active on GuardNomad platform',
       trend: (statistics?.days_tracked || 1) > 30 ? 'Experienced traveler' : 'Building your travel history'
     }
   ];
@@ -114,197 +360,60 @@ const HomePage: React.FC = () => {
     });
   }
 
-  // Fetch events for current destination or user location
   const fetchEvents = async () => {
-    setIsLoadingEvents(true);
-    console.log('🎪 Starting events fetch...');
-    console.log('📍 Current user location:', userLocation);
-    console.log('🎯 Current destination:', currentDestination);
-    console.log('🔐 Location permission:', locationPermission);
+    if (!currentDestination && destinations.length === 0) return;
     
+    setIsLoadingEvents(true);
     try {
-      let eventsData;
-      let locationName = '';
-      
-      if (currentDestination) {
-        // Use destination location
-        locationName = `${currentDestination.name}, ${currentDestination.country}`;
-        console.log('🎯 Fetching events for destination:', locationName);
-        eventsData = await eventsService.getTravelEvents(locationName);
-      } else if (userLocation?.latitude && userLocation?.longitude) {
-        // Use current GPS location with enhanced logging
-        const lat = userLocation.latitude;
-        const lng = userLocation.longitude;
-        const accuracy = userLocation.accuracy || 'unknown';
-        
-        locationName = `${lat}, ${lng}`;
-        console.log(`📍 Fetching events for GPS location: ${lat}, ${lng} (accuracy: ${accuracy}m)`);
-        
-        // Try to get events near location with different radius based on accuracy
-        const radius = userLocation.accuracy && userLocation.accuracy > 1000 ? 50 : 25; // Larger radius for less accurate locations
-        console.log(`🔍 Using ${radius}km radius for event search`);
-        
-        eventsData = await eventsService.getEventsNearLocation(lat, lng, radius);
-        
-        // If no events found with current radius, try a larger radius
-        if (!eventsData?.events || eventsData.events.length === 0) {
-          console.log('🔍 No events found, trying larger radius (50km)...');
-          eventsData = await eventsService.getEventsNearLocation(lat, lng, 50);
-        }
-      } else {
-        // Enhanced location handling
-        console.log('🔍 No location available, attempting to get location...');
-        
-        if (locationPermission === 'granted' && !isTracking) {
-          console.log('🚀 Starting location tracking for events...');
-          startLocationTracking();
-          
-          // Wait a bit for location to be acquired
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
-          if (userLocation?.latitude && userLocation?.longitude) {
-            console.log('✅ Got location after tracking start, fetching events...');
-            locationName = `${userLocation.latitude}, ${userLocation.longitude}`;
-            eventsData = await eventsService.getEventsNearLocation(
-              userLocation.latitude, 
-              userLocation.longitude, 
-              25
-            );
-          }
-        } else if (locationPermission === 'prompt' || locationPermission === 'unknown') {
-          console.log('📋 Prompting for location permission for events...');
-          // Use intelligent permission request for events
-          requestLocationForContext({
-            reason: 'accuracy_needed',
-            feature: 'Local Events & Activities',
-            importance: 'high',
-            benefits: [
-              'Discover events and activities near you',
-              'Get recommendations based on your current location',
-              'Find local experiences and cultural events',
-              'Never miss out on nearby travel opportunities'
-            ]
-          });
-        }
-        
-        // Enhanced fallback logic
-        if (!eventsData) {
-          console.log('🏙️ Using fallback location for events...');
-          
-          if (destinations.length > 0) {
-            const fallbackDest = destinations[0];
-            locationName = `${fallbackDest.name}, ${fallbackDest.country}`;
-            console.log('🎯 Using user destination as fallback:', locationName);
-            eventsData = await eventsService.getTravelEvents(locationName);
-          } else {
-            // Use a major city with many events as ultimate fallback
-            const fallbackCities = [
-              'New York, NY',
-              'London, UK', 
-              'Paris, France',
-              'Tokyo, Japan',
-              'Sydney, Australia'
-            ];
-            const randomCity = fallbackCities[Math.floor(Math.random() * fallbackCities.length)];
-            locationName = randomCity;
-            console.log('🌎 Using random global city as fallback:', locationName);
-            eventsData = await eventsService.getTravelEvents(locationName);
-          }
-        }
-      }
-      
-      if (eventsData && eventsData.events && eventsData.events.length > 0) {
-        const eventCount = eventsData.events.length;
-        setEvents(eventsData.events.slice(0, 6)); // Limit to 6 events
-        console.log(`✅ Loaded ${eventCount} events for ${locationName}`);
-        console.log('📋 Events:', eventsData.events.map(e => ({ title: e.title, location: e.location })));
-      } else {
-        setEvents([]);
-        console.log(`⚠️ No events found for ${locationName}`);
-        
-        // Try alternative search if we have a specific location
-        if (userLocation?.latitude && userLocation?.longitude) {
-          console.log('🔄 Trying alternative events search...');
-          try {
-            // Try with a much larger radius as last resort
-            const alternativeEvents = await eventsService.getEventsNearLocation(
-              userLocation.latitude, 
-              userLocation.longitude, 
-              100 // 100km radius
-            );
-            
-            if (alternativeEvents?.events && alternativeEvents.events.length > 0) {
-              setEvents(alternativeEvents.events.slice(0, 6));
-              console.log(`✅ Found ${alternativeEvents.events.length} events with 100km radius`);
-            } else {
-              console.log('❌ No events found even with 100km radius');
-            }
-          } catch (altError) {
-            console.error('❌ Alternative events search failed:', altError);
-          }
-        }
-      }
+      const destination = currentDestination?.destination || destinations[0]?.destination || 'Local';
+      const eventsData = await eventsService.getTravelEvents(destination);
+      setEvents(eventsData?.events?.slice(0, 5) || []);
     } catch (error) {
-      console.error('❌ Error fetching events:', error);
-      setEvents([]);
+      console.error('Failed to fetch events:', error);
     } finally {
       setIsLoadingEvents(false);
     }
   };
 
-  // Enhanced useEffect with better dependency tracking
   useEffect(() => {
-    console.log('🔄 Events fetch triggered by dependency change');
     fetchEvents();
-  }, [currentDestination, userLocation?.latitude, userLocation?.longitude, locationPermission, isTracking]);
+  }, [currentDestination, destinations]);
 
-  if (isLoading) {
-    return (
-      <PageContainer 
-        title={`${greeting}, ${getUserName()}!`}
-        subtitle="Stay safe and informed on your journey"
-      >
-        <div className="space-y-8">
-          {/* Loading skeleton */}
-          <div className="card p-6 animate-pulse">
-            <div className="h-6 bg-slate-200 rounded w-3/4 mb-4"></div>
-            <div className="h-4 bg-slate-200 rounded w-1/2"></div>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="card p-6 animate-pulse">
-              <div className="h-32 bg-slate-200 rounded"></div>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="card p-4 animate-pulse">
-                  <div className="h-12 bg-slate-200 rounded mb-3"></div>
-                  <div className="h-6 bg-slate-200 rounded mb-1"></div>
-                  <div className="h-4 bg-slate-200 rounded"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </PageContainer>
-    );
-  }
+  // Refresh data function
+  const handleRefreshData = async () => {
+    await Promise.all([
+      refreshData(),
+      refreshDestinations(),
+      initializeLocationBasedServices(),
+      fetchEvents()
+    ]);
+  };
+
+  const formatDestinationName = (destination: string) => {
+    // Split destination into city and country if it contains a comma
+    const parts = destination.split(',');
+    if (parts.length >= 2) {
+      return {
+        city: parts[0].trim(),
+        country: parts.slice(1).join(',').trim()
+      };
+    }
+    return {
+      city: destination,
+      country: ''
+    };
+  };
 
   if (error) {
     return (
-      <PageContainer 
-        title={`${greeting}, ${getUserName()}!`}
-        subtitle="Stay safe and informed on your journey"
-      >
-        <div className="card p-8 text-center bg-red-50 border-red-200">
-          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-bold text-red-900 mb-2">Unable to Load Data</h3>
-          <p className="text-red-700 mb-4">{error}</p>
-          <button 
-            onClick={refreshData}
-            className="btn-primary bg-red-600 hover:bg-red-700 flex items-center space-x-2 mx-auto"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span>Try Again</span>
+      <PageContainer>
+        <div className="text-center py-12">
+          <AlertTriangle className="w-16 h-16 mx-auto text-red-500 mb-4" />
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Error Loading Dashboard</h2>
+          <p className="text-slate-600 mb-6">{error}</p>
+          <button onClick={handleRefreshData} className="btn btn-primary">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Try Again
           </button>
         </div>
       </PageContainer>
@@ -325,11 +434,11 @@ const HomePage: React.FC = () => {
         </div>
         <div className="flex items-center space-x-2 mt-4 sm:mt-0">
           <button 
-            onClick={() => refreshData()}
+            onClick={handleRefreshData}
             className="btn btn-ghost p-2"
-            disabled={isLoading}
+            disabled={isLoading || isLoadingAISafety}
           >
-            <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-5 h-5 ${(isLoading || isLoadingAISafety) ? 'animate-spin' : ''}`} />
           </button>
           <button 
             onClick={() => navigate('/add-destination')}
@@ -363,21 +472,43 @@ const HomePage: React.FC = () => {
                 <div>
                   <h3 className="text-md font-semibold text-slate-800">{stat.label}</h3>
                   <p className="text-xs text-slate-500">{stat.description}</p>
+                  <p className="text-xs text-slate-400 mt-1">{stat.trend}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Safety Alerts */}
-          {safetyAlerts.length > 0 && (
+          {/* AI-Powered Safety Alerts */}
+          {(aiSafetyAlerts.length > 0 || safetyAlerts.length > 0) && (
             <div className="card p-4 sm:p-6">
               <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center">
                 <AlertTriangle className="w-5 h-5 mr-3 text-red-500" />
                 Active Safety Alerts
+                {isLoadingAISafety && <RefreshCw className="w-4 h-4 ml-2 animate-spin text-blue-500" />}
               </h3>
               <div className="space-y-3">
-                {safetyAlerts.slice(0, 3).map((alert, index) => (
-                  <div key={index} className="flex items-start space-x-3 p-3 bg-red-50/50 rounded-lg">
+                {/* AI-generated alerts first */}
+                {aiSafetyAlerts.slice(0, 2).map((alert, index) => (
+                  <div key={`ai-${index}`} className="flex items-start space-x-3 p-3 bg-orange-50/50 rounded-lg border border-orange-200">
+                    <div className="w-5 h-5 text-orange-500 mt-1 flex-shrink-0">
+                      <Shield />
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h4 className="font-semibold text-orange-800">{alert.title}</h4>
+                        <span className="px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-700 rounded-full">AI</span>
+                      </div>
+                      <p className="text-sm text-orange-700">{alert.description}</p>
+                      {alert.actionRequired && (
+                        <p className="text-xs text-orange-600 mt-1 font-medium">Action: {alert.actionRequired}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                
+                {/* Regular alerts */}
+                {safetyAlerts.slice(0, 1).map((alert, index) => (
+                  <div key={`regular-${index}`} className="flex items-start space-x-3 p-3 bg-red-50/50 rounded-lg">
                     <div className="w-5 h-5 text-red-500 mt-1 flex-shrink-0">
                       <Zap />
                     </div>
@@ -388,12 +519,12 @@ const HomePage: React.FC = () => {
                   </div>
                 ))}
               </div>
-              {safetyAlerts.length > 3 && (
+              {(aiSafetyAlerts.length + safetyAlerts.length) > 3 && (
                 <button
                   onClick={() => navigate('/alerts')}
                   className="mt-4 w-full text-center text-sm font-medium text-blue-600 hover:underline"
                 >
-                  View all {safetyAlerts.length} alerts
+                  View all {aiSafetyAlerts.length + safetyAlerts.length} alerts
                 </button>
               )}
             </div>
@@ -407,35 +538,79 @@ const HomePage: React.FC = () => {
                 Upcoming Plans
               </h3>
               <button
-                onClick={() => navigate('/add-destination')}
+                onClick={() => navigate('/alerts', { state: { focus: 'destinations' } })}
                 className="btn btn-outline btn-sm mt-3 sm:mt-0"
               >
                 Manage Plans
               </button>
             </div>
-            {destinations.filter(d => new Date(d.endDate) >= new Date()).length > 0 ? (
-              <ul className="space-y-3">
-                {destinations
-                  .filter(d => new Date(d.endDate) >= new Date())
-                  .slice(0, 3)
-                  .map(dest => (
-                    <li key={dest.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-slate-50/70 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <MapPin className="w-5 h-5 text-slate-500" />
-                        <div>
-                          <p className="font-semibold text-slate-800">{dest.name}, {dest.country}</p>
-                          <p className="text-sm text-slate-600">
-                            {new Date(dest.startDate).toLocaleDateString()} - {new Date(dest.endDate).toLocaleDateString()}
-                          </p>
+            
+            {/* Active Trips */}
+            {activeTrips.length > 0 && (
+              <div className="mb-6">
+                <h4 className="text-sm font-semibold text-green-700 mb-3 flex items-center">
+                  <Plane className="w-4 h-4 mr-2" />
+                  Currently Traveling
+                </h4>
+                <div className="space-y-2">
+                  {activeTrips.map(dest => {
+                    const { city, country } = formatDestinationName(dest.destination);
+                    return (
+                      <div key={dest.id} className="flex items-center justify-between p-3 bg-green-50/70 rounded-lg border border-green-200">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <div>
+                            <p className="font-semibold text-green-800">{city}{country && `, ${country}`}</p>
+                            <p className="text-sm text-green-600">
+                              {new Date(dest.startDate).toLocaleDateString()} - {new Date(dest.endDate).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
+                        <span className="text-sm font-medium px-3 py-1 bg-green-100 text-green-800 rounded-full">
+                          Active
+                        </span>
                       </div>
-                      <div className={`text-sm font-medium px-2 py-1 rounded-full mt-2 sm:mt-0 ${dest.isActive ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'}`}>
-                        {dest.isActive ? 'Active' : 'Upcoming'}
-                      </div>
-                    </li>
-                  ))}
-              </ul>
-            ) : (
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Upcoming Trips */}
+            {upcomingTrips.length > 0 ? (
+              <div>
+                <h4 className="text-sm font-semibold text-blue-700 mb-3">Planned Trips</h4>
+                <ul className="space-y-3">
+                  {upcomingTrips.slice(0, 3).map(dest => {
+                    const { city, country } = formatDestinationName(dest.destination);
+                    return (
+                      <li key={dest.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-slate-50/70 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <MapPin className="w-5 h-5 text-slate-500" />
+                          <div>
+                            <p className="font-semibold text-slate-800">{city}{country && `, ${country}`}</p>
+                            <p className="text-sm text-slate-600">
+                              {new Date(dest.startDate).toLocaleDateString()} - {new Date(dest.endDate).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-sm font-medium px-2 py-1 rounded-full mt-2 sm:mt-0 bg-blue-100 text-blue-800">
+                          Planned
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {upcomingTrips.length > 3 && (
+                  <button
+                    onClick={() => navigate('/alerts', { state: { focus: 'destinations' } })}
+                    className="mt-3 w-full text-center text-sm font-medium text-blue-600 hover:underline"
+                  >
+                    View all {upcomingTrips.length} planned trips
+                  </button>
+                )}
+              </div>
+            ) : activeTrips.length === 0 ? (
               <div className="text-center py-8">
                 <Globe className="w-12 h-12 mx-auto text-slate-300" />
                 <h4 className="mt-4 text-lg font-semibold text-slate-800">No Upcoming Trips</h4>
@@ -450,7 +625,7 @@ const HomePage: React.FC = () => {
                   Create New Travel Plan
                 </button>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -473,7 +648,7 @@ const HomePage: React.FC = () => {
                   <EventCard key={event.id} event={event} />
                 ))}
                 <button
-                  onClick={() => navigate('/explore', { state: { focus: 'events' } })}
+                  onClick={() => navigate('/alerts', { state: { focus: 'events', location: userLocation ? `${userLocation.latitude},${userLocation.longitude}` : currentDestination?.destination } })}
                   className="w-full text-center text-sm font-medium text-blue-600 hover:underline pt-2"
                 >
                   Discover more events

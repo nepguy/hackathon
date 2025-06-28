@@ -312,7 +312,7 @@ const LandingPage: React.FC = () => {
               </span>
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8">
-              Well, you're in the right place. TravelSafe is your one-stop platform for everything you need to travel safely and confidently.
+              Well, you're in the right place. GuardNomad is your one-stop platform for everything you need to travel safely and confidently.
             </p>
             
             {/* Stats like Kent's blog stats */}

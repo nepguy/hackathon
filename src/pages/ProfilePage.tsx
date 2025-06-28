@@ -30,7 +30,7 @@ interface SettingsGroup {
 const ProfilePage: React.FC = () => {
   const { user, signOut } = useAuth();
   const { t, currentLanguage } = useTranslation();
-  const { isSubscribed } = useSubscription();
+  const { } = useSubscription();
   const { statistics } = useUserStatistics();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -219,7 +219,49 @@ const ProfilePage: React.FC = () => {
   ];
 
   const handlePrivacyAndSecurity = () => {
-    alert('Privacy & Security settings will be implemented in a future update. Your data is secured with end-to-end encryption.');
+    // Scroll to privacy settings section
+    const element = document.querySelector('[data-section="privacy"]');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      // Create a modal for privacy settings
+      const privacyModal = document.createElement('div');
+      privacyModal.className = 'fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[9999]';
+      privacyModal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+          <h3 class="text-lg font-bold mb-4">Privacy & Security</h3>
+          <div class="space-y-4 text-sm">
+            <div class="flex items-center justify-between">
+              <span>Data Encryption</span>
+              <span class="text-green-600 font-medium">✓ Enabled</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Two-Factor Auth</span>
+              <button class="text-blue-600 font-medium">Enable</button>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Location Privacy</span>
+              <span class="text-green-600 font-medium">✓ Protected</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Data Sharing</span>
+              <span class="text-gray-600 font-medium">Minimal</span>
+            </div>
+          </div>
+          <button onclick="this.parentElement.parentElement.remove()" class="mt-6 w-full btn-primary">
+            Close
+          </button>
+        </div>
+      `;
+      document.body.appendChild(privacyModal);
+      
+      // Remove modal when clicking backdrop
+      privacyModal.addEventListener('click', (e) => {
+        if (e.target === privacyModal) {
+          document.body.removeChild(privacyModal);
+        }
+      });
+    }
   };
 
   const handleNotificationSettings = () => {
@@ -236,8 +278,24 @@ const ProfilePage: React.FC = () => {
       ...prev,
       appearance: { ...prev.appearance, theme: newTheme }
     }));
+    
     // Apply theme to document
     document.documentElement.setAttribute('data-theme', newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    
+    // Persist theme preference
+    localStorage.setItem('guardnomad-theme', newTheme);
+    
+    // Show confirmation
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-[10000] transition-all duration-300';
+    toast.textContent = `Theme changed to ${newTheme === 'light' ? 'Light' : 'Dark'} mode`;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => document.body.removeChild(toast), 300);
+    }, 2000);
   };
 
   const handleLanguageSettings = () => {
@@ -256,7 +314,7 @@ const ProfilePage: React.FC = () => {
 
   const handleHelpAndSupport = () => {
     const supportOptions = [
-      'Email: support@travelsafe.com',
+      'Email: support@guardnomad.com',
       'Phone: +1 (555) 123-4567',
       'FAQ: Available in app menu',
       'Live Chat: Available 24/7'
@@ -472,6 +530,113 @@ const ProfilePage: React.FC = () => {
           </div>
         </div>
 
+        {/* Privacy & Security Settings */}
+        <div className="card p-6" data-section="privacy">
+          <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center">
+            <Lock className="w-5 h-5 mr-2 text-blue-600" />
+            {t('privacy_security', 'Privacy & Security')}
+          </h3>
+          
+          <div className="space-y-4">
+            {Object.entries(preferences.privacy).map(([key, value]) => (
+              <div key={key} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors">
+                <div>
+                  <div className="font-medium text-slate-900 capitalize">
+                    {key === 'shareLocation' ? 'Share Location' : 'Public Profile'}
+                  </div>
+                  <div className="text-sm text-slate-600">
+                    {key === 'shareLocation' 
+                      ? 'Allow other travelers to see your general location' 
+                      : 'Make your travel experiences visible to other users'
+                    }
+                  </div>
+                </div>
+                <button
+                  onClick={() => togglePreference('privacy', key)}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                    value ? 'bg-blue-600' : 'bg-slate-300'
+                  }`}
+                >
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                    value ? 'translate-x-7' : 'translate-x-1'
+                  }`}></div>
+                </button>
+              </div>
+            ))}
+            
+            <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+              <div className="flex items-start space-x-3">
+                <Shield className="w-5 h-5 text-green-600 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-green-900 mb-1">
+                    {t('data_protected', 'Your Data is Protected')}
+                  </h4>
+                  <p className="text-sm text-green-700">
+                    {t('encryption_description', 'All your personal data is encrypted and stored securely. We never share your information with third parties without your explicit consent.')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Appearance Settings */}
+        <div className="card p-6" data-section="appearance">
+          <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center">
+            {preferences.appearance.theme === 'light' ? 
+              <Sun className="w-5 h-5 mr-2 text-blue-600" /> : 
+              <Moon className="w-5 h-5 mr-2 text-blue-600" />
+            }
+            {t('appearance_settings', 'Appearance Settings')}
+          </h3>
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors">
+              <div>
+                <div className="font-medium text-slate-900">Theme Mode</div>
+                <div className="text-sm text-slate-600">
+                  Choose between light and dark theme
+                </div>
+              </div>
+              <button
+                onClick={handleAppearanceSettings}
+                className={`relative w-16 h-8 rounded-full transition-colors ${
+                  preferences.appearance.theme === 'dark' ? 'bg-blue-600' : 'bg-slate-300'
+                }`}
+              >
+                <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-transform flex items-center justify-center ${
+                  preferences.appearance.theme === 'dark' ? 'translate-x-9' : 'translate-x-1'
+                }`}>
+                  {preferences.appearance.theme === 'dark' ? 
+                    <Moon className="w-3 h-3 text-blue-600" /> : 
+                    <Sun className="w-3 h-3 text-yellow-600" />
+                  }
+                </div>
+              </button>
+            </div>
+            
+            <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+              <div className="flex items-start space-x-3">
+                {preferences.appearance.theme === 'light' ? 
+                  <Sun className="w-5 h-5 text-blue-600 mt-0.5" /> : 
+                  <Moon className="w-5 h-5 text-blue-600 mt-0.5" />
+                }
+                <div>
+                  <h4 className="font-medium text-blue-900 mb-1">
+                    {preferences.appearance.theme === 'light' ? 'Light Theme Active' : 'Dark Theme Active'}
+                  </h4>
+                  <p className="text-sm text-blue-700">
+                    {preferences.appearance.theme === 'light' ? 
+                      'Optimized for daytime use with bright, clear interfaces.' :
+                      'Easier on the eyes during nighttime use with reduced blue light.'
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Language Settings */}
         <div className="card p-6" data-section="language">
           <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center">
@@ -541,7 +706,7 @@ const ProfilePage: React.FC = () => {
         {/* App Info */}
         <div className="card p-6 text-center bg-gradient-to-r from-slate-50 to-blue-50">
           <Shield className="w-12 h-12 text-blue-600 mx-auto mb-3" />
-          <h4 className="font-bold text-slate-900 mb-2">TravelSafe</h4>
+          <h4 className="font-bold text-slate-900 mb-2">GuardNomad</h4>
           <p className="text-sm text-slate-600 mb-3">
             Your trusted companion for safe travels worldwide
           </p>

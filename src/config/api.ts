@@ -1,7 +1,7 @@
 // API Configuration
 export const API_CONFIG = {
   // Backend API URL - change this for production
-  BASE_URL: import.meta.env.VITE_API_URL || 'https://saver-7tda.onrender.com',
+  BASE_URL: import.meta.env.VITE_API_URL || 'https://guardnomad-api.onrender.com',
   
   // API endpoints
   ENDPOINTS: {

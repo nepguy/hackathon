@@ -165,7 +165,7 @@ class EventsService {
         events: (data.events || []).map((event: EventbriteEvent) => this.transformEvent(event)),
         pagination: data.pagination
       };
-    } catch (error) {
+    } catch {
       // Eventbrite search API deprecated - using smart fallback events
       return this.getFallbackEvents(location, query);
     }
@@ -459,8 +459,8 @@ class EventsService {
         locationName = approximateLocation;
         console.log(`📍 Approximate location determined: ${locationName}`);
       }
-    } catch (error) {
-      console.warn('Could not determine location name from coordinates:', error);
+    } catch (err) {
+      console.warn('Could not determine location name from coordinates:', err);
     }
 
     // Use location-aware fallback events
@@ -557,7 +557,7 @@ class EventsService {
         events: (data.events || []).map((event: EventbriteEvent) => this.transformEvent(event)),
         pagination: data.pagination
       };
-    } catch (error) {
+    } catch {
       // Using fallback events for free events
       return this.getFallbackEvents(location, 'free events');
     }
@@ -587,7 +587,7 @@ class EventsService {
         events: (data.events || []).map((event: EventbriteEvent) => this.transformEvent(event)),
         pagination: data.pagination
       };
-    } catch (error) {
+    } catch {
       // Using fallback events for date range
       return this.getFallbackEvents(location, `events from ${startDate} to ${endDate}`);
     }

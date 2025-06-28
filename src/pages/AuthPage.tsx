@@ -27,13 +27,13 @@ const AuthPage: React.FC = () => {
     setLoading(true)
     setError('')
 
-    if (!isSignUp && formData.password !== formData.confirmPassword) {
+    if (isSignUp && formData.password !== formData.confirmPassword) {
       setError('Passwords do not match')
       setLoading(false)
       return
     }
 
-    if (!isSignUp && formData.password.length < 6) {
+    if (isSignUp && formData.password.length < 6) {
       setError('Password must be at least 6 characters long')
       setLoading(false)
       return

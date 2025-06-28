@@ -22,6 +22,11 @@ export interface NewsApiResponse {
 class NewsService {
   private apiKey: string;
   private baseUrl = 'https://gnews.io/api/v4';
+  private cache = new Map<string, { data: NewsApiResponse; timestamp: number }>();
+  private requestCounts = new Map<string, { count: number; resetTime: number }>();
+  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  private readonly RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+  private readonly MAX_REQUESTS_PER_MINUTE = 10;
 
   constructor() {
     this.apiKey = import.meta.env.VITE_GNEWS_API_KEY;
@@ -30,9 +35,74 @@ class NewsService {
     }
   }
 
+  private getCacheKey(params: Record<string, string>): string {
+    return JSON.stringify(params);
+  }
+
+  private isRateLimited(): boolean {
+    const now = Date.now();
+    const key = 'global';
+    const limits = this.requestCounts.get(key);
+
+    if (!limits || now > limits.resetTime) {
+      // Reset rate limit window
+      this.requestCounts.set(key, {
+        count: 0,
+        resetTime: now + this.RATE_LIMIT_WINDOW
+      });
+      return false;
+    }
+
+    return limits.count >= this.MAX_REQUESTS_PER_MINUTE;
+  }
+
+  private incrementRequestCount(): void {
+    const key = 'global';
+    const limits = this.requestCounts.get(key);
+    if (limits) {
+      limits.count++;
+    }
+  }
+
+  private getCachedData(cacheKey: string): NewsApiResponse | null {
+    const cached = this.cache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+      console.log('📦 Using cached news data');
+      return cached.data;
+    }
+    return null;
+  }
+
+  private setCachedData(cacheKey: string, data: NewsApiResponse): void {
+    this.cache.set(cacheKey, {
+      data,
+      timestamp: Date.now()
+    });
+    
+    // Clean up old cache entries
+    if (this.cache.size > 50) {
+      const oldestKey = Array.from(this.cache.keys())[0];
+      this.cache.delete(oldestKey);
+    }
+  }
+
   private async fetchNews(params: Record<string, string>): Promise<NewsApiResponse> {
+    const cacheKey = this.getCacheKey(params);
+    
+    // Check cache first
+    const cachedData = this.getCachedData(cacheKey);
+    if (cachedData) {
+      return cachedData;
+    }
+
     if (!this.apiKey) {
-      console.warn('GNews API key not configured, using fallback news');
+      console.warn('🔑 GNews API key not configured, using fallback news');
+      return this.getFallbackNews();
+    }
+
+    // Check rate limiting
+    if (this.isRateLimited()) {
+      console.warn('⚠️ Rate limited! Using cached/fallback news data');
       return this.getFallbackNews();
     }
 
@@ -44,17 +114,19 @@ class NewsService {
     });
 
     try {
-      console.log('Fetching news with params:', params);
+      console.log('🔄 Fetching fresh news with params:', params);
+      this.incrementRequestCount();
+      
       const response = await fetch(`${this.baseUrl}/search?${queryParams}`);
       
-      console.log('News API response status:', response.status);
+      console.log('📡 News API response status:', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('News API error response:', errorText);
+        console.error('❌ News API error response:', errorText);
         
-        if (response.status === 403) {
-          console.warn('News API access forbidden (403), using fallback news');
+        if (response.status === 403 || response.status === 429) {
+          console.warn('⚠️ News API access limited, using fallback news');
           return this.getFallbackNews();
         }
         
@@ -62,15 +134,20 @@ class NewsService {
       }
 
       const data = await response.json();
-      console.log('News API success response:', data);
+      console.log('✅ News API success response');
       
-      return {
+      const result = {
         totalArticles: data.totalArticles || 0,
         articles: this.transformArticles(data.articles || [])
       };
+
+      // Cache the successful response
+      this.setCachedData(cacheKey, result);
+      
+      return result;
     } catch (error) {
-      console.error('Error fetching news:', error);
-      console.warn('Falling back to mock news data');
+      console.error('❌ Error fetching news:', error);
+      console.warn('📦 Falling back to cached/mock news data');
       return this.getFallbackNews();
     }
   }

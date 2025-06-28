@@ -2,7 +2,7 @@ import { SafetyAlert } from '../types';
 import { API_CONFIG } from '../config/api';
 
 // Travel Alert API Configuration
-const API_BASE_URL = 'https://saver-7tda.onrender.com';
+const API_BASE_URL = 'https://guardnomad-api.onrender.com';
 
 export interface ScrapingResult {
   status: string;
@@ -53,7 +53,7 @@ export interface CsvFile {
   records: number;
 }
 
-export interface SaverAlert {
+export interface GuardNomadAlert {
   id: string;
   title: string;
   message: string;
@@ -67,8 +67,8 @@ export interface SaverAlert {
   url?: string;
 }
 
-export interface SaverApiResponse {
-  alerts: SaverAlert[];
+export interface GuardNomadApiResponse {
+  alerts: GuardNomadAlert[];
   total: number;
   status: 'success' | 'error';
   message?: string;
@@ -264,7 +264,7 @@ class TravelAlertAPI {
   }
 }
 
-class SaverTravelAlertService {
+class GuardNomadTravelAlertService {
   private baseUrl = API_CONFIG.BASE_URL;
   private apiKey?: string;
 
@@ -273,7 +273,7 @@ class SaverTravelAlertService {
   }
 
   // Get all travel alerts for a specific location
-  async getLocationAlerts(location: string): Promise<SaverApiResponse> {
+  async getLocationAlerts(location: string): Promise<GuardNomadApiResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/api/alerts/${encodeURIComponent(location)}`, {
         method: 'GET',
@@ -296,7 +296,7 @@ class SaverTravelAlertService {
   }
 
   // Query database for alerts
-  async queryDatabase(location?: string, alertType?: string): Promise<SaverApiResponse> {
+  async queryDatabase(location?: string, alertType?: string): Promise<GuardNomadApiResponse> {
     try {
       const params = new URLSearchParams();
       if (location) params.append('location', location);
@@ -322,7 +322,7 @@ class SaverTravelAlertService {
   }
 
   // Scrape fresh data from government sources
-  async scrapeGovernmentSource(country: string, source: string): Promise<SaverApiResponse> {
+  async scrapeGovernmentSource(country: string, source: string): Promise<GuardNomadApiResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/api/scrape/government`, {
         method: 'POST',
@@ -383,7 +383,7 @@ class SaverTravelAlertService {
   }
 
   // Get country-specific alerts (Thailand, France, Spain, Italy, Germany)
-  async getCountryAlerts(countryCode: string): Promise<SaverApiResponse> {
+  async getCountryAlerts(countryCode: string): Promise<GuardNomadApiResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/api/country/${countryCode}/alerts`, {
         method: 'GET',
@@ -404,8 +404,8 @@ class SaverTravelAlertService {
     }
   }
 
-  // Convert Saver alert to our SafetyAlert format
-  private transformSaverAlert(saverAlert: SaverAlert): SafetyAlert {
+  // Convert GuardNomad alert to our SafetyAlert format
+  private transformGuardNomadAlert(guardNomadAlert: GuardNomadAlert): SafetyAlert {
     const typeMap: Record<string, SafetyAlert['type']> = {
       'travel_alert': 'safety',
       'scam_data': 'security',
@@ -413,15 +413,15 @@ class SaverTravelAlertService {
     };
 
     return {
-      id: saverAlert.id,
-      title: saverAlert.title,
-      description: saverAlert.message,
-      severity: saverAlert.severity,
-      location: saverAlert.location,
-      timestamp: saverAlert.created_at,
+      id: guardNomadAlert.id,
+      title: guardNomadAlert.title,
+      description: guardNomadAlert.message,
+      severity: guardNomadAlert.severity,
+      location: guardNomadAlert.location,
+      timestamp: guardNomadAlert.created_at,
       read: false,
-      type: typeMap[saverAlert.alert_type] || 'safety',
-      source: saverAlert.government_source || saverAlert.source || 'Saver System',
+      type: typeMap[guardNomadAlert.alert_type] || 'safety',
+      source: guardNomadAlert.government_source || guardNomadAlert.source || 'GuardNomad System',
       tips: []
     };
   }
@@ -429,17 +429,17 @@ class SaverTravelAlertService {
   // Get alerts in our app format
   async getAlertsForApp(location: string): Promise<SafetyAlert[]> {
     try {
-      const saverResponse = await this.getLocationAlerts(location);
-      return saverResponse.alerts.map(alert => this.transformSaverAlert(alert));
+      const guardNomadResponse = await this.getLocationAlerts(location);
+      return guardNomadResponse.alerts.map(alert => this.transformGuardNomadAlert(alert));
     } catch (error) {
       console.error('Error getting alerts for app:', error);
       return this.getFallbackAlertsForApp(location);
     }
   }
 
-  // Fallback alerts when Saver is unavailable
-  private getFallbackAlerts(location?: string): SaverApiResponse {
-    const fallbackAlerts: SaverAlert[] = [
+  // Fallback alerts when GuardNomad is unavailable
+  private getFallbackAlerts(location?: string): GuardNomadApiResponse {
+    const fallbackAlerts: GuardNomadAlert[] = [
       {
         id: `fallback-${Date.now()}`,
         title: `Travel Advisory - ${location || 'Current Location'}`,
@@ -458,7 +458,7 @@ class SaverTravelAlertService {
       alerts: fallbackAlerts,
       total: fallbackAlerts.length,
       status: 'success',
-      message: 'Using fallback data - Saver system unavailable'
+      message: 'Using fallback data - GuardNomad system unavailable'
     };
   }
 
@@ -486,9 +486,9 @@ class SaverTravelAlertService {
 }
 
 // Export singleton instance
-export const saverTravelAlertService = new SaverTravelAlertService();
+export const guardNomadTravelAlertService = new GuardNomadTravelAlertService();
 
 // Export class for custom instances with API keys
-export { SaverTravelAlertService };
+export { GuardNomadTravelAlertService };
 
 export default new TravelAlertAPI(); 

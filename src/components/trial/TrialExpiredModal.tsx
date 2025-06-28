@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Crown, Star, Zap, Shield, Globe, ArrowRight, X } from 'lucide-react';
-// import { useSubscription } from '../../contexts/SubscriptionContext'; // Removed unused import
+
 import { useStatistics } from '../../lib/userDataService';
 
 interface TrialExpiredModalProps {

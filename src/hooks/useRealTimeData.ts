@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserDestinations } from '../contexts/UserDestinationContext';
 import { databaseService } from '../lib/database';
@@ -22,7 +22,7 @@ export const useRealTimeData = (): RealTimeData => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const generateRecentActivity = (alerts: SafetyAlert[], plans: TravelPlan[]): Activity[] => {
+  const generateRecentActivity = useCallback((alerts: SafetyAlert[], plans: TravelPlan[]): Activity[] => {
     const activities: Activity[] = [];
 
     // Add recent alerts as activities
@@ -57,10 +57,13 @@ export const useRealTimeData = (): RealTimeData => {
     });
 
     return activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  };
+  }, []);
 
-  const fetchData = async () => {
-    if (!user) return;
+  const fetchData = useCallback(async () => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
@@ -68,7 +71,7 @@ export const useRealTimeData = (): RealTimeData => {
     try {
       // Fetch data in parallel
       const [alerts, plans] = await Promise.all([
-        databaseService.getSafetyAlerts(currentDestination?.name),
+        databaseService.getSafetyAlerts(currentDestination?.destination),
         databaseService.getTravelPlans(user.id)
       ]);
 
@@ -81,36 +84,51 @@ export const useRealTimeData = (): RealTimeData => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, currentDestination?.destination, generateRecentActivity]);
 
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
     await fetchData();
-  };
+  }, [fetchData]);
 
-  // Initial data fetch
+  // Initial data fetch - stable dependency
   useEffect(() => {
     fetchData();
-  }, [user, currentDestination]);
+  }, [fetchData]);
 
-  // Set up real-time subscriptions
+  // Set up real-time subscriptions - stable dependencies and cleanup
   useEffect(() => {
     if (!user) return;
 
-    const unsubscribeAlerts = databaseService.subscribeToSafetyAlerts(
-      setSafetyAlerts,
-      currentDestination?.name
-    );
+    let unsubscribeAlerts: (() => void) | null = null;
+    let unsubscribePlans: (() => void) | null = null;
 
-    const unsubscribePlans = databaseService.subscribeToTravelPlans(
-      user.id,
-      setTravelPlans
-    );
+    // Only create subscriptions once
+    const setupSubscriptions = () => {
+      unsubscribeAlerts = databaseService.subscribeToSafetyAlerts(
+        setSafetyAlerts,
+        currentDestination?.destination
+      );
 
-    return () => {
-      unsubscribeAlerts();
-      unsubscribePlans();
+      unsubscribePlans = databaseService.subscribeToTravelPlans(
+        user.id,
+        setTravelPlans
+      );
     };
-  }, [user, currentDestination]);
+
+    setupSubscriptions();
+
+    // Cleanup function
+    return () => {
+      if (unsubscribeAlerts) {
+        unsubscribeAlerts();
+        unsubscribeAlerts = null;
+      }
+      if (unsubscribePlans) {
+        unsubscribePlans();
+        unsubscribePlans = null;
+      }
+    };
+  }, [user?.id, currentDestination?.destination]); // Only depend on stable IDs
 
   return {
     safetyAlerts,
@@ -123,7 +141,7 @@ export const useRealTimeData = (): RealTimeData => {
 };
 
 export const useSafetyTips = () => {
-  const [tips, setTips] = useState([
+  const [tips] = useState([
     {
       id: '1',
       title: 'Avoid ATM Skimming Devices',
