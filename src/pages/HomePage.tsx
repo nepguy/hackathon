@@ -6,15 +6,15 @@ import { useLocation } from '../contexts/LocationContext';
 import { useRealTimeData } from '../hooks/useRealTimeData';
 import { PageContainer } from '../components/layout/PageContainer';
 import { StatisticsCard } from '../components/home/StatisticsCard';
-import { WeatherCard } from '../components/home/WeatherCard';
-import { SafetyTipCard } from '../components/home/SafetyTipCard';
-import { TravelPlanItem } from '../components/home/TravelPlanItem';
+import WeatherCard from '../components/home/WeatherCard';
+import SafetyTipCard from '../components/home/SafetyTipCard';
+import TravelPlanItem from '../components/home/TravelPlanItem';
 import ActivityItem from '../components/home/ActivityItem';
-import { EventCard } from '../components/home/EventCard';
-import { QuickActionButtons } from '../components/home/QuickActionButtons';
-import { CreatePlanModal } from '../components/home/CreatePlanModal';
-import { TrialExpiredModal } from '../components/trial/TrialExpiredModal';
-import { TrialBanner } from '../components/trial/TrialBanner';
+import EventCard from '../components/home/EventCard';
+import QuickActionButtons from '../components/home/QuickActionButtons';
+import CreatePlanModal from '../components/home/CreatePlanModal';
+import TrialExpiredModal from '../components/trial/TrialExpiredModal';
+import TrialBanner from '../components/trial/TrialBanner';
 import { 
   MapPin, 
   Calendar, 
@@ -186,13 +186,13 @@ const HomePage: React.FC = () => {
     <PageContainer>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
             {`${greeting}, ${getUserName()}`}
           </h1>
           <p className="text-slate-600 mt-1">
             Welcome back! Here's your personalized travel dashboard.
           </p>
         </div>
+        <div className="flex items-center space-x-2 mt-4 sm:mt-0">
         <div className="flex items-center space-x-2 mt-4 sm:mt-0">
           <button 
             onClick={handleRefreshData}
