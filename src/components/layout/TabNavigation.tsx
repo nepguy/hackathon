@@ -42,8 +42,8 @@ const TabNavigation: React.FC = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/70 backdrop-blur-lg border-t border-slate-200/80">
-      <div className="container-max flex justify-around items-center h-16 sm:h-20">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-lg border-t border-slate-200/80 shadow-lg">
+      <div className="container-max flex justify-around items-center h-16">
         {tabs.map((tab) => {
           const isActive = tab.exactPath
             ? location.pathname === tab.path
@@ -53,7 +53,7 @@ const TabNavigation: React.FC = () => {
             <button
               key={tab.path}
               onClick={() => navigate(tab.path)}
-              className="flex flex-col items-center justify-center h-full w-full group transition-colors duration-200"
+              className="flex flex-col items-center justify-center h-full w-full group transition-colors duration-200 py-2"
             >
               <div className={`
                 relative flex items-center justify-center w-12 h-8
@@ -61,20 +61,20 @@ const TabNavigation: React.FC = () => {
               `}>
                 <tab.icon 
                   className={`
-                    w-6 h-6 transition-all duration-300
+                    w-5 h-5 transition-all duration-300
                     ${isActive ? 'text-blue-600' : 'text-slate-500 group-hover:text-blue-500'}
                   `} 
                 />
               </div>
               <span className={`
-                text-xs font-medium transition-all duration-300
+                text-[10px] sm:text-xs font-medium transition-all duration-300
                 ${isActive ? 'text-blue-600' : 'text-slate-500 group-hover:text-blue-500'}
               `}>
                 {tab.label}
               </span>
 
               {isActive && (
-                <div className="absolute bottom-0 w-8 h-1 bg-blue-600 rounded-t-full animate-scale-in"></div>
+                <div className="absolute bottom-0 w-6 sm:w-8 h-1 bg-blue-600 rounded-t-full animate-scale-in"></div>
               )}
             </button>
           );

@@ -71,7 +71,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
   };
 
   return (
-    <div className={`min-h-screen pb-24 sm:pb-28 ${className}`}>
+    <div className={`min-h-screen pb-28 ${className}`}>
       {title && (
         <>
           {/* Main Header */}
@@ -82,13 +82,13 @@ const PageContainer: React.FC<PageContainerProps> = ({
             onMouseEnter={handleHeaderMouseEnter}
             onMouseLeave={handleHeaderMouseLeave}
           >
-            <div className="section-padding">
+            <div className="section-padding py-3 sm:py-6">
               <div className="animate-fade-in-up">
-                <h1 className="mobile-title font-bold gradient-text mb-2">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold gradient-text mb-1 sm:mb-2">
                   {title}
                 </h1>
                 {subtitle && (
-                  <p className="text-slate-600 mobile-text">
+                  <p className="text-slate-600 text-sm sm:text-base">
                     {subtitle}
                   </p>
                 )}
@@ -99,13 +99,13 @@ const PageContainer: React.FC<PageContainerProps> = ({
           {/* Show Header Indicator */}
           {showIndicator && !isHeaderVisible && (
             <div 
-              className="fixed top-0 left-1/2 transform -translate-x-1/2 z-20 cursor-pointer group"
+              className="fixed top-0 left-1/2 transform -translate-x-1/2 z-20 cursor-pointer group touch-target"
               onClick={handleShowHeader}
             >
-              <div className="bg-blue-500/90 backdrop-blur-sm text-white px-4 py-2 rounded-b-lg shadow-lg transition-all duration-300 hover:bg-blue-600/90 hover:shadow-xl animate-slide-down">
+              <div className="bg-blue-500/90 backdrop-blur-sm text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-b-lg shadow-lg transition-all duration-300 hover:bg-blue-600/90 hover:shadow-xl animate-slide-down">
                 <div className="flex items-center space-x-2">
                   <ChevronDown className="w-4 h-4 group-hover:animate-bounce" />
-                  <span className="text-sm font-medium">Show Header</span>
+                  <span className="text-xs sm:text-sm font-medium">Show Header</span>
                   <ChevronDown className="w-4 h-4 group-hover:animate-bounce" />
                 </div>
               </div>
@@ -114,7 +114,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
         </>
       )}
       
-      <div className={`${padding ? 'section-padding' : ''} page-enter`}>
+      <div className={`${padding ? 'section-padding px-3 sm:px-4 py-3 sm:py-6' : ''} page-enter`}>
         <div className="container-max">
           {children}
         </div>

@@ -333,18 +333,18 @@ const AlertsPage: React.FC = () => {
       title="Safety Alerts"
       subtitle="Stay informed about safety conditions worldwide"
     >
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Enhanced Location Status with Filter Context */}
         {locationStatus.hasLocation && (
-          <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <Navigation className="w-5 h-5 text-blue-500 mr-2" />
                 <div>
-                  <span className="font-medium text-blue-900">
+                  <span className="font-medium text-blue-900 text-sm sm:text-base">
                     {locationStatus.source === 'GPS' ? 'Current Location' : 'Monitoring Location'}
                   </span>
-                  <p className="text-sm text-blue-700">{locationStatus.location}</p>
+                  <p className="text-xs sm:text-sm text-blue-700">{locationStatus.location}</p>
                   {activeFilters.length > 0 && (
                     <p className="text-xs text-blue-600">
                       Filtering by: {activeFilters.join(', ')}
@@ -359,7 +359,7 @@ const AlertsPage: React.FC = () => {
               </div>
               <button
                 onClick={refreshData}
-                className="p-2 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors duration-200"
+                className="p-1.5 sm:p-2 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors duration-200"
                 title="Refresh location-specific data"
               >
                 <RefreshCw className="w-4 h-4 text-blue-600" />
@@ -370,10 +370,10 @@ const AlertsPage: React.FC = () => {
 
         {/* Error State */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
             <div className="flex items-center">
               <AlertTriangle className="w-5 h-5 text-red-500 mr-2" />
-              <span className="text-red-800">
+              <span className="text-red-800 text-sm">
                 Error loading alerts: {error}
               </span>
             </div>
@@ -381,23 +381,23 @@ const AlertsPage: React.FC = () => {
         )}
 
         {/* Enhanced Tab Navigation with Descriptions */}
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8 overflow-x-auto">
+        <div className="border-b border-gray-200 pb-1">
+          <nav className="-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto pb-1">
             {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap flex items-center gap-2 ${
+                className={`py-1.5 sm:py-2 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap flex items-center gap-1 sm:gap-2 ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
                 title={tab.description}
               >
-                <tab.icon className="w-4 h-4" />
+                <tab.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 {tab.label}
                 {tab.count !== undefined && (
-                  <span className={`ml-1 px-2 py-1 text-xs rounded-full ${
+                  <span className={`ml-1 px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs rounded-full ${
                     activeTab === tab.id ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
                   }`}>
                     {tab.count}
@@ -408,29 +408,29 @@ const AlertsPage: React.FC = () => {
           </nav>
           
           {/* Tab Description */}
-          <div className="mt-2 mb-4">
-            <p className="text-sm text-gray-600">
+          <div className="mt-1 sm:mt-2 mb-3 sm:mb-4">
+            <p className="text-xs sm:text-sm text-gray-600">
               {tabs.find(tab => tab.id === activeTab)?.description}
             </p>
           </div>
         </div>
 
         {/* Enhanced Tab Content */}
-        <div className="min-h-[400px]">
+        <div className="min-h-[300px] sm:min-h-[400px]">
           {activeTab === 'local' && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <AlertFilters 
                 activeFilters={activeFilters}
                 onFilterChange={handleFilterChange}
               />
               
               {sortedAlerts.length === 0 ? (
-                <div className="text-center py-12">
-                  <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <div className="text-center py-8 sm:py-12">
+                  <Shield className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
                     {activeFilters.length > 0 ? 'No Matching Alerts' : 'No Alerts Found'}
                   </h3>
-                  <p className="text-gray-500">
+                  <p className="text-sm text-gray-500">
                     {activeFilters.length > 0 
                       ? `No alerts match your filters (${activeFilters.join(', ')}) for ${locationStatus.location || 'your location'}.`
                       : currentDestination 
@@ -441,24 +441,24 @@ const AlertsPage: React.FC = () => {
                   {activeFilters.length > 0 && (
                     <button
                       onClick={() => setActiveFilters([])}
-                      className="mt-4 btn-outline"
+                      className="mt-3 sm:mt-4 btn-outline text-sm"
                     >
                       Clear Filters
                     </button>
                   )}
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium text-gray-900">
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900">
                       {sortedAlerts.length} alert{sortedAlerts.length !== 1 ? 's' : ''} for {locationStatus.location}
                       {activeFilters.length > 0 && (
-                        <span className="text-sm text-gray-500 font-normal">
+                        <span className="text-xs sm:text-sm text-gray-500 font-normal">
                           {' '}(filtered by {activeFilters.join(', ')})
                         </span>
                       )}
                     </h3>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-xs sm:text-sm text-gray-500">
                       {unreadCount} unread
                     </div>
                   </div>
@@ -475,14 +475,14 @@ const AlertsPage: React.FC = () => {
           )}
 
           {activeTab === 'events' && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900">
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900">
                     Local Events in {locationStatus.location || 'Your Area'}
                   </h3>
                   {activeFilters.length > 0 && (
-                    <p className="text-sm text-gray-500">
+                    <p className="text-xs sm:text-sm text-gray-500">
                       Filtered by: {activeFilters.join(', ')}
                     </p>
                   )}
@@ -494,19 +494,19 @@ const AlertsPage: React.FC = () => {
               </div>
 
               {eventsLoading ? (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {[1, 2, 3].map(i => (
-                    <div key={i} className="card p-4 animate-pulse">
+                    <div key={i} className="card p-3 sm:p-4 animate-pulse">
                       <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
                       <div className="h-3 bg-gray-200 rounded w-1/2"></div>
                     </div>
                   ))}
                 </div>
               ) : events.length === 0 ? (
-                <div className="text-center py-12">
-                  <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Events Found</h3>
-                  <p className="text-gray-500">
+                <div className="text-center py-8 sm:py-12">
+                  <Calendar className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No Events Found</h3>
+                  <p className="text-sm text-gray-500">
                     {activeFilters.length > 0 
                       ? `No events match your filters for ${locationStatus.location}.`
                       : `No events found for ${locationStatus.location || 'your area'}.`
@@ -514,21 +514,21 @@ const AlertsPage: React.FC = () => {
                   </p>
                 </div>
               ) : (
-                <div className="grid gap-4">
+                <div className="grid gap-3 sm:gap-4">
                   {events.map((event, index) => (
-                    <div key={index} className="card p-6 hover:shadow-lg transition-all duration-300">
+                    <div key={index} className="card p-3 sm:p-6 hover:shadow-lg transition-all duration-300">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h4 className="font-medium text-gray-900 mb-2">{event.title}</h4>
-                          <p className="text-gray-600 text-sm mb-3">{event.description}</p>
-                          <div className="flex items-center text-sm text-gray-500 space-x-4">
+                          <h4 className="font-medium text-gray-900 mb-1 sm:mb-2 text-sm sm:text-base">{event.title}</h4>
+                          <p className="text-gray-600 text-xs sm:text-sm mb-2 sm:mb-3 line-clamp-2">{event.description}</p>
+                          <div className="flex items-center text-xs sm:text-sm text-gray-500 space-x-2 sm:space-x-4">
                             <div className="flex items-center">
                               <Clock className="w-4 h-4 mr-1" />
                               {event.date}
                             </div>
                             <div className="flex items-center">
                               <MapPin className="w-4 h-4 mr-1" />
-                              {event.location}
+                              <span className="line-clamp-1">{event.location}</span>
                             </div>
                           </div>
                         </div>
@@ -536,7 +536,7 @@ const AlertsPage: React.FC = () => {
                           <img 
                             src={event.image} 
                             alt={event.title}
-                            className="w-16 h-16 rounded-lg object-cover ml-4"
+                            className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover ml-3 sm:ml-4"
                           />
                         )}
                       </div>
@@ -548,14 +548,14 @@ const AlertsPage: React.FC = () => {
           )}
 
           {activeTab === 'news' && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900">
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900">
                     Travel News for {locationStatus.location || 'Your Location'}
                   </h3>
                   {activeFilters.length > 0 && (
-                    <p className="text-sm text-gray-500">
+                    <p className="text-xs sm:text-sm text-gray-500">
                       Filtered by: {activeFilters.join(', ')}
                     </p>
                   )}
@@ -567,9 +567,9 @@ const AlertsPage: React.FC = () => {
               </div>
 
               {newsLoading ? (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {[1, 2, 3].map(i => (
-                    <div key={i} className="card p-4 animate-pulse">
+                    <div key={i} className="card p-3 sm:p-4 animate-pulse">
                       <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
                       <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
                       <div className="h-3 bg-gray-200 rounded w-1/2"></div>
@@ -577,19 +577,19 @@ const AlertsPage: React.FC = () => {
                   ))}
                 </div>
               ) : newsArticles.length === 0 ? (
-                <div className="text-center py-12">
-                  <Newspaper className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No News Found</h3>
-                  <p className="text-gray-500">
+                <div className="text-center py-8 sm:py-12">
+                  <Newspaper className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No News Found</h3>
+                  <p className="text-sm text-gray-500">
                     No recent travel news for {locationStatus.location || 'your location'}.
                   </p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {newsArticles.map((article, index) => (
-                    <div key={index} className="card p-6 hover:shadow-lg transition-all duration-300">
-                      <h4 className="font-medium text-gray-900 mb-2">{article.title}</h4>
-                      <p className="text-gray-600 text-sm mb-3">{article.description}</p>
+                    <div key={index} className="card p-3 sm:p-6 hover:shadow-lg transition-all duration-300">
+                      <h4 className="font-medium text-gray-900 mb-1 sm:mb-2 text-sm sm:text-base">{article.title}</h4>
+                      <p className="text-gray-600 text-xs sm:text-sm mb-2 sm:mb-3 line-clamp-2">{article.description}</p>
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-gray-500">
                           {typeof article.source === 'string' ? article.source : article.source?.name || 'Unknown'}
@@ -604,14 +604,14 @@ const AlertsPage: React.FC = () => {
           )}
 
           {activeTab === 'agent' && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900">
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900">
                     AI Insights for {locationStatus.location || 'Your Location'}
                   </h3>
                   {activeFilters.length > 0 && (
-                    <p className="text-sm text-gray-500">
+                    <p className="text-xs sm:text-sm text-gray-500">
                       Focused on: {activeFilters.join(', ')}
                     </p>
                   )}
@@ -623,9 +623,9 @@ const AlertsPage: React.FC = () => {
               </div>
 
               {aiLoading ? (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {[1, 2, 3].map(i => (
-                    <div key={i} className="card p-4 animate-pulse">
+                    <div key={i} className="card p-3 sm:p-4 animate-pulse">
                       <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
                       <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
                       <div className="h-3 bg-gray-200 rounded w-1/2"></div>
@@ -633,16 +633,16 @@ const AlertsPage: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <AgentAlerts />
                   
                   {aiInsights.map((insight, index) => (
-                    <div key={index} className="card p-6">
-                      <h4 className="font-medium text-gray-900 mb-2">{insight.title}</h4>
-                      <p className="text-gray-600 text-sm mb-3">{insight.description}</p>
+                    <div key={index} className="card p-3 sm:p-6">
+                      <h4 className="font-medium text-gray-900 mb-1 sm:mb-2 text-sm sm:text-base">{insight.title}</h4>
+                      <p className="text-gray-600 text-xs sm:text-sm mb-2 sm:mb-3">{insight.description}</p>
                       
                       {insight.type === 'insight' && insight.score && (
-                        <div className="flex items-center space-x-2 mb-3">
+                        <div className="flex items-center space-x-2 mb-2 sm:mb-3">
                           <div className="flex-1 bg-gray-200 rounded-full h-2">
                             <div 
                               className={`h-2 rounded-full ${
@@ -659,9 +659,9 @@ const AlertsPage: React.FC = () => {
                       )}
                       
                       {insight.contacts && (
-                        <div className="space-y-1">
+                        <div className="space-y-0.5 sm:space-y-1">
                           {insight.contacts.map((contact: string, i: number) => (
-                            <p key={i} className="text-sm text-gray-600">{contact}</p>
+                            <p key={i} className="text-xs sm:text-sm text-gray-600">{contact}</p>
                           ))}
                         </div>
                       )}

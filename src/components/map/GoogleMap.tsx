@@ -121,8 +121,8 @@ const createUserLocationMarkerElement = (): HTMLElement => {
   markerElement.className = 'user-location-marker';
   
   markerElement.style.cssText = `
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     background: radial-gradient(circle, #4285f4 40%, rgba(66, 133, 244, 0.3) 70%);
     border-radius: 50%;
     border: 3px solid white;
@@ -151,51 +151,51 @@ const createUserLocationMarkerElement = (): HTMLElement => {
 // Create enhanced info window content
 const createInfoWindowContent = (alert: AlertMarker): string => {
   return `
-    <div class="advanced-info-window" style="
-      padding: 16px;
-      max-width: 280px;
+    <div style="
+      padding: 12px;
+      max-width: 250px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      border-radius: 12px;
+      border-radius: 8px;
       background: white;
       box-shadow: 0 8px 24px rgba(0,0,0,0.15);
     ">
       <div style="
         display: flex;
         align-items: center;
-        margin-bottom: 12px;
+        margin-bottom: 8px;
       ">
         <div style="
-          width: 32px;
-          height: 32px;
+          width: 24px;
+          height: 24px;
           border-radius: 50%;
           background: ${getMarkerBackground(alert.type)};
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-right: 12px;
-          font-size: 16px;
+          margin-right: 8px;
+          font-size: 14px;
         ">
           ${getMarkerIcon(alert.type)}
         </div>
         <h3 style="
           font-weight: 600;
-          font-size: 16px;
+          font-size: 14px;
           margin: 0;
           color: #111827;
         ">${alert.title}</h3>
       </div>
       
       <p style="
-        font-size: 14px;
-        margin: 0 0 16px 0;
+        font-size: 12px;
+        margin: 0 0 12px 0;
         color: #6b7280;
         line-height: 1.5;
       ">${alert.description}</p>
       
       <div style="
-        padding: 8px 12px;
-        border-radius: 8px;
-        font-size: 12px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 11px;
         font-weight: 600;
         display: inline-block;
         background: ${alert.type === 'danger' ? '#fef2f2' : alert.type === 'weather' ? '#eff6ff' : '#fffbeb'};
@@ -242,7 +242,7 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
         streetViewControl: false,
         rotateControl: false,
         fullscreenControl: true,
-        gestureHandling: 'greedy',
+        gestureHandling: 'cooperative',
         clickableIcons: false
       });
       
@@ -351,7 +351,7 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
         // Create enhanced info window
         const infoWindow = new google.maps.InfoWindow({
           content: createInfoWindowContent(alert),
-          maxWidth: 320,
+          maxWidth: 280,
           pixelOffset: new google.maps.Size(0, -10)
         });
 
@@ -511,29 +511,29 @@ const GoogleMapComponent: React.FC<GoogleMapProps> = (props) => {
     switch (status) {
       case Status.LOADING:
         return (
-          <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg">
+          <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
             <div className="text-center">
-              <div className="flex items-center justify-center space-x-2 mb-4">
-                <MapPin size={32} className="text-blue-500 animate-pulse" />
-                <Navigation size={32} className="text-emerald-500 animate-bounce" />
-                <Cloud size={32} className="text-sky-500 animate-pulse" />
+              <div className="flex items-center justify-center space-x-2 mb-3 sm:mb-4">
+                <MapPin size={24} className="text-blue-500 animate-pulse" />
+                <Navigation size={24} className="text-emerald-500 animate-bounce" />
+                <Cloud size={24} className="text-sky-500 animate-pulse" />
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Loading interactive map with location services...</p>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Loading interactive map...</p>
             </div>
           </div>
         );
       case Status.FAILURE:
         return (
-          <div className="w-full h-full flex items-center justify-center bg-red-50 dark:bg-red-900/20 rounded-lg">
+          <div className="w-full h-full flex items-center justify-center bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
             <div className="text-center">
-              <AlertTriangle size={48} className="mx-auto mb-4 text-red-500" />
-              <h3 className="text-lg font-semibold text-red-800 dark:text-red-400 mb-2">Map Failed to Load</h3>
-              <p className="text-sm text-red-600 dark:text-red-300 mb-4">
+              <AlertTriangle size={32} className="mx-auto mb-3 sm:mb-4 text-red-500" />
+              <h3 className="text-base sm:text-lg font-semibold text-red-800 dark:text-red-400 mb-2">Map Failed to Load</h3>
+              <p className="text-xs sm:text-sm text-red-600 dark:text-red-300 mb-3 sm:mb-4">
                 Please check your internet connection and try again.
               </p>
               <button 
                 onClick={() => window.location.reload()} 
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
               >
                 Retry
               </button>
@@ -547,14 +547,14 @@ const GoogleMapComponent: React.FC<GoogleMapProps> = (props) => {
 
   if (!GOOGLE_MAPS_CONFIG.apiKey) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+      <div className="w-full h-full flex items-center justify-center bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
         <div className="text-center">
-          <AlertTriangle size={48} className="mx-auto mb-4 text-yellow-500" />
-          <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-400 mb-2">API Key Missing</h3>
-          <p className="text-sm text-yellow-600 dark:text-yellow-300 mb-4">
+          <AlertTriangle size={32} className="mx-auto mb-3 sm:mb-4 text-yellow-500" />
+          <h3 className="text-base sm:text-lg font-semibold text-yellow-800 dark:text-yellow-400 mb-2">API Key Missing</h3>
+          <p className="text-xs sm:text-sm text-yellow-600 dark:text-yellow-300 mb-3 sm:mb-4">
             Google Maps API key is not configured.
           </p>
-          <p className="text-xs text-yellow-500">
+          <p className="text-xs text-yellow-500 px-4">
             Add VITE_GOOGLE_MAPS_API_KEY to your .env file
           </p>
         </div>

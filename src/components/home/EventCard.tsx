@@ -72,7 +72,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, showExternalLink = false }
 
   return (
     <div className="card card-hover group">
-      <div className="relative h-40 sm:h-48 overflow-hidden">
+      <div className="relative h-32 sm:h-48 overflow-hidden">
         <img
           src={eventData.imageUrl}
           alt={eventData.title}
@@ -83,11 +83,11 @@ const EventCard: React.FC<EventCardProps> = ({ event, showExternalLink = false }
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-          <span className="px-2 py-1 rounded-full text-xs font-medium bg-white/20 backdrop-blur-md text-white">
+          <span className="px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-xs font-medium bg-white/20 backdrop-blur-md text-white">
             {eventData.category}
           </span>
           {isTravelEvent(event) && eventData.price && (
-            <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/80 backdrop-blur-md text-white flex items-center">
+            <span className="px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-xs font-medium bg-green-500/80 backdrop-blur-md text-white flex items-center">
               <DollarSign size={10} className="mr-1" />
               {eventData.price}
             </span>
@@ -96,37 +96,37 @@ const EventCard: React.FC<EventCardProps> = ({ event, showExternalLink = false }
       </div>
       
       <div className="mobile-card space-y-3">
-        <h3 className="font-semibold text-gray-900 mobile-text line-clamp-1">
+        <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-1">
           {eventData.title}
         </h3>
         
-        <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">
+        <p className="text-xs text-gray-600 line-clamp-2">
           {eventData.description}
         </p>
         
-        <div className="flex flex-wrap gap-2 sm:gap-3 text-xs sm:text-sm">
+        <div className="flex flex-wrap gap-1.5 sm:gap-3 text-xs">
           <div className="flex items-center text-gray-600">
             <Calendar size={14} className="mr-1" />
             {formatDate(eventData.date)}
           </div>
           
-          <div className="flex items-center text-gray-600">
+          <div className="flex items-center text-gray-600 ml-1.5">
             <Clock size={14} className="mr-1" />
             {eventData.time}
           </div>
           
           {!isTravelEvent(event) && eventData.attendees && (
-            <div className="flex items-center text-gray-600">
+            <div className="flex items-center text-gray-600 ml-1.5">
               <Users size={14} className="mr-1" />
               {eventData.attendees} attending
             </div>
           )}
         </div>
         
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mt-1">
           <div className="flex items-center text-gray-600 text-sm flex-1 min-w-0">
             <MapPin size={14} className="mr-1 flex-shrink-0" />
-            <span className="line-clamp-1">{eventData.location}</span>
+            <span className="line-clamp-1 text-xs">{eventData.location}</span>
           </div>
           
           {showExternalLink && isTravelEvent(event) && eventData.eventUrl && (

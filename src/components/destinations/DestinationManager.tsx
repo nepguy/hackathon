@@ -170,11 +170,11 @@ const DestinationManager: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 flex items-center">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center">
             <Globe className="w-6 h-6 mr-3 text-blue-600" />
             My Destinations
           </h2>
-          <p className="text-slate-600 mt-1">
+          <p className="text-sm text-slate-600 mt-1">
             Manage your travel destinations and alert preferences
           </p>
         </div>
@@ -182,7 +182,7 @@ const DestinationManager: React.FC = () => {
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className={`p-2 rounded-xl transition-all duration-300 ${
+            className={`p-1.5 sm:p-2 rounded-xl transition-all duration-300 ${
               isRefreshing 
                 ? 'bg-slate-100 text-slate-400' 
                 : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
@@ -193,7 +193,7 @@ const DestinationManager: React.FC = () => {
           </button>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="btn-primary flex items-center space-x-2"
+            className="btn-primary flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm py-2 px-3 sm:py-3 sm:px-4"
           >
             <Plus className="w-4 h-4" />
             <span>Add Destination</span>
@@ -203,38 +203,38 @@ const DestinationManager: React.FC = () => {
 
       {/* Error Message */}
       {error && (
-        <div className="card p-4 bg-red-50 border-red-200">
+        <div className="card p-3 sm:p-4 bg-red-50 border-red-200">
           <div className="flex items-center space-x-2 text-red-800">
             <AlertTriangle className="w-5 h-5" />
-            <span className="font-medium">{error}</span>
+            <span className="font-medium text-sm">{error}</span>
           </div>
         </div>
       )}
 
       {/* Current Active Destination */}
       {currentDestination && (
-        <div className="card p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <div className="card p-4 sm:p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                 <Plane className="w-6 h-6 text-blue-600" />
               </div>
               <div>
                 <div className="flex items-center space-x-2 mb-1">
                   <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium text-blue-800">Currently Active</span>
+                  <span className="text-xs sm:text-sm font-medium text-blue-800">Currently Active</span>
                 </div>
-                <h3 className="text-xl font-bold text-blue-900">
+                <h3 className="text-base sm:text-xl font-bold text-blue-900">
                   {currentDestination.destination}
                 </h3>
-                <p className="text-blue-700">
+                <p className="text-xs sm:text-sm text-blue-700">
                   {formatDate(currentDestination.startDate)} - {formatDate(currentDestination.endDate)}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-sm text-blue-600 font-medium">Alerts Active</div>
-              <div className="text-xs text-blue-500">Real-time monitoring</div>
+              <div className="text-xs sm:text-sm text-blue-600 font-medium">Alerts Active</div>
+              <div className="text-xs text-blue-500 hidden sm:block">Real-time monitoring</div>
             </div>
           </div>
         </div>
@@ -242,15 +242,15 @@ const DestinationManager: React.FC = () => {
 
       {/* Add Destination Form */}
       {showAddForm && (
-        <div className="card p-6 animate-slide-down">
-          <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center">
+        <div className="card p-3 sm:p-6 animate-slide-down">
+          <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-3 sm:mb-4 flex items-center">
             <Plus className="w-5 h-5 mr-2 text-blue-600" />
             Add New Destination
           </h3>
           
-          <form onSubmit={handleAddDestination} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
+          <form onSubmit={handleAddDestination} className="space-y-3 sm:space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+              <div className="col-span-1 md:col-span-2">
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Destination
                 </label>
@@ -289,7 +289,7 @@ const DestinationManager: React.FC = () => {
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3 sm:space-x-4">
               <label className="flex items-center space-x-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -301,14 +301,14 @@ const DestinationManager: React.FC = () => {
               </label>
             </div>
             
-            <div className="flex space-x-3">
-              <button type="submit" className="btn-primary">
+            <div className="flex space-x-2 sm:space-x-3">
+              <button type="submit" className="btn-primary text-xs sm:text-sm py-2 px-3 sm:py-3 sm:px-4">
                 Add Destination
               </button>
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="btn-outline"
+                className="btn-outline text-xs sm:text-sm py-2 px-3 sm:py-3 sm:px-4"
               >
                 Cancel
               </button>
@@ -319,14 +319,14 @@ const DestinationManager: React.FC = () => {
 
       {/* Edit Modal */}
       {showEditModal && editingDestination && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] animate-fadeIn">
-          <div className="bg-white rounded-2xl p-6 max-w-lg w-full mx-4 animate-slideUp">
-            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-3 z-[9999] animate-fadeIn">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 max-w-lg w-full mx-2 sm:mx-4 animate-slideUp">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-3 sm:mb-4 flex items-center">
               <Edit className="w-5 h-5 mr-2 text-blue-600" />
               Edit Destination
             </h3>
             
-            <form onSubmit={handleEditDestination} className="space-y-4">
+            <form onSubmit={handleEditDestination} className="space-y-3 sm:space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Destination
@@ -341,7 +341,7 @@ const DestinationManager: React.FC = () => {
                 />
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Start Date
@@ -397,14 +397,14 @@ const DestinationManager: React.FC = () => {
                 </label>
               </div>
               
-              <div className="flex space-x-3 pt-4">
-                <button type="submit" className="btn-primary flex-1">
+              <div className="flex space-x-2 sm:space-x-3 pt-3 sm:pt-4">
+                <button type="submit" className="btn-primary flex-1 text-xs sm:text-sm py-2 px-3 sm:py-3 sm:px-4">
                   Save Changes
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
-                  className="btn-outline flex-1"
+                  className="btn-outline flex-1 text-xs sm:text-sm py-2 px-3 sm:py-3 sm:px-4"
                 >
                   Cancel
                 </button>
@@ -415,17 +415,17 @@ const DestinationManager: React.FC = () => {
       )}
 
       {/* Destinations List */}
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {destinations.length === 0 ? (
-          <div className="card p-12 text-center">
-            <MapPin className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-slate-900 mb-2">No destinations yet</h3>
-            <p className="text-slate-600 mb-6">
+          <div className="card p-8 sm:p-12 text-center">
+            <MapPin className="w-12 h-12 sm:w-16 sm:h-16 text-slate-300 mx-auto mb-3 sm:mb-4" />
+            <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">No destinations yet</h3>
+            <p className="text-sm text-slate-600 mb-4 sm:mb-6">
               Add your travel destinations to get personalized safety alerts and insights.
             </p>
             <button
               onClick={() => setShowAddForm(true)}
-              className="btn-primary"
+              className="btn-primary text-sm"
             >
               Add Your First Destination
             </button>
@@ -437,27 +437,27 @@ const DestinationManager: React.FC = () => {
             return (
               <div
                 key={destination.id}
-                className={`card p-6 transition-all duration-300 ${
+                className={`card p-3 sm:p-6 transition-all duration-300 ${
                   destination.status === 'active' ? 'ring-2 ring-blue-200 shadow-lg' : ''
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <h3 className="text-lg font-bold text-slate-900">
+                    <div className="flex items-center space-x-2 sm:space-x-3 mb-2 sm:mb-3">
+                      <h3 className="text-base sm:text-lg font-bold text-slate-900">
                         {destination.destination}
                       </h3>
-                      <span className={`px-3 py-1 text-xs font-medium rounded-full ${status.color}`}>
+                      <span className={`px-2 py-0.5 sm:px-3 sm:py-1 text-xs font-medium rounded-full ${status.color}`}>
                         {status.status}
                       </span>
                     </div>
                     
-                    <div className="flex items-center space-x-6 text-sm text-slate-600 mb-4">
+                    <div className="flex items-center space-x-3 sm:space-x-6 text-xs sm:text-sm text-slate-600 mb-3 sm:mb-4">
                       <div className="flex items-center space-x-1">
                         <Calendar className="w-4 h-4" />
                         <span>{formatDate(destination.startDate)} - {formatDate(destination.endDate)}</span>
                       </div>
-                      <div className="flex items-center space-x-1">
+                      <div className="flex items-center space-x-1 hidden sm:flex">
                         <Clock className="w-4 h-4" />
                         <span>
                           {Math.ceil((new Date(destination.endDate).getTime() - new Date(destination.startDate).getTime()) / (1000 * 60 * 60 * 24))} days
@@ -466,10 +466,10 @@ const DestinationManager: React.FC = () => {
                     </div>
                   </div>
                   
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1 sm:space-x-2">
                     <button
                       onClick={() => toggleAlerts(destination)}
-                      className={`p-2 rounded-xl transition-all duration-300 ${
+                      className={`p-1.5 sm:p-2 rounded-xl transition-all duration-300 ${
                         destination.alertsEnabled
                           ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'
                           : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
@@ -481,7 +481,7 @@ const DestinationManager: React.FC = () => {
                     
                     <button
                       onClick={() => openEditModal(destination)}
-                      className="p-2 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-xl transition-all duration-300"
+                      className="p-1.5 sm:p-2 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-xl transition-all duration-300"
                       title="Edit destination"
                     >
                       <Edit className="w-4 h-4" />
@@ -490,7 +490,7 @@ const DestinationManager: React.FC = () => {
                     {destination.status !== 'active' && (
                       <button
                         onClick={() => setAsActive(destination)}
-                        className="p-2 bg-emerald-100 text-emerald-600 hover:bg-emerald-200 rounded-xl transition-all duration-300"
+                        className="p-1.5 sm:p-2 bg-emerald-100 text-emerald-600 hover:bg-emerald-200 rounded-xl transition-all duration-300"
                         title="Set as active destination"
                       >
                         <Settings className="w-4 h-4" />
@@ -499,7 +499,7 @@ const DestinationManager: React.FC = () => {
                     
                     <button
                       onClick={() => handleRemoveDestination(destination.id)}
-                      className="p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-xl transition-all duration-300"
+                      className="p-1.5 sm:p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-xl transition-all duration-300"
                       title="Remove destination"
                     >
                       <Trash2 className="w-4 h-4" />

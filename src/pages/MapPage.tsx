@@ -149,7 +149,7 @@ const MapPage: React.FC = () => {
       subtitle="Visualize safety information and real-time data"
       padding={false}
     >
-      <div className="relative h-[calc(100vh-200px)] overflow-hidden rounded-lg">
+      <div className="relative h-[calc(100vh-180px)] sm:h-[calc(100vh-200px)] overflow-hidden rounded-lg">
         
         {/* Map Container */}
         <div className="absolute inset-0">
@@ -164,13 +164,13 @@ const MapPage: React.FC = () => {
 
         {/* Location Error Toast */}
         {locationError && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-md px-4">
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg">
+          <div className="absolute top-2 sm:top-4 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-md px-3 sm:px-4">
+            <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 sm:px-4 sm:py-3 rounded-lg shadow-lg">
               <div className="flex items-center">
                 <AlertTriangle className="w-5 h-5 mr-3 flex-shrink-0" />
                 <div className="flex-grow">
-                  <p className="font-bold">Location Error</p>
-                  <p className="text-sm">{locationError.message}</p>
+                  <p className="font-bold text-sm sm:text-base">Location Error</p>
+                  <p className="text-xs sm:text-sm">{locationError.message}</p>
                 </div>
                 <button 
                   onClick={clearLocationError}
@@ -184,31 +184,31 @@ const MapPage: React.FC = () => {
         )}
 
         {/* My Location Button */}
-        <div className="absolute top-4 right-4 z-10">
+        <div className="absolute top-3 sm:top-4 right-3 sm:right-4 z-10">
             <button
             onClick={handleGetLocation}
-            className={`flex items-center justify-center w-12 h-12 rounded-full shadow-lg transition-all duration-300
+            className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full shadow-lg transition-all duration-300
               ${locationError ? 'bg-red-500 hover:bg-red-600' : (isTracking && userLocation) ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'}
               text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-white`}
             aria-label="Get my location"
           >
             {isTracking && !userLocation && !locationError ? (
-              <div className="w-6 h-6 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>
+              <div className="w-5 h-5 sm:w-6 sm:h-6 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>
             ) : (
-              <Navigation className="w-6 h-6" />
+              <Navigation className="w-5 h-5 sm:w-6 sm:h-6" />
               )}
             </button>
         </div>
 
         {/* Bottom Layer Controls */}
-        <div className="absolute bottom-0 left-0 right-0 z-10 p-4">
-          <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-around p-2">
+        <div className="absolute bottom-0 left-0 right-0 z-10 p-2 sm:p-4">
+          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-around p-1 sm:p-2">
               {layerOptions.map((layer) => (
                 <button
                   key={layer.id}
                   onClick={() => handleLayerChange(layer.id)}
-                  className={`flex flex-col items-center justify-center space-y-1 p-2 rounded-lg w-20 h-20 transition-all duration-200
+                  className={`flex flex-col items-center justify-center space-y-0.5 sm:space-y-1 p-1 sm:p-2 rounded-lg w-16 h-16 sm:w-20 sm:h-20 transition-all duration-200
                     ${
                     activeLayer === layer.id
                         ? `bg-${layer.color}-500 text-white shadow-lg scale-105`
@@ -217,16 +217,16 @@ const MapPage: React.FC = () => {
                   }
                 >
                   <div className="relative">
-                    <layer.icon className="w-7 h-7" />
+                    <layer.icon className="w-5 h-5 sm:w-7 sm:h-7" />
                     {layer.count > 0 && (
                       <div className="absolute top-0 right-0 -mr-1 -mt-1">
-                        <span className={`flex items-center justify-center h-5 w-5 bg-${layer.color}-500 text-white text-xs font-bold rounded-full border-2 border-white dark:border-gray-800`}>
+                        <span className={`flex items-center justify-center h-4 w-4 sm:h-5 sm:w-5 bg-${layer.color}-500 text-white text-xs font-bold rounded-full border-2 border-white dark:border-gray-800`}>
                           {layer.count}
                         </span>
                   </div>
                     )}
                   </div>
-                  <span className="text-xs font-medium">{layer.label}</span>
+                  <span className="text-[10px] sm:text-xs font-medium">{layer.label}</span>
                 </button>
               ))}
             </div>

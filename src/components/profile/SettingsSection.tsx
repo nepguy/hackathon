@@ -60,30 +60,30 @@ const SettingsSection: React.FC = () => {
   return (
     <div className="mt-2">
       {settingsGroups.map((group, groupIndex) => (
-        <div key={groupIndex} className="mb-6">
-          <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2 px-1">
+        <div key={groupIndex} className="mb-4 sm:mb-6">
+          <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1 sm:mb-2 px-1">
             {group.title}
           </h3>
           <div className="bg-white rounded-xl overflow-hidden shadow-sm">
             {group.items.map((item, itemIndex) => (
               <div 
                 key={itemIndex}
-                className={`flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
+                className={`flex items-center justify-between p-3 sm:p-4 cursor-pointer hover:bg-slate-100 transition-colors ${
                   itemIndex !== group.items.length - 1 ? 'border-b border-gray-100' : ''
                 }`}
                 onClick={item.onClick}
               >
-                <div className="flex items-center">
-                  <div className={`mr-3 ${item.color}`}>
-                    <item.icon size={20} />
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                  <div className={`${item.color}`}>
+                    <item.icon size={18} className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
-                  <span className="text-gray-900 font-medium">{item.label}</span>
+                  <span className="text-gray-900 font-medium text-sm">{item.label}</span>
                 </div>
                 <div className="flex items-center">
                   {item.value && (
-                    <span className="text-sm text-gray-500 mr-2">{item.value}</span>
+                    <span className="text-xs sm:text-sm text-gray-500 mr-2">{item.value}</span>
                   )}
-                  <ChevronRight size={18} className="text-gray-400" />
+                  <ChevronRight size={16} className="text-gray-400" />
                 </div>
               </div>
             ))}

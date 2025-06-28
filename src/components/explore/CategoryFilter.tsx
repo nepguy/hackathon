@@ -18,12 +18,12 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({ onFilterChange }) => {
 
   return (
     <div className="mb-6 overflow-x-auto">
-      <div className="flex space-x-2 pb-1">
+      <div className="flex space-x-1.5 sm:space-x-2 pb-1">
         {categories.map((category) => (
           <button
             key={category}
             onClick={() => handleCategoryChange(category)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap ${
+            className={`px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap ${
               activeCategory === category
                 ? 'bg-primary-100 text-primary-700'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'

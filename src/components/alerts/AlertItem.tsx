@@ -80,18 +80,23 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onMarkAsRead }) => {
     <div className={`card p-0 overflow-hidden transition-all duration-300 ${
       !alert.read ? 'ring-2 ring-blue-200 shadow-lg' : ''
     }`}>
-      <div className={`p-6 ${getSeverityColor(alert.severity)}`}>
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-start space-x-4">
+      <div className={`p-3 sm:p-6 ${getSeverityColor(alert.severity)}`}>
+        <div className="flex items-start justify-between mb-3 sm:mb-4">
+          <div className="flex items-start space-x-2 sm:space-x-4">
             <div className="flex-shrink-0 mt-1">
-              {getTypeIcon(alert.type)}
+              <div className="hidden sm:block">
+                {getTypeIcon(alert.type)}
+              </div>
+              <div className="block sm:hidden">
+                {React.cloneElement(getTypeIcon(alert.type), { className: "w-4 h-4" })}
+              </div>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center space-x-3 mb-2">
-                <h3 className="text-lg font-bold text-slate-900 truncate">
+              <div className="flex items-center space-x-2 sm:space-x-3 mb-1 sm:mb-2">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 truncate">
                   {alert.title}
                 </h3>
-                <span className={`px-3 py-1 text-xs font-medium rounded-full ${getSeverityBadge(alert.severity)}`}>
+                <span className={`px-2 py-0.5 sm:px-3 sm:py-1 text-xs font-medium rounded-full ${getSeverityBadge(alert.severity)}`}>
                   {alert.severity.toUpperCase()}
                 </span>
                 {!alert.read && (
@@ -99,24 +104,24 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onMarkAsRead }) => {
                 )}
               </div>
               
-              <p className="text-slate-700 leading-relaxed mb-4">
+              <p className="text-sm text-slate-700 leading-relaxed mb-3 sm:mb-4 line-clamp-3 sm:line-clamp-none">
                 {alert.description}
               </p>
               
               {/* Meta Information */}
-              <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
-                <div className="flex items-center space-x-1">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-slate-600">
+                <div className="flex items-center">
                   <MapPin className="w-4 h-4" />
-                  <span>{alert.location}</span>
+                  <span className="ml-1 line-clamp-1">{alert.location}</span>
                 </div>
-                <div className="flex items-center space-x-1">
+                <div className="flex items-center">
                   <Clock className="w-4 h-4" />
-                  <span>{formatTime(alert.timestamp)}</span>
+                  <span className="ml-1">{formatTime(alert.timestamp)}</span>
                 </div>
                 {alert.source && (
-                  <div className="flex items-center space-x-1">
+                  <div className="flex items-center hidden sm:flex">
                     <Info className="w-4 h-4" />
-                    <span>Source: {alert.source}</span>
+                    <span className="ml-1">Source: {alert.source}</span>
                   </div>
                 )}
               </div>
@@ -126,26 +131,26 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onMarkAsRead }) => {
         
         {/* Prevention Tips */}
         {alert.tips && alert.tips.length > 0 && (
-          <div className="border-t border-slate-200 pt-4">
+          <div className="border-t border-slate-200 pt-3 sm:pt-4 mt-2 sm:mt-0">
             <button
               onClick={() => setShowTips(!showTips)}
-              className="flex items-center space-x-2 text-slate-700 hover:text-slate-900 font-medium transition-colors"
+              className="flex items-center text-slate-700 hover:text-slate-900 font-medium transition-colors text-sm"
             >
               <Shield className="w-4 h-4" />
-              <span>Safety Tips</span>
+              <span className="ml-1">Safety Tips</span>
               {showTips ? (
-                <ChevronUp className="w-4 h-4" />
+                <ChevronUp className="w-4 h-4 ml-1" />
               ) : (
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className="w-4 h-4 ml-1" />
               )}
             </button>
             
             {showTips && (
-              <div className="mt-3 space-y-2 animate-slide-down">
+              <div className="mt-2 sm:mt-3 space-y-2 animate-slide-down">
                 {alert.tips.map((tip, index) => (
-                  <div key={index} className="flex items-start space-x-3 p-3 bg-white/80 rounded-xl">
+                  <div key={index} className="flex items-start space-x-2 sm:space-x-3 p-2 sm:p-3 bg-white/80 rounded-xl">
                     <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <span className="text-sm text-slate-700">{tip}</span>
+                    <span className="text-xs sm:text-sm text-slate-700">{tip}</span>
                   </div>
                 ))}
               </div>
@@ -154,8 +159,8 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onMarkAsRead }) => {
         )}
         
         {/* Actions */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-200">
-          <div className="flex items-center space-x-3">
+        <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-slate-200 mt-3 sm:mt-0">
+          <div className="flex items-center space-x-2 sm:space-x-3">
             {!alert.read && (
               <button 
                 onClick={() => {
@@ -172,20 +177,20 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onMarkAsRead }) => {
                     });
                   }
                 }}
-                className="btn-ghost text-sm"
+                className="btn-ghost text-xs sm:text-sm"
               >
                 Mark as read
               </button>
             )}
             {alert.source && (
-              <button className="btn-ghost text-sm flex items-center space-x-1">
+              <button className="btn-ghost text-xs sm:text-sm flex items-center">
                 <ExternalLink className="w-3 h-3" />
-                <span>View source</span>
+                <span className="ml-1">View source</span>
               </button>
             )}
           </div>
           
-          <div className="text-xs text-slate-500 capitalize">
+          <div className="text-xs text-slate-500 capitalize hidden sm:block">
             {alert.type} alert
           </div>
         </div>

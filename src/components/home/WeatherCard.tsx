@@ -233,7 +233,7 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
 
   return (
     <>
-      <div className="kit-card">
+      <div className="kit-card p-4 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900 flex items-center">
             <Thermometer className="w-5 h-5 mr-2 text-blue-600" />
@@ -241,30 +241,30 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
           </h3>
           <div className="flex items-center text-sm text-gray-500">
             <MapPin className="w-4 h-4 mr-1" />
-            <span className="truncate max-w-24 sm:max-w-32">{weatherData.location.name}</span>
+            <span className="truncate max-w-20 sm:max-w-32">{weatherData.location.name}</span>
           </div>
         </div>
 
         {/* Current Weather */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <div className="text-4xl">
-              {getWeatherIcon(currentWeather.condition.text, "w-16 h-16")}
+        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between mb-4 sm:mb-6">
+          <div className="flex items-center space-x-2 sm:space-x-4 w-full sm:w-auto">
+            <div className="text-3xl sm:text-4xl">
+              {getWeatherIcon(currentWeather.condition.text, "w-12 h-12 sm:w-16 sm:h-16")}
             </div>
             <div>
-              <div className="text-3xl font-bold text-gray-900">
+              <div className="text-2xl sm:text-3xl font-bold text-gray-900">
                 {Math.round(currentWeather.temperature)}°C
               </div>
               <div className="text-sm text-gray-600">
                 {currentWeather.condition.text}
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 hidden sm:block">
                 Feels like {Math.round(currentWeather.feelsLike)}°C
               </div>
             </div>
           </div>
           
-          <div className="text-right">
+          <div className="text-right mt-2 sm:mt-0 w-full sm:w-auto">
             <div className="text-sm text-gray-600 mb-1">
               {Math.round(forecast[0].maxTemp)}° / {Math.round(forecast[0].minTemp)}°
             </div>
@@ -275,75 +275,75 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
         </div>
 
         {/* Weather Details */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-4 mt-4 pt-4 border-t border-gray-100">
-          <div className="kit-glass rounded-lg p-3">
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 mt-3 pt-3 sm:mt-4 sm:pt-4 border-t border-gray-100">
+          <div className="kit-glass rounded-lg p-2 sm:p-3">
             <div className="flex items-center space-x-2">
               <Droplets className="w-4 h-4 text-blue-500" />
               <span className="text-sm text-gray-600">Humidity</span>
             </div>
-            <div className="text-lg font-semibold text-gray-900 mt-1">
+            <div className="text-base sm:text-lg font-semibold text-gray-900 mt-1">
               {currentWeather.humidity}%
             </div>
           </div>
           
-          <div className="kit-glass rounded-lg p-3">
+          <div className="kit-glass rounded-lg p-2 sm:p-3">
             <div className="flex items-center space-x-2">
               <Wind className="w-4 h-4 text-gray-500" />
               <span className="text-sm text-gray-600">Wind</span>
             </div>
-            <div className="text-lg font-semibold text-gray-900 mt-1">
+            <div className="text-base sm:text-lg font-semibold text-gray-900 mt-1">
               {Math.round(currentWeather.windSpeed)} km/h
             </div>
           </div>
           
-          <div className="kit-glass rounded-lg p-3">
+          <div className="kit-glass rounded-lg p-2 sm:p-3">
             <div className="flex items-center space-x-2">
               <Eye className="w-4 h-4 text-purple-500" />
               <span className="text-sm text-gray-600">Visibility</span>
             </div>
-            <div className="text-lg font-semibold text-gray-900 mt-1">
+            <div className="text-base sm:text-lg font-semibold text-gray-900 mt-1">
               {Math.round(currentWeather.visibility)} km
             </div>
           </div>
           
-          <div className="kit-glass rounded-lg p-3">
+          <div className="kit-glass rounded-lg p-2 sm:p-3">
             <div className="flex items-center space-x-2">
               <Thermometer className="w-4 h-4 text-orange-500" />
               <span className="text-sm text-gray-600">Pressure</span>
             </div>
-            <div className="text-lg font-semibold text-gray-900 mt-1">
+            <div className="text-base sm:text-lg font-semibold text-gray-900 mt-1">
               {Math.round(currentWeather.pressure)} mb
             </div>
           </div>
         </div>
 
         {/* 3-Day Forecast */}
-        <div className="mt-6 pt-4 border-t border-gray-100">
-          <h4 className="text-sm font-semibold text-gray-900 mb-3">3-Day Forecast</h4>
+        <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-100">
+          <h4 className="text-xs sm:text-sm font-semibold text-gray-900 mb-2 sm:mb-3">3-Day Forecast</h4>
           <div className="space-y-3">
             {forecast.slice(0, 3).map((day, index) => (
-              <div key={index} className="kit-glass rounded-lg p-3">
+              <div key={index} className="kit-glass rounded-lg p-2 sm:p-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="mr-3">
-                      {getWeatherIcon(day.condition.text, "w-8 h-8")}
+                    <div className="mr-2 sm:mr-3">
+                      {getWeatherIcon(day.condition.text, "w-6 h-6 sm:w-8 sm:h-8")}
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-xs sm:text-sm font-medium text-gray-900">
                         {index === 0 ? 'Today' : 
                          index === 1 ? 'Tomorrow' : 
                          new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-gray-500 hidden sm:block">
                         {day.condition.text}
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-semibold text-gray-900">
+                    <div className="text-xs sm:text-sm font-semibold text-gray-900">
                       {Math.round(day.maxTemp)}° / {Math.round(day.minTemp)}°
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-gray-500 hidden sm:block">
                       {Math.round(day.totalPrecip * 100)}% rain
                     </div>
                   </div>
@@ -356,8 +356,8 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
 
       {/* Location Change Prompt */}
       {showLocationPrompt && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40">
-          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 sm:p-4 z-40">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-4 sm:p-6">
             <div className="flex items-center mb-4">
               <MapPin className="w-6 h-6 text-blue-600 mr-2" />
               <h3 className="text-lg font-semibold text-gray-900">
@@ -370,13 +370,13 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
             <div className="flex space-x-3">
               <button
                 onClick={handleLocationUpdate}
-                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                className="flex-1 bg-blue-600 text-white py-2 px-3 sm:px-4 rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm font-medium"
               >
                 Update Weather
               </button>
               <button
                 onClick={dismissLocationPrompt}
-                className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                className="flex-1 bg-gray-100 text-gray-700 py-2 px-3 sm:px-4 rounded-lg hover:bg-gray-200 transition-colors text-xs sm:text-sm"
               >
                 Keep Current
               </button>

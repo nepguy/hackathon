@@ -21,7 +21,7 @@
 
 @layer components {
   .glass {
-    @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-xl;
+    @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-xl w-full;
   }
   
   .glass-dark {
@@ -29,12 +29,12 @@
   }
   
   .card {
-    @apply bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200/50 
-           transition-all duration-300 hover:shadow-xl hover:scale-[1.02] hover:bg-white/95;
+    @apply bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200/50 w-full
+           transition-all duration-300 hover:shadow-xl hover:bg-white/95;
   }
   
   .card-hover {
-    @apply hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-500 ease-out;
+    @apply hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.01] transition-all duration-500 ease-out;
   }
   
   .btn {
@@ -126,7 +126,7 @@
   }
   
   .section-padding {
-    @apply px-4 py-6 sm:px-6 sm:py-8;
+    @apply px-4 py-4 sm:px-6 sm:py-8;
   }
   
   .container-max {
@@ -135,7 +135,7 @@
   
   /* Mobile-first responsive utilities */
   .mobile-grid {
-    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6;
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6;
   }
   
   .mobile-card {
@@ -147,7 +147,7 @@
   }
   
   .mobile-title {
-    @apply text-xl sm:text-2xl lg:text-3xl;
+    @apply text-lg sm:text-2xl lg:text-3xl;
   }
   
   .mobile-button {
@@ -155,7 +155,7 @@
   }
   
   .mobile-safe-area {
-    @apply pb-20 sm:pb-24;
+    @apply pb-24 sm:pb-24;
   }
 
   /* 3D Medical Kit Inspired Design */
@@ -418,6 +418,40 @@
   }
 }
 
+/* Mobile-specific adjustments */
+@media (max-width: 640px) {
+  .card {
+    @apply p-3;
+  }
+  
+  .btn {
+    @apply px-4 py-2 text-sm;
+  }
+  
+  .mobile-text {
+    @apply text-sm;
+  }
+  
+  .mobile-title {
+    @apply text-lg;
+  }
+  
+  /* Adjust tab navigation for mobile */
+  .tab-item {
+    @apply py-2 px-2;
+  }
+  
+  /* Ensure forms are mobile-friendly */
+  input, select, textarea {
+    @apply text-base;
+  }
+  
+  /* Improve touch targets */
+  button, a {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+}
+
 @layer utilities {
   .animate-fade-in {
     animation: fadeIn 0.6s ease-out forwards;
@@ -591,7 +625,7 @@
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -686,11 +720,10 @@
 
 /* Focus styles */
 button:focus,
-input:focus,
-select:focus,
-textarea:focus {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-1;
 }
 
 /* Glass morphism effect */
@@ -718,4 +751,42 @@ textarea:focus {
 
 .animate-bounce-slow {
   animation: bounce-slow 3s infinite;
+}
+
+/* Responsive adjustments for small screens */
+@media (max-width: 640px) {
+  .section-padding {
+    @apply px-3 py-3;
+  }
+  
+  .card {
+    @apply hover:scale-100;
+  }
+  
+  .btn {
+    @apply hover:scale-100 active:scale-95;
+  }
+  
+  /* Improve mobile grid layouts */
+  .grid {
+    @apply gap-3;
+  }
+  
+  /* Adjust font sizes for mobile */
+  h1 {
+    @apply text-2xl;
+  }
+  
+  h2 {
+    @apply text-xl;
+  }
+  
+  h3 {
+    @apply text-lg;
+  }
+  
+  /* Improve touch targets */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
 }

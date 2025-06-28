@@ -421,15 +421,15 @@ const HomePage: React.FC = () => {
         </div>
       </PageContainer>
     );
-  }
-
+          <div class="w-full sm:w-auto">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900">
   return (
     <PageContainer>
-      {/* Header */}
+            <p className="text-sm sm:text-base text-slate-600 mt-1">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
-            {greeting}, {getUserName()}!
+          <div className="flex items-center space-x-2 mt-3 sm:mt-0 w-full sm:w-auto justify-end">
           </h1>
           <p className="text-slate-600 mt-1">
             Welcome back! Here's your personalized travel dashboard.
@@ -439,7 +439,7 @@ const HomePage: React.FC = () => {
           <button 
             onClick={handleRefreshData}
             className="btn btn-ghost p-2"
-            disabled={isLoading || isLoadingAISafety}
+              className="btn btn-primary flex items-center space-x-2 text-sm"
           >
             <RefreshCw className={`w-5 h-5 ${(isLoading || isLoadingAISafety) ? 'animate-spin' : ''}`} />
           </button>
@@ -448,28 +448,28 @@ const HomePage: React.FC = () => {
             className="btn btn-primary hidden sm:flex items-center space-x-2"
           >
             <Plus className="w-4 h-4" />
-            <span>New Plan</span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
           </button>
         </div>
       </div>
-      
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {/* Left Column (Main content) */}
-        <div className="lg:col-span-2 space-y-6">
+                  className={`card p-3 sm:p-4 flex-1 border-l-4 ${stat.borderColor}`}
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {stats.map((stat, index) => (
-              <div
+                    <div className={`p-1.5 sm:p-2 rounded-lg ${stat.bgColor}`}>
+                      <stat.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${stat.color}`} />
                 key={index}
-                className={`card p-4 flex-1 border-l-4 ${stat.borderColor}`}
+                    <div className={`text-xl sm:text-2xl font-bold ${stat.color}`}>
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className={`p-2 rounded-lg ${stat.bgColor}`}>
                     <stat.icon className={`w-6 h-6 ${stat.color}`} />
-                  </div>
-                  <div className={`text-2xl font-bold ${stat.color}`}>
-                    {stat.value}
+                    <h3 className="text-sm sm:text-md font-semibold text-slate-800">{stat.label}</h3>
+                    <p className="text-xs text-slate-500 line-clamp-1">{stat.description}</p>
+                    <p className="text-xs text-slate-400 mt-1 hidden sm:block">{stat.trend}</p>
                   </div>
                 </div>
                 <div>
@@ -518,15 +518,15 @@ const HomePage: React.FC = () => {
                     <div>
                       <h4 className="font-semibold text-red-800">{alert.title}</h4>
                       <p className="text-sm text-red-700">{alert.description}</p>
-                    </div>
-                  </div>
-                ))}
+            <div className="card p-3 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center">
               </div>
               {(aiSafetyAlerts.length + safetyAlerts.length) > 3 && (
                 <button
                   onClick={() => navigate('/alerts')}
                   className="mt-4 w-full text-center text-sm font-medium text-blue-600 hover:underline"
-                >
+                  className="btn btn-outline btn-sm mt-2 sm:mt-0 text-xs"
                   View all {aiSafetyAlerts.length + safetyAlerts.length} alerts
                 </button>
               )}
@@ -534,8 +534,8 @@ const HomePage: React.FC = () => {
           )}
 
           {/* Upcoming Travel Plans */}
-          <div className="card p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
+                <div className="mb-4 sm:mb-6">
+                  <h4 className="text-xs sm:text-sm font-semibold text-green-700 mb-2 sm:mb-3 flex items-center">
               <h3 className="text-lg font-bold text-slate-900 flex items-center">
                 <Calendar className="w-5 h-5 mr-3 text-blue-500" />
                 Upcoming Plans
@@ -543,17 +543,17 @@ const HomePage: React.FC = () => {
               <button
                 onClick={() => navigate('/alerts', { state: { focus: 'destinations' } })}
                 className="btn btn-outline btn-sm mt-3 sm:mt-0"
-              >
+                        <div key={dest.id} className="flex items-center justify-between p-2 sm:p-3 bg-green-50/70 rounded-lg border border-green-200">
                 Manage Plans
               </button>
             </div>
-            
-            {/* Active Trips */}
+                              <p className="font-semibold text-green-800 text-sm">{city}{country && `, ${country}`}</p>
+                              <p className="text-xs text-green-600">
             {activeTrips.length > 0 && (
               <div className="mb-6">
                 <h4 className="text-sm font-semibold text-green-700 mb-3 flex items-center">
                   <Plane className="w-4 h-4 mr-2" />
-                  Currently Traveling
+                          <span className="text-xs font-medium px-2 py-0.5 sm:px-3 sm:py-1 bg-green-100 text-green-800 rounded-full">
                 </h4>
                 <div className="space-y-2">
                   {activeTrips.map(dest => {
@@ -565,49 +565,49 @@ const HomePage: React.FC = () => {
                           <div>
                             <p className="font-semibold text-green-800">{city}{country && `, ${country}`}</p>
                             <p className="text-sm text-green-600">
-                              {new Date(dest.startDate).toLocaleDateString()} - {new Date(dest.endDate).toLocaleDateString()}
-                            </p>
+              <div className="card p-3 sm:p-6">
+                  <h4 className="text-xs sm:text-sm font-semibold text-blue-700 mb-2 sm:mb-3">Planned Trips</h4>
                           </div>
                         </div>
                         <span className="text-sm font-medium px-3 py-1 bg-green-100 text-green-800 rounded-full">
                           Active
-                        </span>
+                        <li key={dest.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 sm:p-3 bg-slate-50/70 rounded-lg">
                       </div>
                     );
-                  })}
-                </div>
-              </div>
+                    <div key={`ai-${index}`} className="flex items-start space-x-2 sm:space-x-3 p-2 sm:p-3 bg-orange-50/50 rounded-lg border border-orange-200">
+                              <p className="font-semibold text-slate-800 text-sm">{city}{country && `, ${country}`}</p>
+                              <p className="text-xs text-slate-600">
             )}
 
             {/* Upcoming Trips */}
-            {upcomingTrips.length > 0 ? (
-              <div>
+                          <h4 className="font-semibold text-orange-800 text-sm sm:text-base">{alert.title}</h4>
+                          <div className="text-xs font-medium px-2 py-0.5 rounded-full mt-2 sm:mt-0 bg-blue-100 text-blue-800">
                 <h4 className="text-sm font-semibold text-blue-700 mb-3">Planned Trips</h4>
-                <ul className="space-y-3">
+                        <p className="text-xs sm:text-sm text-orange-700 line-clamp-2">{alert.description}</p>
                   {upcomingTrips.slice(0, 3).map(dest => {
-                    const { city, country } = formatDestinationName(dest.destination);
+                          <p className="text-xs text-orange-600 mt-1 font-medium hidden sm:block">Action: {alert.actionRequired}</p>
                     return (
                       <li key={dest.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-slate-50/70 rounded-lg">
                         <div className="flex items-center space-x-3">
                           <MapPin className="w-5 h-5 text-slate-500" />
                           <div>
-                            <p className="font-semibold text-slate-800">{city}{country && `, ${country}`}</p>
+                      className="mt-3 w-full text-center text-xs sm:text-sm font-medium text-blue-600 hover:underline"
                             <p className="text-sm text-slate-600">
-                              {new Date(dest.startDate).toLocaleDateString()} - {new Date(dest.endDate).toLocaleDateString()}
+                    <div key={`regular-${index}`} className="flex items-start space-x-2 sm:space-x-3 p-2 sm:p-3 bg-red-50/50 rounded-lg">
                             </p>
                           </div>
                         </div>
                         <div className="text-sm font-medium px-2 py-1 rounded-full mt-2 sm:mt-0 bg-blue-100 text-blue-800">
-                          Planned
-                        </div>
-                      </li>
-                    );
+                <div className="text-center py-6 sm:py-8">
+                  <Globe className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-slate-300" />
+                  <h4 className="mt-3 sm:mt-4 text-base sm:text-lg font-semibold text-slate-800">No Upcoming Trips</h4>
+                  <p className="mt-1 text-sm text-slate-500">
                   })}
                 </ul>
                 {upcomingTrips.length > 3 && (
                   <button
-                    onClick={() => navigate('/alerts', { state: { focus: 'destinations' } })}
-                    className="mt-3 w-full text-center text-sm font-medium text-blue-600 hover:underline"
+                    className="btn btn-primary mt-4 sm:mt-6 text-sm"
+                    className="mt-3 sm:mt-4 w-full text-center text-xs sm:text-sm font-medium text-blue-600 hover:underline"
                   >
                     View all {upcomingTrips.length} planned trips
                   </button>
@@ -632,40 +632,40 @@ const HomePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column (Side content) */}
+          <div className="space-y-4 sm:space-y-6">
         <div className="space-y-6">
           <WeatherCard />
-          
-          <div className="card p-4 sm:p-6">
+            <div className="card p-3 sm:p-6">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-3 sm:mb-4">
             <h3 className="text-lg font-bold text-slate-900 mb-4">
               Local Events & Activities
             </h3>
-            {isLoadingEvents ? (
-              <div className="text-center py-8">
-                <RefreshCw className="w-8 h-8 mx-auto text-slate-400 animate-spin" />
+                <div className="text-center py-6 sm:py-8">
+                  <RefreshCw className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-slate-400 animate-spin" />
+                  <p className="mt-3 sm:mt-4 text-sm text-slate-500">Finding local events...</p>
                 <p className="mt-4 text-slate-500">Finding local events...</p>
               </div>
-            ) : events.length > 0 ? (
+                <div className="space-y-3 sm:space-y-4">
               <div className="space-y-4">
                 {events.map(event => (
                   <EventCard key={event.id} event={event} />
                 ))}
                 <button
-                  onClick={() => navigate('/alerts', { state: { focus: 'events', location: userLocation ? `${userLocation.latitude},${userLocation.longitude}` : currentDestination?.destination } })}
+                    className="w-full text-center text-xs sm:text-sm font-medium text-blue-600 hover:underline pt-2"
                   className="w-full text-center text-sm font-medium text-blue-600 hover:underline pt-2"
                 >
                   Discover more events
                 </button>
               </div>
-            ) : (
-              <div className="text-center py-8">
-                <MapPin className="w-12 h-12 mx-auto text-slate-300" />
-                <h4 className="mt-4 text-lg font-semibold text-slate-800">No Events Found</h4>
+                <div className="text-center py-6 sm:py-8">
+                  <MapPin className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-slate-300" />
+                  <h4 className="mt-3 sm:mt-4 text-base sm:text-lg font-semibold text-slate-800">No Events Found</h4>
+                  <p className="mt-1 text-sm text-slate-500">
                 <p className="mt-1 text-slate-500">
                   Couldn't find events for your location.
                 </p>
                 <button
-                  onClick={fetchEvents}
+                    className="btn btn-outline btn-sm mt-3 sm:mt-4 text-xs"
                   className="btn btn-outline btn-sm mt-4"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />

@@ -158,23 +158,23 @@ const StatisticsCard: React.FC<StatisticsCardProps> = ({ className = '' }) => {
   ];
 
   return (
-    <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 ${className}`}>
+    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 ${className}`}>
       {stats.map((stat, index) => (
         <div
           key={index}
-          className={`card p-4 flex-1 border-l-4 ${stat.borderColor} hover:shadow-md transition-shadow`}
+          className={`card p-3 sm:p-4 flex-1 border-l-4 ${stat.borderColor} hover:shadow-md transition-shadow`}
         >
           <div className="flex items-center justify-between mb-2">
-            <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-              <stat.icon className={`w-6 h-6 ${stat.color}`} />
+            <div className={`p-1.5 sm:p-2 rounded-lg ${stat.bgColor}`}>
+              <stat.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${stat.color}`} />
             </div>
-            <div className={`text-2xl font-bold ${stat.color}`}>
+            <div className={`text-xl sm:text-2xl font-bold ${stat.color}`}>
               {stat.value}
             </div>
           </div>
           <div>
-            <h3 className="text-md font-semibold text-slate-800">{stat.label}</h3>
-            <p className="text-xs text-slate-500">{stat.description}</p>
+            <h3 className="text-sm sm:text-md font-semibold text-slate-800">{stat.label}</h3>
+            <p className="text-xs text-slate-500 line-clamp-1">{stat.description}</p>
             {stat.subtitle && stat.subtitle}
           </div>
         </div>
