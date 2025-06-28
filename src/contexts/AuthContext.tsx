@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { statisticsService } from '../lib/userDataService'
 import { databaseService } from '../lib/database'
+import { resendService } from '../lib/resendService'
 
 interface AuthContextType {
   user: User | null
@@ -139,8 +140,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       password,
       options: {
         data: metadata,
+        emailRedirectTo: 'https://guardnomad.com/auth'
       },
     })
+
+    // Send welcome email if signup was successful
+    if (data.user && !error) {
+      try {
+        const userName = metadata?.full_name || data.user.email?.split('@')[0] || 'Traveler';
+        await resendService.sendWelcomeEmail(data.user.email!, userName);
+        console.log('✅ Welcome email sent successfully');
+      } catch (emailError) {
+        console.error('Failed to send welcome email:', emailError);
+        // Don't fail the signup process if email fails
+      }
+    }
+
     return { user: data.user, error }
   }
 
@@ -149,7 +164,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://guardnomad.com/password-reset'
+    })
     return { error }
   }
 

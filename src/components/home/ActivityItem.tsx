@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Activity } from '../../types';
 import { Bell, LightbulbIcon, Map } from 'lucide-react';
 
@@ -7,14 +8,16 @@ interface ActivityItemProps {
 }
 
 const ActivityItem: React.FC<ActivityItemProps> = ({ activity }) => {
+  const navigate = useNavigate();
+  
   const getIcon = (type: string) => {
     switch (type) {
       case 'alert':
-        return <Bell size={16} className="text-danger-500" />;
+        return <Bell size={16} className="text-red-500" />;
       case 'tip':
-        return <LightbulbIcon size={16} className="text-accent-500" />;
+        return <LightbulbIcon size={16} className="text-yellow-500" />;
       case 'plan':
-        return <Map size={16} className="text-primary-600" />;
+        return <Map size={16} className="text-blue-600" />;
       default:
         return <Bell size={16} />;
     }
@@ -29,13 +32,32 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ activity }) => {
     });
   };
 
+  const handleClick = () => {
+    switch (activity.type) {
+      case 'alert':
+        navigate('/alerts');
+        break;
+      case 'tip':
+        navigate('/explore');
+        break;
+      case 'plan':
+        navigate('/alerts?tab=destinations');
+        break;
+      default:
+        navigate('/alerts');
+    }
+  };
+
   return (
-    <div className="flex items-start py-3 border-b border-gray-100 last:border-0">
+    <div 
+      className="flex items-start py-3 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors duration-200 rounded-lg px-2"
+      onClick={handleClick}
+    >
       <div className="mt-1 mr-3">
         {getIcon(activity.type)}
       </div>
       <div className="flex-grow">
-        <h4 className="text-sm font-medium text-gray-900">{activity.title}</h4>
+        <h4 className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors">{activity.title}</h4>
         <p className="text-xs text-gray-600 mt-0.5">{activity.description}</p>
       </div>
       <div className="text-xs text-gray-500 ml-2">

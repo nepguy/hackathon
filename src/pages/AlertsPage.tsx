@@ -1,70 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation as useRouterLocation } from 'react-router-dom';
 import { useLocation } from '../contexts/LocationContext';
-import AgentAlerts from '../components/alerts/AgentAlerts';
-import PageContainer from '../components/layout/PageContainer';
-import AlertFilters from '../components/alerts/AlertFilters';
-import { AlertTriangle, MapPin, Calendar, Bell, Newspaper, Globe, Navigation, Shield, Clock } from 'lucide-react';
-
+import { PageContainer } from '../components/layout/PageContainer';
+import { AlertTriangle, MapPin, Calendar, Bell, Newspaper, Globe, Navigation, Shield, Clock, ExternalLink, RefreshCw } from 'lucide-react';
 import { useRealTimeData } from '../hooks/useRealTimeData';
-import { databaseService } from '../lib/database';
+
 import { useUserDestinations } from '../contexts/UserDestinationContext';
-import { RefreshCw } from 'lucide-react';
-import AlertItem from '../components/alerts/AlertItem';
-import { newsService } from '../lib/newsApi';
-import { NewsArticle } from '../lib/newsApi';
+import { exaUnifiedService } from '../lib/exaUnifiedService';
+import type { LocalNews, ScamAlert, LocalEvent, TravelSafetyAlert } from '../lib/exaUnifiedService';
 import DestinationManager from '../components/destinations/DestinationManager';
-import { eventsService } from '../lib/eventsApi';
-import { geminiAiService } from '../lib/geminiAi';
+
+type TabType = 'news' | 'scams' | 'events' | 'safety' | 'destinations' | 'local';
 
 const AlertsPage: React.FC = () => {
   const routerLocation = useRouterLocation();
-  const [activeFilters, setActiveFilters] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState('local');
-  const [newsArticles, setNewsArticles] = useState<NewsArticle[]>([]);
-  const [newsLoading, setNewsLoading] = useState(false);
-  const [events, setEvents] = useState<any[]>([]);
-  const [eventsLoading, setEventsLoading] = useState(false);
-  const [aiInsights, setAiInsights] = useState<any[]>([]);
-  const [aiLoading, setAiLoading] = useState(false);
-  const { currentDestination } = useUserDestinations();
   const { userLocation } = useLocation();
+  const [activeFilters] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<TabType>('news');
+  const { currentDestination } = useUserDestinations();
   const { safetyAlerts, isLoading, error, refreshData } = useRealTimeData();
 
+  // Exa unified data states
+  const [localNews, setLocalNews] = useState<LocalNews[]>([]);
+  const [scamAlerts, setScamAlerts] = useState<ScamAlert[]>([]);
+  const [localEvents, setLocalEvents] = useState<LocalEvent[]>([]);
+  const [travelSafety, setTravelSafety] = useState<TravelSafetyAlert[]>([]);
+  const [, setUnifiedLoading] = useState(false);
 
-  // Handle navigation state for events and destinations focus
+  // Handle navigation state for events focus
   useEffect(() => {
     const state = routerLocation.state as any;
     if (state?.focus === 'events') {
       setActiveTab('events');
-    } else if (state?.focus === 'destinations') {
-      setActiveTab('destinations');
     }
   }, [routerLocation.state]);
 
-  const handleFilterChange = (filter: string) => {
-    if (activeFilters.includes(filter)) {
-      setActiveFilters(activeFilters.filter((f: string) => f !== filter));
-    } else {
-      setActiveFilters([...activeFilters, filter]);
+  // Parse URL params for initial tab
+  useEffect(() => {
+    const params = new URLSearchParams(routerLocation.search);
+    const tab = params.get('tab') as TabType;
+    if (tab && ['news', 'scams', 'events', 'safety'].includes(tab)) {
+      setActiveTab(tab);
     }
-  };
-  
-  const handleMarkAsRead = async (id: string) => {
-    try {
-      // Mark alert as read in database
-      const success = await databaseService.markAlertAsRead(id);
-      if (success) {
-        console.log(`Alert ${id} marked as read`);
-        // Refresh data to update UI
-        await refreshData();
-      } else {
-        console.error(`Failed to mark alert ${id} as read`);
-      }
-    } catch (error) {
-      console.error('Error marking alert as read:', error);
-    }
-  };
+  }, [routerLocation]);
+
+
   
   // Enhanced personalized alerts with location and tag filtering
   const getPersonalizedAlerts = () => {
@@ -137,141 +117,374 @@ const AlertsPage: React.FC = () => {
   const sortedAlerts = getPersonalizedAlerts();
   const unreadCount = sortedAlerts.filter(alert => !alert.read).length;
 
-  // Enhanced content loading with location and tag awareness
-  useEffect(() => {
-    const fetchContentForActiveTab = async () => {
-      const currentLocation = locationStatus.location;
-      
-      if (activeTab === 'news' && currentLocation) {
-        await loadLocationSpecificNews(currentLocation);
-      } else if (activeTab === 'events' && currentLocation) {
-        await loadLocationSpecificEvents(currentLocation);
-      } else if (activeTab === 'agent' && currentLocation) {
-        await loadLocationSpecificAIInsights(currentLocation);
-      }
-    };
-    fetchContentForActiveTab();
-  }, [activeTab, currentDestination, activeFilters]);
-
-  const loadLocationSpecificNews = async (location: string) => {
-    setNewsLoading(true);
+  // Load unified data using Exa
+  const loadUnifiedData = useCallback(async () => {
+    if (!userLocation) return;
+    
+    const locationString = `${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}`;
+    
+    setUnifiedLoading(true);
     try {
-      // Extract country and city for more targeted news
-      let country, city;
-      const parts = location.split(',').map(p => p.trim());
+      console.log('🔄 Loading unified data via Exa for:', locationString);
       
-      if (parts.length > 1) {
-        city = parts[0];
-        country = parts[parts.length - 1];
-      } else {
-        country = parts[0];
-      }
-
-      // Build search query with location and active filters
-      let searchQuery = `${city || country} travel`;
-      if (activeFilters.length > 0) {
-        searchQuery += ` ${activeFilters.join(' ')}`;
-      }
-
-      console.log(`📰 Loading location-specific news for: ${location} with filters: ${activeFilters.join(', ')}`);
-      
-      const response = await newsService.searchNews(searchQuery, country);
-      setNewsArticles(response.articles || []);
-    } catch (error) {
-      console.error('Error loading location-specific news:', error);
-      setNewsArticles([]);
-    } finally {
-      setNewsLoading(false);
-    }
-  };
-
-  const loadLocationSpecificEvents = async (location: string) => {
-    setEventsLoading(true);
-    try {
-      let searchLocation = location;
-      
-      // Use GPS coordinates if available for better accuracy
-      if (userLocation?.latitude && userLocation?.longitude) {
-        searchLocation = `${userLocation.latitude},${userLocation.longitude}`;
-      }
-
-      // Filter events by active tags
-      let eventQuery = '';
-      if (activeFilters.length > 0) {
-        eventQuery = activeFilters.join(' ');
-      }
-
-      console.log(`🎉 Loading location-specific events for: ${location} with filters: ${activeFilters.join(', ')}`);
-      
-      const response = await eventsService.searchEvents(searchLocation, eventQuery);
-      setEvents(response?.events || []);
-    } catch (error) {
-      console.error('❌ Error loading location-specific events:', error);
-      setEvents([]);
-    } finally {
-      setEventsLoading(false);
-    }
-  };
-
-  const loadLocationSpecificAIInsights = async (location: string) => {
-    setAiLoading(true);
-    try {
-      const parts = location.split(',').map(p => p.trim());
-      const city = parts.length > 1 ? parts[0] : undefined;
-      const country = parts[parts.length - 1];
-
-      console.log(`🤖 Loading AI insights for: ${location} with focus: ${activeFilters.join(', ')}`);
-
-      // Get location-specific AI insights with filter consideration
-      const locationContext = {
-        country,
-        city,
-        coordinates: userLocation?.latitude ? {
-          lat: userLocation.latitude,
-          lng: userLocation.longitude
-        } : undefined
-      };
-
-      const safetyData = await geminiAiService.getLocationSafetyData(locationContext);
-      
-      // Filter insights based on active filters
-      let filteredInsights = safetyData.activeAlerts;
-      if (activeFilters.length > 0) {
-        filteredInsights = safetyData.activeAlerts.filter(alert =>
-          activeFilters.some(filter =>
-            alert.type.toLowerCase().includes(filter.toLowerCase()) ||
-            alert.title.toLowerCase().includes(filter.toLowerCase()) ||
-            alert.description.toLowerCase().includes(filter.toLowerCase())
-          )
-        );
-      }
-
-      setAiInsights([
-        {
-          id: 'safety-score',
-          type: 'insight',
-          title: `Safety Score for ${location}`,
-          description: `Current safety rating: ${safetyData.safetyScore}/100 (${safetyData.riskLevel} risk)`,
-          score: safetyData.safetyScore,
-          riskLevel: safetyData.riskLevel
-        },
-        ...filteredInsights.map(alert => ({
-          ...alert,
-          type: 'ai-alert'
-        })),
-        {
-          id: 'emergency-contacts',
-          type: 'emergency',
-          title: `Emergency Contacts in ${location}`,
-          description: 'Important emergency numbers for your location',
-          contacts: safetyData.emergencyNumbers
-        }
+      const [news, scams, events, safety] = await Promise.allSettled([
+        exaUnifiedService.getLocalNews(locationString),
+        exaUnifiedService.getScamAlerts(locationString),
+        exaUnifiedService.getLocalEvents(locationString),
+        exaUnifiedService.getTravelSafetyAlerts(locationString)
       ]);
+
+      if (news.status === 'fulfilled') {
+        setLocalNews(news.value);
+        console.log('📰 Loaded local news via Exa:', news.value.length);
+      }
+
+      if (scams.status === 'fulfilled') {
+        setScamAlerts(scams.value);
+        console.log('🚨 Loaded scam alerts via Exa:', scams.value.length);
+      }
+
+      if (events.status === 'fulfilled') {
+        setLocalEvents(events.value);
+        console.log('🎉 Loaded local events via Exa:', events.value.length);
+      }
+
+      if (safety.status === 'fulfilled') {
+        setTravelSafety(safety.value);
+        console.log('🛡️ Loaded travel safety via Exa:', safety.value.length);
+      }
+
     } catch (error) {
-      console.error('❌ Error loading AI insights:', error);
-      setAiInsights([]);
+      console.error('❌ Failed to load unified data:', error);
     } finally {
-      setAiLoading(false);
+      setUnifiedLoading(false);
+    }
+  }, [userLocation]);
+
+  useEffect(() => {
+    loadUnifiedData();
+  }, [loadUnifiedData]);
+
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-3 text-gray-600">Loading intelligence data...</span>
+        </div>
+      );
+    }
+
+    switch (activeTab) {
+      case 'news':
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <Globe className="w-5 h-5 mr-2 text-blue-600" />
+                Local News ({localNews.length})
+              </h3>
+              <span className="text-sm text-gray-500">Powered by Exa.ai</span>
+            </div>
+            
+            {localNews.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Globe className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p>No local news available for your location</p>
+              </div>
+            ) : (
+              localNews.map((article, index) => (
+                <div key={`${article.id}-${index}`} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-medium text-gray-900 flex-1">{article.title}</h4>
+                    <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                      article.category === 'breaking' ? 'bg-red-100 text-red-800' :
+                      article.category === 'crime' ? 'bg-orange-100 text-orange-800' :
+                      article.category === 'weather' ? 'bg-blue-100 text-blue-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {article.category}
+                    </span>
+                  </div>
+                  <p className="text-gray-600 text-sm mb-3">{article.description}</p>
+                  <div className="flex justify-between items-center text-xs text-gray-500">
+                    <span>{article.source.name}</span>
+                    <span>{new Date(article.publishedAt).toLocaleDateString()}</span>
+                  </div>
+                  {article.url !== '#' && (
+                    <a
+                      href={article.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm mt-2"
+                    >
+                      Read more <ExternalLink className="w-3 h-3 ml-1" />
+                    </a>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        );
+
+      case 'scams':
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <AlertTriangle className="w-5 h-5 mr-2 text-red-600" />
+                Scam Alerts ({scamAlerts.length})
+              </h3>
+              <span className="text-sm text-gray-500">Powered by Exa.ai</span>
+            </div>
+            
+            {scamAlerts.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Shield className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p>No recent scam alerts for your location</p>
+              </div>
+            ) : (
+              scamAlerts.map((alert, index) => (
+                <div key={`${alert.id}-${index}`} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-medium text-gray-900 flex-1">{alert.title}</h4>
+                    <div className="flex space-x-2">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        alert.severity === 'critical' ? 'bg-red-100 text-red-800' :
+                        alert.severity === 'high' ? 'bg-orange-100 text-orange-800' :
+                        alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {alert.severity}
+                      </span>
+                      <span className="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">
+                        {alert.scamType}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-gray-600 text-sm mb-3">{alert.description}</p>
+                  <div className="flex justify-between items-center text-xs text-gray-500">
+                    <span className="flex items-center">
+                      <span className={`w-2 h-2 rounded-full mr-1 ${
+                        alert.source.credibility === 'government' ? 'bg-green-500' :
+                        alert.source.credibility === 'verified' ? 'bg-blue-500' :
+                        'bg-gray-500'
+                      }`}></span>
+                      {alert.source.name}
+                    </span>
+                    <span>{new Date(alert.reportedDate).toLocaleDateString()}</span>
+                  </div>
+                  {alert.source.url !== '#' && (
+                    <a
+                      href={alert.source.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-red-600 hover:text-red-800 text-sm mt-2"
+                    >
+                      View details <ExternalLink className="w-3 h-3 ml-1" />
+                    </a>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        );
+
+      case 'events':
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <Calendar className="w-5 h-5 mr-2 text-green-600" />
+                Local Events ({localEvents.length})
+              </h3>
+              <span className="text-sm text-gray-500">Powered by Exa.ai</span>
+            </div>
+            
+            {localEvents.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Calendar className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p>No upcoming events found for your location</p>
+              </div>
+            ) : (
+              localEvents.map((event, index) => (
+                <div key={`${event.id}-${index}`} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-medium text-gray-900 flex-1">{event.title}</h4>
+                    <div className="flex space-x-2">
+                      {event.isFree && (
+                        <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                          Free
+                        </span>
+                      )}
+                      <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                        {event.category}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-gray-600 text-sm mb-3">{event.description}</p>
+                  <div className="text-sm text-gray-600 mb-2">
+                    <div className="flex items-center mb-1">
+                      <MapPin className="w-4 h-4 mr-1" />
+                      {event.location.name}
+                    </div>
+                    <div className="flex items-center">
+                      <Clock className="w-4 h-4 mr-1" />
+                      {new Date(event.startDate).toLocaleDateString()} at {new Date(event.startDate).toLocaleTimeString()}
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-gray-500">
+                    <span>{event.source.name}</span>
+                  </div>
+                  {event.eventUrl !== '#' && (
+                    <a
+                      href={event.eventUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-green-600 hover:text-green-800 text-sm mt-2"
+                    >
+                      View event <ExternalLink className="w-3 h-3 ml-1" />
+                    </a>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        );
+
+      case 'safety':
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <Shield className="w-5 h-5 mr-2 text-purple-600" />
+                Travel Safety ({travelSafety.length})
+              </h3>
+              <span className="text-sm text-gray-500">Powered by Exa.ai</span>
+            </div>
+            
+            {travelSafety.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Shield className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p>No travel advisories for your location</p>
+              </div>
+            ) : (
+              travelSafety.map((alert, index) => (
+                <div key={`${alert.id}-${index}`} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-medium text-gray-900 flex-1">{alert.title}</h4>
+                    <div className="flex space-x-2">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        alert.severity === 'critical' ? 'bg-red-100 text-red-800' :
+                        alert.severity === 'high' ? 'bg-orange-100 text-orange-800' :
+                        alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {alert.severity}
+                      </span>
+                      <span className="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-800">
+                        {alert.alertType}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-gray-600 text-sm mb-3">{alert.description}</p>
+                  
+                  {alert.recommendations.length > 0 && (
+                    <div className="mb-3">
+                      <h5 className="text-sm font-medium text-gray-900 mb-1">Recommendations:</h5>
+                      <ul className="text-sm text-gray-600 space-y-1">
+                        {alert.recommendations.slice(0, 3).map((rec, index) => (
+                          <li key={index} className="flex items-start">
+                            <span className="w-1 h-1 bg-gray-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                            {rec}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between items-center text-xs text-gray-500">
+                    <span className="flex items-center">
+                      <span className={`w-2 h-2 rounded-full mr-1 ${
+                        alert.source.authority === 'government' ? 'bg-green-500' :
+                        alert.source.authority === 'international' ? 'bg-blue-500' :
+                        'bg-gray-500'
+                      }`}></span>
+                      {alert.source.name}
+                    </span>
+                    <span>{new Date(alert.issuedDate).toLocaleDateString()}</span>
+                  </div>
+                  {alert.source.url !== '#' && (
+                    <a
+                      href={alert.source.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-purple-600 hover:text-purple-800 text-sm mt-2"
+                    >
+                      Official advisory <ExternalLink className="w-3 h-3 ml-1" />
+                    </a>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        );
+
+      case 'destinations':
+        return (
+          <div className="space-y-4">
+            <DestinationManager />
+          </div>
+        );
+
+      case 'local':
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <Bell className="w-5 h-5 mr-2 text-blue-600" />
+                My Alerts ({unreadCount})
+              </h3>
+              <button
+                onClick={refreshData}
+                className="text-sm text-blue-600 hover:text-blue-800"
+              >
+                Refresh
+              </button>
+            </div>
+            
+            {sortedAlerts.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p>No alerts for your destinations</p>
+              </div>
+            ) : (
+              sortedAlerts.map((alert, index) => (
+                <div key={`${alert.id}-${index}`} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-medium text-gray-900 flex-1">{alert.title}</h4>
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      alert.severity === 'high' ? 'bg-red-100 text-red-800' :
+                      alert.severity === 'medium' ? 'bg-orange-100 text-orange-800' :
+                      alert.severity === 'low' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {alert.severity}
+                    </span>
+                  </div>
+                  <p className="text-gray-600 text-sm mb-3">{alert.description}</p>
+                  <div className="flex justify-between items-center text-xs text-gray-500">
+                    <span>{alert.type}</span>
+                    <span>{new Date(alert.timestamp).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        );
+
+      default:
+        return null;
     }
   };
 
@@ -287,14 +500,14 @@ const AlertsPage: React.FC = () => {
       id: 'events', 
       label: 'Local Events', 
       icon: Calendar, 
-      count: events.length,
+      count: localEvents.length,
       description: `Events and activities in ${locationStatus.location || 'your area'}`
     },
     { 
       id: 'news', 
       label: 'Live News', 
       icon: Newspaper, 
-      count: newsArticles.length,
+      count: localNews.length,
       description: `Real-time news for ${locationStatus.location || 'your location'}`
     },
     { 
@@ -307,7 +520,7 @@ const AlertsPage: React.FC = () => {
       id: 'agent', 
       label: 'AI Insights', 
       icon: Globe, 
-      count: aiInsights.length,
+      count: 0,
       description: `AI-powered intelligence for ${locationStatus.location || 'your location'}`
     }
   ];
@@ -386,7 +599,7 @@ const AlertsPage: React.FC = () => {
             {tabs.map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => setActiveTab(tab.id as any)}
                 className={`py-1.5 sm:py-2 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap flex items-center gap-1 sm:gap-2 ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600'
@@ -417,264 +630,7 @@ const AlertsPage: React.FC = () => {
 
         {/* Enhanced Tab Content */}
         <div className="min-h-[300px] sm:min-h-[400px]">
-          {activeTab === 'local' && (
-            <div className="space-y-4 sm:space-y-6">
-              <AlertFilters 
-                activeFilters={activeFilters}
-                onFilterChange={handleFilterChange}
-              />
-              
-              {sortedAlerts.length === 0 ? (
-                <div className="text-center py-8 sm:py-12">
-                  <Shield className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                  <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
-                    {activeFilters.length > 0 ? 'No Matching Alerts' : 'No Alerts Found'}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {activeFilters.length > 0 
-                      ? `No alerts match your filters (${activeFilters.join(', ')}) for ${locationStatus.location || 'your location'}.`
-                      : currentDestination 
-                        ? `No safety alerts for ${currentDestination.destination}. This is good news!`
-                        : 'Add a destination to receive personalized safety alerts.'
-                    }
-                  </p>
-                  {activeFilters.length > 0 && (
-                    <button
-                      onClick={() => setActiveFilters([])}
-                      className="mt-3 sm:mt-4 btn-outline text-sm"
-                    >
-                      Clear Filters
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-3 sm:space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base sm:text-lg font-medium text-gray-900">
-                      {sortedAlerts.length} alert{sortedAlerts.length !== 1 ? 's' : ''} for {locationStatus.location}
-                      {activeFilters.length > 0 && (
-                        <span className="text-xs sm:text-sm text-gray-500 font-normal">
-                          {' '}(filtered by {activeFilters.join(', ')})
-                        </span>
-                      )}
-                    </h3>
-                    <div className="text-xs sm:text-sm text-gray-500">
-                      {unreadCount} unread
-                    </div>
-                  </div>
-                  {sortedAlerts.map((alert) => (
-                    <AlertItem 
-                      key={alert.id} 
-                      alert={alert} 
-                      onMarkAsRead={handleMarkAsRead}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'events' && (
-            <div className="space-y-4 sm:space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base sm:text-lg font-medium text-gray-900">
-                    Local Events in {locationStatus.location || 'Your Area'}
-                  </h3>
-                  {activeFilters.length > 0 && (
-                    <p className="text-xs sm:text-sm text-gray-500">
-                      Filtered by: {activeFilters.join(', ')}
-                    </p>
-                  )}
-                </div>
-                <AlertFilters 
-                  activeFilters={activeFilters}
-                  onFilterChange={handleFilterChange}
-                />
-              </div>
-
-              {eventsLoading ? (
-                <div className="space-y-3 sm:space-y-4">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="card p-3 sm:p-4 animate-pulse">
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : events.length === 0 ? (
-                <div className="text-center py-8 sm:py-12">
-                  <Calendar className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                  <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No Events Found</h3>
-                  <p className="text-sm text-gray-500">
-                    {activeFilters.length > 0 
-                      ? `No events match your filters for ${locationStatus.location}.`
-                      : `No events found for ${locationStatus.location || 'your area'}.`
-                    }
-                  </p>
-                </div>
-              ) : (
-                <div className="grid gap-3 sm:gap-4">
-                  {events.map((event, index) => (
-                    <div key={index} className="card p-3 sm:p-6 hover:shadow-lg transition-all duration-300">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900 mb-1 sm:mb-2 text-sm sm:text-base">{event.title}</h4>
-                          <p className="text-gray-600 text-xs sm:text-sm mb-2 sm:mb-3 line-clamp-2">{event.description}</p>
-                          <div className="flex items-center text-xs sm:text-sm text-gray-500 space-x-2 sm:space-x-4">
-                            <div className="flex items-center">
-                              <Clock className="w-4 h-4 mr-1" />
-                              {event.date}
-                            </div>
-                            <div className="flex items-center">
-                              <MapPin className="w-4 h-4 mr-1" />
-                              <span className="line-clamp-1">{event.location}</span>
-                            </div>
-                          </div>
-                        </div>
-                        {event.image && (
-                          <img 
-                            src={event.image} 
-                            alt={event.title}
-                            className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover ml-3 sm:ml-4"
-                          />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'news' && (
-            <div className="space-y-4 sm:space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base sm:text-lg font-medium text-gray-900">
-                    Travel News for {locationStatus.location || 'Your Location'}
-                  </h3>
-                  {activeFilters.length > 0 && (
-                    <p className="text-xs sm:text-sm text-gray-500">
-                      Filtered by: {activeFilters.join(', ')}
-                    </p>
-                  )}
-                </div>
-                <AlertFilters 
-                  activeFilters={activeFilters}
-                  onFilterChange={handleFilterChange}
-                />
-              </div>
-
-              {newsLoading ? (
-                <div className="space-y-3 sm:space-y-4">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="card p-3 sm:p-4 animate-pulse">
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : newsArticles.length === 0 ? (
-                <div className="text-center py-8 sm:py-12">
-                  <Newspaper className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                  <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No News Found</h3>
-                  <p className="text-sm text-gray-500">
-                    No recent travel news for {locationStatus.location || 'your location'}.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3 sm:space-y-4">
-                  {newsArticles.map((article, index) => (
-                    <div key={index} className="card p-3 sm:p-6 hover:shadow-lg transition-all duration-300">
-                      <h4 className="font-medium text-gray-900 mb-1 sm:mb-2 text-sm sm:text-base">{article.title}</h4>
-                      <p className="text-gray-600 text-xs sm:text-sm mb-2 sm:mb-3 line-clamp-2">{article.description}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">
-                          {typeof article.source === 'string' ? article.source : article.source?.name || 'Unknown'}
-                        </span>
-                        <span className="text-xs text-gray-500">{article.publishedAt}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'agent' && (
-            <div className="space-y-4 sm:space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base sm:text-lg font-medium text-gray-900">
-                    AI Insights for {locationStatus.location || 'Your Location'}
-                  </h3>
-                  {activeFilters.length > 0 && (
-                    <p className="text-xs sm:text-sm text-gray-500">
-                      Focused on: {activeFilters.join(', ')}
-                    </p>
-                  )}
-                </div>
-                <AlertFilters 
-                  activeFilters={activeFilters}
-                  onFilterChange={handleFilterChange}
-                />
-              </div>
-
-              {aiLoading ? (
-                <div className="space-y-3 sm:space-y-4">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="card p-3 sm:p-4 animate-pulse">
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-3 sm:space-y-4">
-                  <AgentAlerts />
-                  
-                  {aiInsights.map((insight, index) => (
-                    <div key={index} className="card p-3 sm:p-6">
-                      <h4 className="font-medium text-gray-900 mb-1 sm:mb-2 text-sm sm:text-base">{insight.title}</h4>
-                      <p className="text-gray-600 text-xs sm:text-sm mb-2 sm:mb-3">{insight.description}</p>
-                      
-                      {insight.type === 'insight' && insight.score && (
-                        <div className="flex items-center space-x-2 mb-2 sm:mb-3">
-                          <div className="flex-1 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full ${
-                                insight.score >= 80 ? 'bg-green-500' :
-                                insight.score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-                              }`}
-                              style={{ width: `${insight.score}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-sm font-medium text-gray-700">
-                            {insight.score}/100
-                          </span>
-                        </div>
-                      )}
-                      
-                      {insight.contacts && (
-                        <div className="space-y-0.5 sm:space-y-1">
-                          {insight.contacts.map((contact: string, i: number) => (
-                            <p key={i} className="text-xs sm:text-sm text-gray-600">{contact}</p>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'destinations' && (
-            <DestinationManager />
-          )}
+          {renderContent()}
         </div>
       </div>
     </PageContainer>

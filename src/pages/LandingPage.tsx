@@ -267,9 +267,6 @@ const LandingPage: React.FC = () => {
                 <span>Start Your Safe Journey</span>
                 <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <button className="px-8 py-4 rounded-xl font-semibold text-lg border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200">
-                Watch Demo
-              </button>
             </div>
 
             {/* Animated Stats */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTrial } from '../contexts/TrialContext';
 import { useLocation } from '../contexts/LocationContext';
@@ -8,24 +8,26 @@ import { WeatherCard } from '../components/home/WeatherCard';
 import { SafetyTipCard } from '../components/home/SafetyTipCard';
 import { TravelPlanItem } from '../components/home/TravelPlanItem';
 import { ActivityItem } from '../components/home/ActivityItem';
-import { EventCard, Event } from '../components/home/EventCard';
+
 import { QuickActionButtons } from '../components/home/QuickActionButtons';
 import { CreatePlanModal } from '../components/home/CreatePlanModal';
 import { TrialExpiredModal } from '../components/trial/TrialExpiredModal';
 import { TrialBanner } from '../components/trial/TrialBanner';
-import { Shield, MapPin, Calendar, Plus, RefreshCw } from 'lucide-react';
+import { Shield, MapPin, Calendar, Plus, RefreshCw, Globe, Clock } from 'lucide-react';
 import { getUserStatistics } from '../lib/userStatisticsService';
 import { getTravelPlans } from '../lib/travelPlansService';
 import { getAISafetyInsights } from '../lib/aiSafetyService';
+import { exaNewsService } from '../lib/exaNewsService';
 import { TravelPlan, Activity, SafetyTip } from '../types';
 import { AISafetyAlert } from '../lib/aiSafetyService';
+import { NewsArticle } from '../lib/newsApi';
+
 
 const HomePage: React.FC = () => {
   const { user } = useAuth();
   const { isTrialActive, isTrialExpired } = useTrial();
   const { userLocation } = useLocation();
   const { 
-    recentActivity,
     isLoading, 
     refreshData 
   } = useRealTimeData();
@@ -39,6 +41,8 @@ const HomePage: React.FC = () => {
   const [travelPlans, setTravelPlans] = useState<TravelPlan[]>([]);
   const [aiSafetyInsights, setAiSafetyInsights] = useState<SafetyTip[]>([]);
   const [isLoadingAISafety, setIsLoadingAISafety] = useState(false);
+  const [travelNews, setTravelNews] = useState<NewsArticle[]>([]);
+  const [isLoadingNews, setIsLoadingNews] = useState(false);
   const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);
   const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false);
 
@@ -101,9 +105,25 @@ const HomePage: React.FC = () => {
     }
   };
 
+  const loadTravelNews = useCallback(async () => {
+    if (!userLocation) return;
+    
+    setIsLoadingNews(true);
+    try {
+      const locationString = `${userLocation.latitude}, ${userLocation.longitude}`;
+      const response = await exaNewsService.getTravelNews(locationString);
+      setTravelNews(response.articles.slice(0, 3)); // Show only 3 latest news items
+    } catch (error) {
+      console.error('Failed to load travel news:', error);
+    } finally {
+      setIsLoadingNews(false);
+    }
+  }, [userLocation]);
+
   useEffect(() => {
     if (userLocation && user) {
       loadAISafetyInsights();
+      loadTravelNews();
     }
   }, [userLocation, user]);
 
@@ -111,7 +131,8 @@ const HomePage: React.FC = () => {
     await Promise.all([
       refreshData(),
       loadUserData(),
-      loadAISafetyInsights()
+      loadAISafetyInsights(),
+      loadTravelNews()
     ]);
   };
 
@@ -162,13 +183,13 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
+        <div className="lg:col-span-3 space-y-6">
           {isTrialActive && <TrialBanner />}
           
           {/* Statistics Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="card p-6 text-center">
+            <div className="card p-6 text-center hover:shadow-lg transition-shadow duration-300">
               <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-full bg-blue-100">
                 <MapPin className="w-6 h-6 text-blue-600" />
               </div>
@@ -176,7 +197,7 @@ const HomePage: React.FC = () => {
               <p className="text-sm text-slate-600">Travel Plans</p>
             </div>
             
-            <div className="card p-6 text-center">
+            <div className="card p-6 text-center hover:shadow-lg transition-shadow duration-300">
               <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-full bg-green-100">
                 <Shield className="w-6 h-6 text-green-600" />
               </div>
@@ -184,7 +205,7 @@ const HomePage: React.FC = () => {
               <p className="text-sm text-slate-600">Safety Score</p>
             </div>
             
-            <div className="card p-6 text-center">
+            <div className="card p-6 text-center hover:shadow-lg transition-shadow duration-300">
               <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-full bg-purple-100">
                 <Calendar className="w-6 h-6 text-purple-600" />
               </div>
@@ -195,72 +216,151 @@ const HomePage: React.FC = () => {
 
           <QuickActionButtons />
 
-          <div className="card p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Travel Plans</h2>
-              <button 
-                onClick={() => setShowCreatePlanModal(true)}
-                className="btn btn-ghost btn-sm"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Add Plan
-              </button>
+          {/* Enhanced 2-Column Layout for Main Content */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Travel Plans Section */}
+            <div className="card p-6 hover:shadow-lg transition-shadow duration-300">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold flex items-center">
+                  <MapPin className="w-5 h-5 mr-2 text-blue-600" />
+                  Travel Plans
+                </h2>
+                <button 
+                  onClick={() => setShowCreatePlanModal(true)}
+                  className="btn btn-primary btn-sm"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Plan
+                </button>
+              </div>
+              <div className="space-y-4">
+                {travelPlans.length > 0 ? (
+                  travelPlans.map((plan) => (
+                    <TravelPlanItem key={plan.id} plan={plan} />
+                  ))
+                ) : (
+                  <div className="text-center py-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-dashed border-blue-200">
+                    <MapPin className="w-12 h-12 text-blue-400 mx-auto mb-3" />
+                    <h3 className="text-lg font-medium text-slate-700 mb-2">Ready for your next adventure?</h3>
+                    <p className="text-sm text-slate-500 mb-4">Create your first travel plan to get personalized safety insights</p>
+                    <button 
+                      onClick={() => setShowCreatePlanModal(true)}
+                      className="btn btn-primary"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Travel Plan
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="space-y-4">
-              {travelPlans.map((plan) => (
-                <TravelPlanItem key={plan.id} plan={plan} />
+
+            {/* Travel News & Insights Section */}
+            <div className="card p-6 hover:shadow-lg transition-shadow duration-300">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold flex items-center">
+                  <Globe className="w-5 h-5 mr-2 text-red-600" />
+                  Travel Intelligence
+                </h2>
+                <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">Live</span>
+              </div>
+              
+              {isLoadingNews ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
+                  <p className="text-sm text-slate-500 mt-3">Analyzing global travel conditions...</p>
+                </div>
+              ) : travelNews.length > 0 ? (
+                <div className="space-y-4">
+                  {travelNews.map((article) => (
+                    <div key={article.url} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                      <div className="flex items-start space-x-3">
+                        <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900 line-clamp-2 mb-1">
+                            {article.title}
+                          </h4>
+                          <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                            {article.description}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-500">
+                              {new Date(article.publishedAt).toLocaleDateString()}
+                            </span>
+                            <a 
+                              href={article.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 hover:text-blue-800"
+                            >
+                              Read more →
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <button className="w-full text-center py-2 text-sm text-red-600 hover:text-red-700 font-medium">
+                    View All Travel Alerts →
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center py-8 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border-2 border-dashed border-green-200">
+                  <Shield className="w-12 h-12 text-green-400 mx-auto mb-3" />
+                  <h3 className="text-lg font-medium text-slate-700 mb-2">All Clear!</h3>
+                  <p className="text-sm text-slate-500 mb-2">No critical travel alerts for your area</p>
+                  <p className="text-xs text-slate-400">We'll notify you of any important updates</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Recent Activity Section - Full Width */}
+          <div className="card p-6 hover:shadow-lg transition-shadow duration-300">
+            <h2 className="text-xl font-semibold mb-4 flex items-center">
+              <Clock className="w-5 h-5 mr-2 text-purple-600" />
+              Recent Activity
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {recentActivities.map((activity) => (
+                <div key={activity.id} className="p-4 rounded-lg border border-slate-200 hover:border-purple-300 hover:shadow-sm transition-all duration-300">
+                  <ActivityItem activity={activity} />
+                </div>
               ))}
             </div>
           </div>
         </div>
 
+        {/* Streamlined Right Sidebar - Real-time Data Only */}
         <div className="space-y-6">
           <WeatherCard />
 
-          <div className="card p-6">
-            <h2 className="text-xl font-semibold mb-4">Safety Insights</h2>
+          <div className="card p-6 hover:shadow-lg transition-shadow duration-300">
+            <h2 className="text-xl font-semibold mb-4 flex items-center">
+              <Shield className="w-5 h-5 mr-2 text-green-600" />
+              Safety Insights
+            </h2>
             {isLoadingAISafety ? (
-              <div className="text-center py-4">Loading safety insights...</div>
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600 mx-auto"></div>
+                <p className="text-xs text-slate-500 mt-2">Analyzing safety data...</p>
+              </div>
             ) : aiSafetyInsights.length > 0 ? (
               <div className="space-y-3">
-                {aiSafetyInsights.slice(0, 3).map((tip) => (
+                {aiSafetyInsights.slice(0, 2).map((tip) => (
                   <SafetyTipCard key={tip.id} tip={tip} />
                 ))}
+                <button className="w-full text-center py-2 text-sm text-green-600 hover:text-green-700 font-medium">
+                  View All Insights →
+                </button>
               </div>
             ) : (
-              <div className="text-center py-4 text-slate-500">
-                No safety insights available
+              <div className="text-center py-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg">
+                <Shield className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                <p className="text-sm text-slate-600">You're all set!</p>
+                <p className="text-xs text-slate-500">No safety concerns detected</p>
               </div>
             )}
-          </div>
-
-          <div className="card p-6">
-            <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
-            <div className="space-y-4">
-              {recentActivities.map((activity) => (
-                <ActivityItem key={activity.id} activity={activity} />
-              ))}
-            </div>
-          </div>
-
-          <div className="card p-6">
-            <h2 className="text-xl font-semibold mb-4">Local Events</h2>
-            <div className="space-y-3">
-              {recentActivity.filter(activity => activity.type === 'plan').map((activity) => {
-                const event: Event = {
-                  id: activity.id,
-                  title: activity.title,
-                  description: activity.description,
-                  date: activity.timestamp,
-                  time: new Date(activity.timestamp).toLocaleTimeString(),
-                  location: 'Local',
-                  imageUrl: `https://source.unsplash.com/800x600/?${encodeURIComponent(activity.type)}`,
-                  attendees: 0,
-                  category: activity.type
-                };
-                return <EventCard key={activity.id} event={event} />;
-              })}
-            </div>
           </div>
         </div>
       </div>

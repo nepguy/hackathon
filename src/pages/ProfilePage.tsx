@@ -1,192 +1,47 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useTranslation } from '../contexts/TranslationContext';
-import { useSubscription } from '../contexts/SubscriptionContext';
 import { useUserStatistics } from '../lib/userStatisticsService';
 import { databaseService } from '../lib/database';
 import PageContainer from '../components/layout/PageContainer';
-import LanguageSelector from '../components/common/LanguageSelector';
-import SubscriptionManagement from '../components/payment/SubscriptionManagement';
 import { 
-  User, Bell, Shield, HelpCircle, LogOut,
-  Camera, Moon, Sun, Globe, Lock, 
-  ChevronRight, Check, X, RefreshCw, AlertTriangle
+  User, Settings, Shield, HelpCircle, LogOut,
+  Camera, ChevronRight, TrendingUp, MapPin,
+  Calendar, Award, Clock, Globe, Bell,
+  Lock, Smartphone, CreditCard, Star
 } from 'lucide-react';
 
-// Define proper interfaces for type safety
-interface SettingsItem {
-  icon: React.ComponentType<any>;
-  label: string;
-  action: () => void | Promise<void>;
-  value?: string;
-  danger?: boolean;
-}
-
-interface SettingsGroup {
-  title: string;
-  items: SettingsItem[];
-}
-
 const ProfilePage: React.FC = () => {
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { t, currentLanguage } = useTranslation();
-  const { } = useSubscription();
   const { statistics } = useUserStatistics();
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
-  const [editForm, setEditForm] = useState({
-    fullName: '',
-    email: ''
-  });
-  
-  const [preferences, setPreferences] = useState({
-    notifications: {
-      safety: true,
-      weather: true,
-      events: false,
-      news: true
-    },
-    privacy: {
-      shareLocation: false,
-      publicProfile: false
-    },
-    appearance: {
-      theme: 'light',
-      language: currentLanguage
-    }
-  });
 
-  // Load user data
   useEffect(() => {
-    const loadUserData = async () => {
-      if (!user) return;
-
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        // Load profile and preferences from database
-        const [profile, prefs] = await Promise.all([
-          databaseService.getUserProfile(user.id),
-          databaseService.getUserPreferences(user.id),
-        ]);
-
-        setUserProfile(profile);
-
-        // Set form data
-        setEditForm({
-          fullName: profile?.full_name || user.user_metadata?.full_name || '',
-          email: profile?.email || user.email || ''
-        });
-
-        // Set preferences from database
-        if (prefs) {
-          setPreferences(prev => ({
-            ...prev,
-            notifications: {
-              safety: prefs.notifications_safety,
-              weather: prefs.notifications_weather,
-              events: false, // Not in database yet
-              news: prefs.notifications_local_news
-            }
-          }));
-        }
-
-        console.log('✅ User profile loaded:', profile);
-      } catch (err) {
-        console.error('Error loading user data:', err);
-        setError('Failed to load profile data');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     loadUserData();
   }, [user]);
+
+  const loadUserData = async () => {
+    if (!user) return;
+
+    setIsLoading(true);
+    try {
+      const profile = await databaseService.getUserProfile(user.id);
+      setUserProfile(profile);
+    } catch (err) {
+      console.error('Error loading user data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
       await signOut();
+      navigate('/auth');
     } catch (error) {
       console.error('Error signing out:', error);
-    }
-  };
-
-  const handleSaveProfile = async () => {
-    if (!user) return;
-
-    setIsSaving(true);
-    setError(null);
-
-    try {
-      await databaseService.updateUserProfile(user.id, {
-        full_name: editForm.fullName,
-        email: editForm.email
-      });
-
-      // Refresh profile data
-      const updatedProfile = await databaseService.getUserProfile(user.id);
-      setUserProfile(updatedProfile);
-      setIsEditing(false);
-    } catch (err) {
-      console.error('Error saving profile:', err);
-      setError('Failed to save profile');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const togglePreference = async (category: string, key: string) => {
-    if (!user) return;
-
-    // Create a new preferences object with proper type safety
-    let newPreferences = { ...preferences };
-    
-    if (category === 'notifications') {
-      newPreferences = {
-        ...preferences,
-        notifications: {
-          ...preferences.notifications,
-          [key]: !preferences.notifications[key as keyof typeof preferences.notifications]
-        }
-      };
-    } else if (category === 'privacy') {
-      newPreferences = {
-        ...preferences,
-        privacy: {
-          ...preferences.privacy,
-          [key]: !preferences.privacy[key as keyof typeof preferences.privacy]
-        }
-      };
-    } else if (category === 'appearance') {
-      newPreferences = {
-        ...preferences,
-        appearance: {
-          ...preferences.appearance,
-          [key]: !preferences.appearance[key as keyof typeof preferences.appearance]
-        }
-      };
-    }
-
-    setPreferences(newPreferences);
-
-    // Update in database for notification preferences
-    if (category === 'notifications') {
-      try {
-        const updates: any = {};
-        if (key === 'safety') updates.notifications_safety = newPreferences.notifications.safety;
-        if (key === 'weather') updates.notifications_weather = newPreferences.notifications.weather;
-        if (key === 'news') updates.notifications_local_news = newPreferences.notifications.news;
-
-        await databaseService.updateUserPreferences(user.id, updates);
-      } catch (err) {
-        console.error('Error updating preferences:', err);
-        // Revert on error
-        setPreferences(preferences);
-      }
     }
   };
 
@@ -194,167 +49,105 @@ const ProfilePage: React.FC = () => {
   const avatarUrl = userProfile?.avatar_url || user?.user_metadata?.avatar_url || 
     `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=3b82f6&color=fff&size=128`;
 
-  // Use real statistics from Supabase
+  // Real statistics from Supabase
   const stats = statistics ? [
     { 
-      label: 'Destinations Visited', 
+      icon: MapPin,
+      label: 'Travel Plans', 
       value: statistics.travel_plans_count.toString(),
-      trend: statistics.travel_plans_count > 10 ? 'World Explorer' : statistics.travel_plans_count > 5 ? 'Active Traveler' : 'Getting Started'
+      trend: statistics.travel_plans_count > 10 ? 'World Explorer' : statistics.travel_plans_count > 5 ? 'Active Traveler' : 'Getting Started',
+      color: 'text-blue-600'
     },
     { 
+      icon: Shield,
       label: 'Safety Score', 
       value: `${statistics.safety_score}%`,
-      trend: statistics.safety_score >= 95 ? 'Excellent' : statistics.safety_score >= 85 ? 'Very Good' : 'Good'
+      trend: statistics.safety_score >= 95 ? 'Excellent' : statistics.safety_score >= 85 ? 'Very Good' : 'Good',
+      color: 'text-green-600'
     },
     { 
-      label: 'Days Traveled', 
+      icon: Calendar,
+      label: 'Days Tracked', 
       value: statistics.days_tracked.toString(),
-      trend: statistics.days_tracked > 100 ? 'Experienced' : statistics.days_tracked > 30 ? 'Regular' : 'Beginner'
+      trend: statistics.days_tracked > 100 ? 'Experienced' : statistics.days_tracked > 30 ? 'Regular' : 'Beginner',
+      color: 'text-purple-600'
+    },
+    { 
+      icon: Award,
+      label: 'Achievement Level', 
+      value: statistics.travel_plans_count > 20 ? 'Expert' : statistics.travel_plans_count > 10 ? 'Advanced' : statistics.travel_plans_count > 5 ? 'Intermediate' : 'Beginner',
+      trend: 'Based on travel activity',
+      color: 'text-yellow-600'
     }
-  ] : [
-    // Fallback while loading
-    { label: 'Destinations Visited', value: '...', trend: 'Loading...' },
-    { label: 'Safety Score', value: '...', trend: 'Loading...' },
-    { label: 'Days Traveled', value: '...', trend: 'Loading...' }
+  ] : [];
+
+  const quickActions = [
+    {
+      icon: User,
+      title: 'Personal Information',
+      description: 'Manage your private details and emergency contacts',
+      action: () => navigate('/personal-info'),
+      color: 'bg-blue-50 text-blue-600 border-blue-200',
+      iconBg: 'bg-blue-100'
+    },
+    {
+      icon: Settings,
+      title: 'App Settings',
+      description: 'Customize notifications, privacy, and preferences',
+      action: () => navigate('/profile-settings'),
+      color: 'bg-gray-50 text-gray-600 border-gray-200',
+      iconBg: 'bg-gray-100'
+    },
+    {
+      icon: CreditCard,
+      title: 'Subscription',
+      description: 'Manage your GuardNomad subscription and billing',
+      action: () => navigate('/pricing'),
+      color: 'bg-green-50 text-green-600 border-green-200',
+      iconBg: 'bg-green-100'
+    },
+    {
+      icon: HelpCircle,
+      title: 'Help & Support',
+      description: 'Get help, report issues, and contact support',
+      action: () => {
+        const supportOptions = [
+          'Email: support@guardnomad.com',
+          'Phone: +1 (555) 123-4567',
+          'FAQ: Available in app menu',
+          'Live Chat: Available 24/7'
+        ];
+        alert('Support Options:\n\n' + supportOptions.join('\n'));
+      },
+      color: 'bg-purple-50 text-purple-600 border-purple-200',
+      iconBg: 'bg-purple-100'
+    }
   ];
 
-  const handlePrivacyAndSecurity = () => {
-    // Scroll to privacy settings section
-    const element = document.querySelector('[data-section="privacy"]');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      // Create a modal for privacy settings
-      const privacyModal = document.createElement('div');
-      privacyModal.className = 'fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[9999]';
-      privacyModal.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-          <h3 class="text-lg font-bold mb-4">Privacy & Security</h3>
-          <div class="space-y-4 text-sm">
-            <div class="flex items-center justify-between">
-              <span>Data Encryption</span>
-              <span class="text-green-600 font-medium">✓ Enabled</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span>Two-Factor Auth</span>
-              <button class="text-blue-600 font-medium">Enable</button>
-            </div>
-            <div class="flex items-center justify-between">
-              <span>Location Privacy</span>
-              <span class="text-green-600 font-medium">✓ Protected</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span>Data Sharing</span>
-              <span class="text-gray-600 font-medium">Minimal</span>
-            </div>
-          </div>
-          <button onclick="this.parentElement.parentElement.remove()" class="mt-6 w-full btn-primary">
-            Close
-          </button>
-        </div>
-      `;
-      document.body.appendChild(privacyModal);
-      
-      // Remove modal when clicking backdrop
-      privacyModal.addEventListener('click', (e) => {
-        if (e.target === privacyModal) {
-          document.body.removeChild(privacyModal);
-        }
-      });
-    }
-  };
-
-  const handleNotificationSettings = () => {
-    // Scroll to notification preferences section
-    const element = document.querySelector('[data-section="notifications"]');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
-  const handleAppearanceSettings = () => {
-    const newTheme = preferences.appearance.theme === 'light' ? 'dark' : 'light';
-    setPreferences(prev => ({
-      ...prev,
-      appearance: { ...prev.appearance, theme: newTheme }
-    }));
-    
-    // Apply theme to document
-    document.documentElement.setAttribute('data-theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-    
-    // Persist theme preference
-    localStorage.setItem('guardnomad-theme', newTheme);
-    
-    // Show confirmation
-    const toast = document.createElement('div');
-    toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-[10000] transition-all duration-300';
-    toast.textContent = `Theme changed to ${newTheme === 'light' ? 'Light' : 'Dark'} mode`;
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      setTimeout(() => document.body.removeChild(toast), 300);
-    }, 2000);
-  };
-
-  const handleLanguageSettings = () => {
-    const languages = ['English', 'Spanish', 'French', 'German', 'Japanese'];
-    const currentIndex = languages.indexOf(preferences.appearance.language);
-    const nextIndex = (currentIndex + 1) % languages.length;
-    const newLanguage = languages[nextIndex];
-    
-    setPreferences(prev => ({
-      ...prev,
-      appearance: { ...prev.appearance, language: newLanguage.toLowerCase() }
-    }));
-    
-    alert(`Language changed to ${newLanguage}. This is a demo - full localization coming soon!`);
-  };
-
-  const handleHelpAndSupport = () => {
-    const supportOptions = [
-      'Email: support@guardnomad.com',
-      'Phone: +1 (555) 123-4567',
-      'FAQ: Available in app menu',
-      'Live Chat: Available 24/7'
-    ];
-    
-    alert('Support Options:\n\n' + supportOptions.join('\n'));
-  };
-
-  const settingsGroups: SettingsGroup[] = [
+  const securityFeatures = [
     {
-      title: 'Account',
-      items: [
-        { icon: User, label: 'Personal Information', action: () => setIsEditing(true) },
-        { icon: Lock, label: 'Privacy & Security', action: handlePrivacyAndSecurity },
-        { icon: Bell, label: 'Notifications', action: handleNotificationSettings },
-      ]
+      icon: Lock,
+      title: 'Data Encryption',
+      status: 'Active',
+      statusColor: 'text-green-600'
     },
     {
-      title: 'Preferences',
-      items: [
-        { 
-          icon: preferences.appearance.theme === 'light' ? Sun : Moon, 
-          label: 'Appearance', 
-          value: preferences.appearance.theme === 'light' ? 'Light' : 'Dark', 
-          action: handleAppearanceSettings 
-        },
-        { 
-          icon: Globe, 
-          label: 'Language', 
-          value: preferences.appearance.language.charAt(0).toUpperCase() + preferences.appearance.language.slice(1), 
-          action: handleLanguageSettings 
-        },
-      ]
+      icon: Shield,
+      title: 'Privacy Protection',
+      status: 'Enabled',
+      statusColor: 'text-green-600'
     },
     {
-      title: 'Support',
-      items: [
-        { icon: HelpCircle, label: 'Help & Support', action: handleHelpAndSupport },
-        { icon: LogOut, label: 'Sign Out', action: handleSignOut, danger: true },
-      ]
+      icon: Bell,
+      title: 'Emergency Alerts',
+      status: 'Configured',
+      statusColor: 'text-blue-600'
+    },
+    {
+      icon: Smartphone,
+      title: 'Two-Factor Auth',
+      status: 'Recommended',
+      statusColor: 'text-yellow-600'
     }
   ];
 
@@ -372,43 +165,28 @@ const ProfilePage: React.FC = () => {
     return (
       <PageContainer 
         title="Profile"
-        subtitle="Manage your account and preferences"
+        subtitle="Manage your account and travel preferences"
       >
-        <div className="space-y-8">
-          <div className="card p-8 text-center animate-pulse">
-            <div className="w-24 h-24 bg-slate-200 rounded-full mx-auto mb-6"></div>
-            <div className="h-6 bg-slate-200 rounded w-48 mx-auto mb-2"></div>
-            <div className="h-4 bg-slate-200 rounded w-32 mx-auto mb-6"></div>
-            <div className="grid grid-cols-3 gap-6">
-              {[1, 2, 3].map(i => (
-                <div key={i}>
-                  <div className="h-8 bg-slate-200 rounded mb-2"></div>
-                  <div className="h-4 bg-slate-200 rounded"></div>
+        <div className="space-y-6">
+          <div className="bg-white rounded-2xl shadow-sm border p-8 animate-pulse">
+            <div className="flex items-center space-x-6 mb-8">
+              <div className="w-20 h-20 bg-gray-200 rounded-full"></div>
+              <div className="space-y-3">
+                <div className="h-6 bg-gray-200 rounded w-48"></div>
+                <div className="h-4 bg-gray-200 rounded w-32"></div>
+                <div className="h-4 bg-gray-200 rounded w-40"></div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="space-y-2">
+                  <div className="h-8 bg-gray-200 rounded"></div>
+                  <div className="h-4 bg-gray-200 rounded"></div>
+                  <div className="h-3 bg-gray-200 rounded w-20"></div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
-      </PageContainer>
-    );
-  }
-
-  if (error) {
-    return (
-      <PageContainer 
-        title="Profile"
-        subtitle="Manage your account and preferences"
-      >
-        <div className="card p-8 text-center bg-red-50 border-red-200">
-          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-bold text-red-900 mb-2">Unable to Load Profile</h3>
-          <p className="text-red-700 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="btn-primary bg-red-600 hover:bg-red-700"
-          >
-            Try Again
-          </button>
         </div>
       </PageContainer>
     );
@@ -417,300 +195,191 @@ const ProfilePage: React.FC = () => {
   return (
     <PageContainer 
       title="Profile"
-      subtitle="Manage your account and preferences"
+      subtitle="Manage your account and travel preferences"
     >
-      <div className="space-y-8 stagger-children">
+      <div className="space-y-6">
         
         {/* Profile Header */}
-        <div className="card p-8 text-center relative overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border p-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full -translate-y-16 translate-x-16"></div>
           
           <div className="relative z-10">
-            <div className="relative inline-block mb-6">
-              <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-xl">
-                <img 
-                  src={avatarUrl} 
-                  alt={displayName} 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <button className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 transition-colors">
-                <Camera className="w-4 h-4" />
-              </button>
-            </div>
-            
-            {isEditing ? (
-              <div className="space-y-4 max-w-sm mx-auto">
-                <input
-                  type="text"
-                  value={editForm.fullName}
-                  onChange={(e) => setEditForm({...editForm, fullName: e.target.value})}
-                  className="input text-center"
-                  placeholder="Full Name"
-                />
-                <input
-                  type="email"
-                  value={editForm.email}
-                  onChange={(e) => setEditForm({...editForm, email: e.target.value})}
-                  className="input text-center"
-                  placeholder="Email"
-                />
-                <div className="flex space-x-3 justify-center">
-                  <button 
-                    onClick={handleSaveProfile} 
-                    disabled={isSaving}
-                    className="btn-primary flex items-center space-x-2"
-                  >
-                    {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                    <span>{isSaving ? 'Saving...' : 'Save'}</span>
-                  </button>
-                  <button 
-                    onClick={() => setIsEditing(false)} 
-                    disabled={isSaving}
-                    className="btn-outline flex items-center space-x-2"
-                  >
-                    <X className="w-4 h-4" />
-                    <span>Cancel</span>
-                  </button>
+            <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8 mb-8">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-xl">
+                  <img 
+                    src={avatarUrl} 
+                    alt={displayName} 
+                    className="w-full h-full object-cover"
+                  />
                 </div>
+                <button className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 transition-colors">
+                  <Camera className="w-3 h-3" />
+                </button>
               </div>
-            ) : (
-              <>
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">{displayName}</h2>
-                <p className="text-slate-600 mb-6">{userProfile?.email || user.email}</p>
+              
+              <div className="text-center md:text-left flex-1">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">{displayName}</h2>
+                <p className="text-gray-600 mb-1">{userProfile?.email || user.email}</p>
+                <div className="flex items-center justify-center md:justify-start space-x-4 text-sm text-gray-500">
+                  <span className="flex items-center">
+                    <Clock className="w-4 h-4 mr-1" />
+                    Member since {new Date(user.created_at).toLocaleDateString()}
+                  </span>
+                  <span className="flex items-center">
+                    <Globe className="w-4 h-4 mr-1" />
+                    Global Traveler
+                  </span>
+                </div>
                 
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-6">
-                  {stats.map((stat, index) => (
-                    <div key={index} className="text-center">
-                      <div className="text-2xl font-bold text-slate-900">{stat.value}</div>
-                      <div className="text-sm text-slate-600">{stat.label}</div>
-                      {stat.trend && (
-                        <div className="text-xs text-slate-500 mt-1">{stat.trend}</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Subscription Management */}
-        <SubscriptionManagement />
-
-        {/* Notification Preferences */}
-        <div className="card p-6" data-section="notifications">
-          <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center">
-            <Bell className="w-5 h-5 mr-2 text-blue-600" />
-            {t('notification_preferences', 'Notification Preferences')}
-          </h3>
-          
-          <div className="space-y-4">
-            {Object.entries(preferences.notifications).map(([key, value]) => (
-              <div key={key} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors">
-                <div>
-                  <div className="font-medium text-slate-900 capitalize">{key} {t('alerts', 'Alerts')}</div>
-                  <div className="text-sm text-slate-600">
-                    {t('receive_notifications', 'Receive notifications about')} {key.toLowerCase()} {t('updates', 'updates')}
+                {/* Quick Status */}
+                <div className="mt-4 flex items-center justify-center md:justify-start space-x-2">
+                  <div className="flex items-center space-x-1 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>Active Traveler</span>
                   </div>
-                </div>
-                <button
-                  onClick={() => togglePreference('notifications', key)}
-                  className={`relative w-12 h-6 rounded-full transition-colors ${
-                    value ? 'bg-blue-600' : 'bg-slate-300'
-                  }`}
-                >
-                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                    value ? 'translate-x-7' : 'translate-x-1'
-                  }`}></div>
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Privacy & Security Settings */}
-        <div className="card p-6" data-section="privacy">
-          <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center">
-            <Lock className="w-5 h-5 mr-2 text-blue-600" />
-            {t('privacy_security', 'Privacy & Security')}
-          </h3>
-          
-          <div className="space-y-4">
-            {Object.entries(preferences.privacy).map(([key, value]) => (
-              <div key={key} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors">
-                <div>
-                  <div className="font-medium text-slate-900 capitalize">
-                    {key === 'shareLocation' ? 'Share Location' : 'Public Profile'}
+                  <div className="flex items-center space-x-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                    <Star className="w-3 h-3" />
+                    <span>Premium Member</span>
                   </div>
-                  <div className="text-sm text-slate-600">
-                    {key === 'shareLocation' 
-                      ? 'Allow other travelers to see your general location' 
-                      : 'Make your travel experiences visible to other users'
-                    }
-                  </div>
-                </div>
-                <button
-                  onClick={() => togglePreference('privacy', key)}
-                  className={`relative w-12 h-6 rounded-full transition-colors ${
-                    value ? 'bg-blue-600' : 'bg-slate-300'
-                  }`}
-                >
-                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                    value ? 'translate-x-7' : 'translate-x-1'
-                  }`}></div>
-                </button>
-              </div>
-            ))}
-            
-            <div className="p-4 bg-green-50 rounded-xl border border-green-200">
-              <div className="flex items-start space-x-3">
-                <Shield className="w-5 h-5 text-green-600 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-green-900 mb-1">
-                    {t('data_protected', 'Your Data is Protected')}
-                  </h4>
-                  <p className="text-sm text-green-700">
-                    {t('encryption_description', 'All your personal data is encrypted and stored securely. We never share your information with third parties without your explicit consent.')}
-                  </p>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Appearance Settings */}
-        <div className="card p-6" data-section="appearance">
-          <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center">
-            {preferences.appearance.theme === 'light' ? 
-              <Sun className="w-5 h-5 mr-2 text-blue-600" /> : 
-              <Moon className="w-5 h-5 mr-2 text-blue-600" />
-            }
-            {t('appearance_settings', 'Appearance Settings')}
-          </h3>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors">
-              <div>
-                <div className="font-medium text-slate-900">Theme Mode</div>
-                <div className="text-sm text-slate-600">
-                  Choose between light and dark theme
-                </div>
-              </div>
-              <button
-                onClick={handleAppearanceSettings}
-                className={`relative w-16 h-8 rounded-full transition-colors ${
-                  preferences.appearance.theme === 'dark' ? 'bg-blue-600' : 'bg-slate-300'
-                }`}
-              >
-                <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-transform flex items-center justify-center ${
-                  preferences.appearance.theme === 'dark' ? 'translate-x-9' : 'translate-x-1'
-                }`}>
-                  {preferences.appearance.theme === 'dark' ? 
-                    <Moon className="w-3 h-3 text-blue-600" /> : 
-                    <Sun className="w-3 h-3 text-yellow-600" />
-                  }
-                </div>
-              </button>
-            </div>
-            
-            <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
-              <div className="flex items-start space-x-3">
-                {preferences.appearance.theme === 'light' ? 
-                  <Sun className="w-5 h-5 text-blue-600 mt-0.5" /> : 
-                  <Moon className="w-5 h-5 text-blue-600 mt-0.5" />
-                }
-                <div>
-                  <h4 className="font-medium text-blue-900 mb-1">
-                    {preferences.appearance.theme === 'light' ? 'Light Theme Active' : 'Dark Theme Active'}
-                  </h4>
-                  <p className="text-sm text-blue-700">
-                    {preferences.appearance.theme === 'light' ? 
-                      'Optimized for daytime use with bright, clear interfaces.' :
-                      'Easier on the eyes during nighttime use with reduced blue light.'
-                    }
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Language Settings */}
-        <div className="card p-6" data-section="language">
-          <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center">
-            <Globe className="w-5 h-5 mr-2 text-blue-600" />
-            {t('language_settings', 'Language Settings')}
-          </h3>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50">
-              <div>
-                <div className="font-medium text-slate-900">{t('app_language', 'App Language')}</div>
-                <div className="text-sm text-slate-600">
-                  {t('select_preferred_language', 'Select your preferred language for the app interface')}
-                </div>
-              </div>
-              <LanguageSelector />
-            </div>
-            
-            <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
-              <div className="flex items-start space-x-3">
-                <Globe className="w-5 h-5 text-blue-600 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-blue-900 mb-1">
-                    {t('multilingual_support', 'Multilingual Support')}
-                  </h4>
-                  <p className="text-sm text-blue-700">
-                    {t('multilingual_description', 'GuardNomad supports over 20 languages. Your language preference is automatically saved and will be applied across all app features including alerts, weather updates, and event information.')}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Settings Groups */}
-        {settingsGroups.map((group, groupIndex) => (
-          <div key={groupIndex} className="space-y-3">
-            <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wider px-1">
-              {group.title}
-            </h3>
-            
-            <div className="card p-0 overflow-hidden">
-              {group.items.map((item, itemIndex) => (
-                <button
-                  key={itemIndex}
-                  onClick={item.action}
-                  className={`w-full flex items-center justify-between p-4 text-left hover:bg-slate-50 transition-colors ${
-                    itemIndex !== group.items.length - 1 ? 'border-b border-slate-100' : ''
-                  } ${item.danger ? 'text-red-600 hover:bg-red-50' : ''}`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <item.icon className={`w-5 h-5 ${item.danger ? 'text-red-500' : 'text-slate-500'}`} />
-                    <span className="font-medium">{item.label}</span>
+            {/* Travel Statistics */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {stats.map((stat, index) => (
+                <div key={index} className="text-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                  <div className="flex items-center justify-center mb-2">
+                    <stat.icon className={`w-6 h-6 ${stat.color}`} />
                   </div>
-                  <div className="flex items-center space-x-2">
-                    {item.value && (
-                      <span className="text-sm text-slate-500">{item.value}</span>
-                    )}
-                    <ChevronRight className="w-4 h-4 text-slate-400" />
-                  </div>
-                </button>
+                  <div className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</div>
+                  <div className="text-sm text-gray-600 mb-1">{stat.label}</div>
+                  <div className="text-xs text-gray-500">{stat.trend}</div>
+                </div>
               ))}
             </div>
           </div>
-        ))}
+        </div>
 
-        {/* App Info */}
-        <div className="card p-6 text-center bg-gradient-to-r from-slate-50 to-blue-50">
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {quickActions.map((action, index) => (
+            <button
+              key={index}
+              onClick={action.action}
+              className={`p-6 rounded-2xl border-2 text-left hover:shadow-lg transition-all duration-200 hover:scale-[1.02] ${action.color}`}
+            >
+              <div className="flex items-start space-x-4">
+                <div className={`p-3 rounded-xl ${action.iconBg}`}>
+                  <action.icon className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900 mb-1">{action.title}</h3>
+                  <p className="text-sm text-gray-600 mb-3">{action.description}</p>
+                  <div className="flex items-center text-sm font-medium">
+                    <span>Manage</span>
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </div>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Security Overview */}
+        <div className="bg-white rounded-2xl shadow-sm border p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <Shield className="w-5 h-5 mr-2 text-green-600" />
+            Security & Privacy Overview
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {securityFeatures.map((feature, index) => (
+              <div key={index} className="p-4 bg-gray-50 rounded-xl">
+                <div className="flex items-center space-x-3 mb-2">
+                  <feature.icon className="w-5 h-5 text-gray-600" />
+                  <span className="font-medium text-gray-900">{feature.title}</span>
+                </div>
+                <div className={`text-sm font-medium ${feature.statusColor}`}>
+                  {feature.status}
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-4 p-4 bg-green-50 rounded-xl border border-green-200">
+            <div className="flex items-start space-x-3">
+              <Shield className="w-5 h-5 text-green-600 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-green-900 mb-1">Your Account is Secure</h4>
+                <p className="text-sm text-green-700">
+                  All security features are active. Your personal data is encrypted and protected according to international privacy standards.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Account Actions */}
+        <div className="bg-white rounded-2xl shadow-sm border p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Actions</h3>
+          
+          <div className="space-y-3">
+            <button
+              onClick={() => navigate('/alerts')}
+              className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 rounded-xl transition-colors"
+            >
+              <div className="flex items-center space-x-3">
+                <TrendingUp className="w-5 h-5 text-blue-600" />
+                <div>
+                  <span className="font-medium text-gray-900">View Travel Activity</span>
+                  <p className="text-sm text-gray-600">See your recent alerts and travel history</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </button>
+
+            <button
+              onClick={() => navigate('/explore')}
+              className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 rounded-xl transition-colors"
+            >
+              <div className="flex items-center space-x-3">
+                <Globe className="w-5 h-5 text-green-600" />
+                <div>
+                  <span className="font-medium text-gray-900">Explore Destinations</span>
+                  <p className="text-sm text-gray-600">Discover new places and travel stories</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </button>
+
+            <div className="border-t pt-3 mt-3">
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center justify-between p-4 text-left hover:bg-red-50 rounded-xl transition-colors text-red-600"
+              >
+                <div className="flex items-center space-x-3">
+                  <LogOut className="w-5 h-5" />
+                  <div>
+                    <span className="font-medium">Sign Out</span>
+                    <p className="text-sm text-red-500">Sign out of your GuardNomad account</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* App Information */}
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 border border-blue-200 text-center">
           <Shield className="w-12 h-12 text-blue-600 mx-auto mb-3" />
-          <h4 className="font-bold text-slate-900 mb-2">GuardNomad</h4>
-          <p className="text-sm text-slate-600 mb-3">
+          <h4 className="font-bold text-gray-900 mb-2">GuardNomad</h4>
+          <p className="text-sm text-gray-600 mb-3">
             Your trusted companion for safe travels worldwide
           </p>
-          <div className="text-xs text-slate-500">
+          <div className="text-xs text-gray-500">
             Version 1.0.0 • Made with ❤️ for travelers
           </div>
         </div>

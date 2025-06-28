@@ -7,11 +7,14 @@ import TrialBanner from '../trial/TrialBanner';
 // Pages
 import LandingPage from '../../pages/LandingPage';
 import AuthPage from '../../pages/AuthPage';
+import PasswordResetPage from '../../pages/PasswordResetPage';
 import HomePage from '../../pages/HomePage';
 import AlertsPage from '../../pages/AlertsPage';
 import MapPage from '../../pages/MapPage';
 import ExplorePage from '../../pages/ExplorePage';
 import ProfilePage from '../../pages/ProfilePage';
+import PersonalInfoPage from '../../pages/PersonalInfoPage';
+import ProfileSettingsPage from '../../pages/ProfileSettingsPage';
 import AddDestinationPage from '../../pages/AddDestinationPage';
 import PricingPage from '../../pages/PricingPage';
 import PaymentSuccessPage from '../../pages/PaymentSuccessPage';
@@ -24,6 +27,7 @@ const AppContent: React.FC = () => {
         {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/password-reset" element={<PasswordResetPage />} />
         
         {/* Protected routes */}
         <Route path="/home" element={
@@ -53,6 +57,18 @@ const AppContent: React.FC = () => {
         <Route path="/profile" element={
           <ProtectedRoute>
             <ProfilePage />
+            <TabNavigation />
+          </ProtectedRoute>
+        } />
+        <Route path="/personal-info" element={
+          <ProtectedRoute>
+            <PersonalInfoPage />
+            <TabNavigation />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile-settings" element={
+          <ProtectedRoute>
+            <ProfileSettingsPage />
             <TabNavigation />
           </ProtectedRoute>
         } />
