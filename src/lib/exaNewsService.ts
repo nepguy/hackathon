@@ -75,8 +75,11 @@ class ExaNewsService {
       setTimeout(() => {
         this.isApiAvailable = true;
         console.log('🔄 Exa API re-enabled for retry');
+      }, 5 * 60 * 1000);
+      return fallbackData;
     }
   }
+
   private getCacheKey(params: Record<string, any>): string {
     return JSON.stringify(params);
   }
@@ -183,43 +186,43 @@ class ExaNewsService {
 
     return this.safeExaCall(
       async () => {
-      // Check if Exa client is initialized
-      if (!this.exa) {
-        console.warn('⚠️ Exa client not initialized, using fallback data');
-        return this.getFallbackNews('travel', location);
-      }
+        // Check if Exa client is initialized
+        if (!this.exa) {
+          console.warn('⚠️ Exa client not initialized, using fallback data');
+          return this.getFallbackNews('travel', location);
+        }
 
-      const searchQuery = location 
-        ? `Current travel alerts and safety incidents affecting travelers in ${location}:`
-        : 'Recent travel safety alerts and incidents affecting international travelers';
+        const searchQuery = location 
+          ? `Current travel alerts and safety incidents affecting travelers in ${location}:`
+          : 'Recent travel safety alerts and incidents affecting international travelers';
 
-      console.log('🔍 Exa search for travel news:', searchQuery);
+        console.log('🔍 Exa search for travel news:', searchQuery);
 
-      const response = await this.exa.searchAndContents(searchQuery, {
-        type: 'neural',
-        useAutoprompt: true,
-        numResults: 8,
-        text: true,
-        highlights: {
-          numSentences: 2,
-          highlightsPerUrl: 1
-        },
-        startPublishedDate: this.getDateDaysAgo(30) // Last 30 days
-      });
+        const response = await this.exa.searchAndContents(searchQuery, {
+          type: 'neural',
+          useAutoprompt: true,
+          numResults: 8,
+          text: true,
+          highlights: {
+            numSentences: 2,
+            highlightsPerUrl: 1
+          },
+          startPublishedDate: this.getDateDaysAgo(30) // Last 30 days
+        });
 
-      const articles = this.transformExaResults(response.results || [], 'travel');
-      
-      const result: NewsApiResponse = {
-        totalArticles: articles.length,
-        articles
-      };
+        const articles = this.transformExaResults(response.results || [], 'travel');
+        
+        const result: NewsApiResponse = {
+          totalArticles: articles.length,
+          articles
+        };
 
-      this.setCachedData(cacheKey, result);
-      console.log(`✅ Found ${articles.length} travel news articles via Exa`);
-      
-      return result;
-    } catch (error: any) {
-      console.error('❌ Exa travel news search failed:', error?.message || error);
+        this.setCachedData(cacheKey, result);
+        console.log(`✅ Found ${articles.length} travel news articles via Exa`);
+        
+        return result;
+      },
+      this.getFallbackNews('travel', location),
       'travel news'
     );
   }
@@ -237,44 +240,44 @@ class ExaNewsService {
 
     return this.safeExaCall(
       async () => {
-      // Check if Exa client is initialized
-      if (!this.exa) {
-        console.warn('⚠️ Exa client not initialized, using fallback data');
-        return this.getFallbackNews('safety', location);
-      }
+        // Check if Exa client is initialized
+        if (!this.exa) {
+          console.warn('⚠️ Exa client not initialized, using fallback data');
+          return this.getFallbackNews('safety', location);
+        }
 
-      const searchQuery = location 
-        ? `Safety warnings and security alerts for travelers visiting ${location}:`
-        : 'Current safety warnings and security alerts for international travelers';
+        const searchQuery = location 
+          ? `Safety warnings and security alerts for travelers visiting ${location}:`
+          : 'Current safety warnings and security alerts for international travelers';
 
-      console.log('🚨 Exa search for safety alerts:', searchQuery);
+        console.log('🚨 Exa search for safety alerts:', searchQuery);
 
-      const response = await this.exa.searchAndContents(searchQuery, {
-        type: 'neural',
-        useAutoprompt: true,
-        numResults: 6,
-        text: true,
-        highlights: {
-          numSentences: 3,
-          highlightsPerUrl: 1
-        },
-        includeDomains: ['state.gov', 'gov.uk', 'smartraveller.gov.au', 'travel.gc.ca', 'auswaertiges-amt.de'],
-        startPublishedDate: this.getDateDaysAgo(14) // Last 2 weeks
-      });
+        const response = await this.exa.searchAndContents(searchQuery, {
+          type: 'neural',
+          useAutoprompt: true,
+          numResults: 6,
+          text: true,
+          highlights: {
+            numSentences: 3,
+            highlightsPerUrl: 1
+          },
+          includeDomains: ['state.gov', 'gov.uk', 'smartraveller.gov.au', 'travel.gc.ca', 'auswaertiges-amt.de'],
+          startPublishedDate: this.getDateDaysAgo(14) // Last 2 weeks
+        });
 
-      const articles = this.transformExaResults(response.results || [], 'safety');
-      
-      const result: NewsApiResponse = {
-        totalArticles: articles.length,
-        articles
-      };
+        const articles = this.transformExaResults(response.results || [], 'safety');
+        
+        const result: NewsApiResponse = {
+          totalArticles: articles.length,
+          articles
+        };
 
-      this.setCachedData(cacheKey, result);
-      console.log(`🛡️ Found ${articles.length} safety alerts via Exa`);
-      
-      return result;
-    } catch (error: any) {
-      console.error('❌ Exa safety alerts search failed:', error?.message || error);
+        this.setCachedData(cacheKey, result);
+        console.log(`🛡️ Found ${articles.length} safety alerts via Exa`);
+        
+        return result;
+      },
+      this.getFallbackNews('safety', location),
       'safety alerts'
     );
   }
@@ -292,43 +295,43 @@ class ExaNewsService {
 
     return this.safeExaCall(
       async () => {
-      // Check if Exa client is initialized
-      if (!this.exa) {
-        console.warn('⚠️ Exa client not initialized, using fallback data');
-        return this.getFallbackNews('weather', location);
-      }
+        // Check if Exa client is initialized
+        if (!this.exa) {
+          console.warn('⚠️ Exa client not initialized, using fallback data');
+          return this.getFallbackNews('weather', location);
+        }
 
-      const searchQuery = location 
-        ? `Weather alerts and travel disruptions affecting ${location}:`
-        : 'Weather alerts and travel disruptions affecting international travel';
+        const searchQuery = location 
+          ? `Weather alerts and travel disruptions affecting ${location}:`
+          : 'Weather alerts and travel disruptions affecting international travel';
 
-      console.log('🌤️ Exa search for weather news:', searchQuery);
+        console.log('🌤️ Exa search for weather news:', searchQuery);
 
-      const response = await this.exa.searchAndContents(searchQuery, {
-        type: 'neural',
-        useAutoprompt: true,
-        numResults: 5,
-        text: true,
-        highlights: {
-          numSentences: 2,
-          highlightsPerUrl: 1
-        },
-        startPublishedDate: this.getDateDaysAgo(7) // Last week
-      });
+        const response = await this.exa.searchAndContents(searchQuery, {
+          type: 'neural',
+          useAutoprompt: true,
+          numResults: 5,
+          text: true,
+          highlights: {
+            numSentences: 2,
+            highlightsPerUrl: 1
+          },
+          startPublishedDate: this.getDateDaysAgo(7) // Last week
+        });
 
-      const articles = this.transformExaResults(response.results || [], 'weather');
-      
-      const result: NewsApiResponse = {
-        totalArticles: articles.length,
-        articles
-      };
+        const articles = this.transformExaResults(response.results || [], 'weather');
+        
+        const result: NewsApiResponse = {
+          totalArticles: articles.length,
+          articles
+        };
 
-      this.setCachedData(cacheKey, result);
-      console.log(`⛈️ Found ${articles.length} weather alerts via Exa`);
-      
-      return result;
-    } catch (error: any) {
-      console.error('❌ Exa weather news search failed:', error?.message || error);
+        this.setCachedData(cacheKey, result);
+        console.log(`⛈️ Found ${articles.length} weather alerts via Exa`);
+        
+        return result;
+      },
+      this.getFallbackNews('weather', location),
       'weather news'
     );
   }
@@ -346,41 +349,41 @@ class ExaNewsService {
 
     return this.safeExaCall(
       async () => {
-      // Check if Exa client is initialized
-      if (!this.exa) {
-        console.warn('⚠️ Exa client not initialized, using fallback data');
-        return this.getFallbackNews('general');
-      }
+        // Check if Exa client is initialized
+        if (!this.exa) {
+          console.warn('⚠️ Exa client not initialized, using fallback data');
+          return this.getFallbackNews('general');
+        }
 
-      const searchQuery = 'Breaking news affecting international travel and tourism:';
+        const searchQuery = 'Breaking news affecting international travel and tourism:';
 
-      console.log('⚡ Exa search for breaking news:', searchQuery);
+        console.log('⚡ Exa search for breaking news:', searchQuery);
 
-      const response = await this.exa.searchAndContents(searchQuery, {
-        type: 'neural',
-        useAutoprompt: true,
-        numResults: 10,
-        text: true,
-        highlights: {
-          numSentences: 2,
-          highlightsPerUrl: 1
-        },
-        startPublishedDate: this.getDateDaysAgo(3) // Last 3 days
-      });
+        const response = await this.exa.searchAndContents(searchQuery, {
+          type: 'neural',
+          useAutoprompt: true,
+          numResults: 10,
+          text: true,
+          highlights: {
+            numSentences: 2,
+            highlightsPerUrl: 1
+          },
+          startPublishedDate: this.getDateDaysAgo(3) // Last 3 days
+        });
 
-      const articles = this.transformExaResults(response.results || [], 'general');
-      
-      const result: NewsApiResponse = {
-        totalArticles: articles.length,
-        articles
-      };
+        const articles = this.transformExaResults(response.results || [], 'general');
+        
+        const result: NewsApiResponse = {
+          totalArticles: articles.length,
+          articles
+        };
 
-      this.setCachedData(cacheKey, result);
-      console.log(`📰 Found ${articles.length} breaking news articles via Exa`);
-      
-      return result;
-    } catch (error: any) {
-      console.error('❌ Exa breaking news search failed:', error?.message || error);
+        this.setCachedData(cacheKey, result);
+        console.log(`📰 Found ${articles.length} breaking news articles via Exa`);
+        
+        return result;
+      },
+      this.getFallbackNews('general'),
       'breaking news'
     );
   }
@@ -398,43 +401,43 @@ class ExaNewsService {
 
     return this.safeExaCall(
       async () => {
-      // Check if Exa client is initialized
-      if (!this.exa) {
-        console.warn('⚠️ Exa client not initialized, using fallback data');
-        return this.getFallbackNews('general', location);
-      }
+        // Check if Exa client is initialized
+        if (!this.exa) {
+          console.warn('⚠️ Exa client not initialized, using fallback data');
+          return this.getFallbackNews('general', location);
+        }
 
-      const searchQuery = location 
-        ? `${query} ${location} travel news:`
-        : `${query} travel news`;
+        const searchQuery = location 
+          ? `${query} ${location} travel news:`
+          : `${query} travel news`;
 
-      console.log('🔎 Exa custom search:', searchQuery);
+        console.log('🔎 Exa custom search:', searchQuery);
 
-      const response = await this.exa.searchAndContents(searchQuery, {
-        type: 'neural',
-        useAutoprompt: true,
-        numResults: 8,
-        text: true,
-        highlights: {
-          numSentences: 2,
-          highlightsPerUrl: 1
-        },
-        startPublishedDate: this.getDateDaysAgo(21) // Last 3 weeks
-      });
+        const response = await this.exa.searchAndContents(searchQuery, {
+          type: 'neural',
+          useAutoprompt: true,
+          numResults: 8,
+          text: true,
+          highlights: {
+            numSentences: 2,
+            highlightsPerUrl: 1
+          },
+          startPublishedDate: this.getDateDaysAgo(21) // Last 3 weeks
+        });
 
-      const articles = this.transformExaResults(response.results || [], 'general');
-      
-      const result: NewsApiResponse = {
-        totalArticles: articles.length,
-        articles
-      };
+        const articles = this.transformExaResults(response.results || [], 'general');
+        
+        const result: NewsApiResponse = {
+          totalArticles: articles.length,
+          articles
+        };
 
-      this.setCachedData(cacheKey, result);
-      console.log(`🎯 Found ${articles.length} search results via Exa`);
-      
-      return result;
-    } catch (error: any) {
-      console.error('❌ Exa search failed:', error?.message || error);
+        this.setCachedData(cacheKey, result);
+        console.log(`🎯 Found ${articles.length} search results via Exa`);
+        
+        return result;
+      },
+      this.getFallbackNews('general', location),
       'search news'
     );
   }
