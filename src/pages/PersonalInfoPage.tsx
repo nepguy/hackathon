@@ -101,7 +101,7 @@ const PersonalInfoPage: React.FC = () => {
         email: personalInfo.email,
         phone: personalInfo.phone,
         address: personalInfo.address,
-        date_of_birth: personalInfo.date_of_birth,
+        date_of_birth: personalInfo.date_of_birth || null,
         emergency_contact_name: personalInfo.emergency_contact_name,
         emergency_contact_phone: personalInfo.emergency_contact_phone,
         passport_number: personalInfo.passport_number,
