@@ -630,16 +630,21 @@ const TabButton: React.FC<{
   <button
     onClick={onClick}
     className={`
-      flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium
-      transition-colors whitespace-nowrap
+      flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium 
+      transition-all duration-300 whitespace-nowrap hover:shadow-md
       ${active 
-        ? 'bg-blue-600 text-white' 
-        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+        ? 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105' 
+        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:scale-105'
       }
     `}
   >
-    {icon}
-    <span>{label}</span>
+    <div className="transition-transform duration-300 group-hover:rotate-12">
+      {icon}
+    </div>
+    <span className="relative">
+      {label}
+      <span className={`absolute bottom-0 left-0 w-0 h-0.5 bg-current transition-all duration-300 ${active ? 'w-0' : 'group-hover:w-full'}`}></span>
+    </span>
   </button>
 );
 

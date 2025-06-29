@@ -335,16 +335,19 @@ const ExplorePage: React.FC = () => {
   return (
     <PageContainer>
       <div className="flex flex-col space-y-4 p-4 md:p-6">
-        {/* Header */}
-        <div className="flex flex-col space-y-2">
-          <h1 className="text-2xl font-bold text-gray-900">Travel Stories</h1>
-          <p className="text-gray-600 text-sm md:text-base">
+        {/* Header with animation */}
+        <div className="flex flex-col space-y-2 animate-fade-in-up">
+          <h1 className="text-2xl font-bold text-gray-900 relative">
+            Travel Stories
+            <div className="absolute -bottom-1 left-0 w-16 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
+          </h1>
+          <p className="text-gray-600 text-sm md:text-base animate-fade-in-up stagger-1">
             Discover real experiences from fellow travelers
           </p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 animate-fade-in-up stagger-2">
           <StatCard
             icon={<Globe className="w-5 h-5 text-blue-600" />}
             value={storiesStats.totalLocations}
@@ -358,7 +361,7 @@ const ExplorePage: React.FC = () => {
         </div>
 
         {/* Search and Filter Bar */}
-        <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:items-center md:justify-between animate-fade-in-up stagger-3">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
@@ -366,7 +369,7 @@ const ExplorePage: React.FC = () => {
               placeholder="Search travel stories, destinations..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:shadow-md"
             />
             {searchQuery && (
               <button
@@ -380,7 +383,7 @@ const ExplorePage: React.FC = () => {
 
           <button
             onClick={() => setShowShareModal(true)}
-            className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all duration-300 hover:shadow-lg hover:scale-105 btn-interactive"
           >
             <Plus className="w-5 h-5" />
             <span>Share Your Story</span>
@@ -388,7 +391,7 @@ const ExplorePage: React.FC = () => {
         </div>
 
         {/* Category Filters */}
-        <div className="overflow-x-auto -mx-4 px-4">
+        <div className="overflow-x-auto -mx-4 px-4 animate-fade-in-up stagger-4">
           <div className="flex space-x-2 min-w-max">
             {categories.map((category) => (
               <button
@@ -396,8 +399,8 @@ const ExplorePage: React.FC = () => {
                 onClick={() => setActiveCategory(category)}
                 className={`
                   px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap
-                  ${activeCategory === category
-                    ? 'bg-blue-600 text-white'
+                  transition-all duration-300 hover:shadow-md hover:scale-105 ${activeCategory === category
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }
                 `}
@@ -409,7 +412,7 @@ const ExplorePage: React.FC = () => {
         </div>
 
         {/* Stories Grid */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 animate-fade-in-up stagger-5">
           {loading ? (
             <div className="col-span-full flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -417,7 +420,7 @@ const ExplorePage: React.FC = () => {
           ) : filteredStories.length === 0 ? (
             <div className="col-span-full text-center py-12">
               <Globe className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-4 text-lg font-medium text-gray-900">
+              <h3 className="mt-4 text-lg font-medium text-gray-900 animate-fade-in-up">
                 {searchQuery || activeCategory !== 'All' ? 'No matching stories found' : 'No stories found'}
               </h3>
               <p className="mt-2 text-gray-500">
@@ -428,7 +431,7 @@ const ExplorePage: React.FC = () => {
               </p>
             </div>
           ) : (
-            filteredStories.map((story: TravelStory) => (
+            filteredStories.map((story: TravelStory, index: number) => (
               <StoryCard
                 key={story.id}
                 story={story}
@@ -436,6 +439,7 @@ const ExplorePage: React.FC = () => {
                 onLike={() => handleLikeStory(story.id)}
                 onComment={() => handleCommentStory(story)}
                 isLiking={likingStory === story.id}
+                index={index}
               />
             ))
           )}
@@ -482,7 +486,7 @@ const StatCard: React.FC<{
   value: number;
   label: string;
 }> = ({ icon, value, label }) => (
-  <div className="bg-white rounded-lg border border-gray-100 p-4 flex flex-col items-center justify-center text-center">
+  <div className="bg-white rounded-lg border border-gray-100 p-4 flex flex-col items-center justify-center text-center hover-lift group">
     <div className="mb-2">{icon}</div>
     <div className="text-2xl font-bold text-gray-900">{value}</div>
     <div className="text-sm text-gray-600">{label}</div>
@@ -496,8 +500,9 @@ const StoryCard: React.FC<{
   onLike: () => void;
   onComment: () => void;
   isLiking: boolean;
-}> = ({ story, isLiked, onLike, onComment, isLiking }) => {
-  // Get author name from profile or fallback
+  index?: number;
+}> = ({ story, isLiked, onLike, onComment, isLiking, index = 0 }) => {
+  // Get author name from profile or fallback  
   const getAuthorName = () => {
     if (story.user_profiles?.full_name) {
       return story.user_profiles.full_name;
@@ -514,7 +519,7 @@ const StoryCard: React.FC<{
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+    <div className={`bg-white rounded-lg border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-2 animate-fade-in-up stagger-${(index % 5) + 1} group`}>
       {story.images && story.images.length > 0 && (
         <div className="aspect-w-16 aspect-h-9">
           <img
@@ -522,7 +527,7 @@ const StoryCard: React.FC<{
             alt={story.title}
             className="object-cover w-full h-full"
           />
-        </div>
+        </div>        
       )}
       <div className="p-4">
         {/* Author Info */}
@@ -531,7 +536,7 @@ const StoryCard: React.FC<{
             {getAuthorInitials()}
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900">{getAuthorName()}</p>
+            <p className="text-sm font-medium text-gray-900 transition-colors duration-300 group-hover:text-blue-600">{getAuthorName()}</p>
             <p className="text-xs text-gray-500">
               {new Date(story.created_at).toLocaleDateString()}
             </p>
@@ -540,7 +545,7 @@ const StoryCard: React.FC<{
 
         <div className="flex items-start justify-between">
           <div>
-            <h3 className="font-medium text-gray-900">{story.title}</h3>
+            <h3 className="font-medium text-gray-900 transition-colors duration-300 group-hover:text-blue-600">{story.title}</h3>
             <p className="text-sm text-gray-600 mt-1">
               <MapPin className="inline-block w-4 h-4 mr-1" />
               {story.location}
@@ -552,7 +557,7 @@ const StoryCard: React.FC<{
           </div>
         </div>
         
-        <p className="mt-2 text-sm text-gray-600 line-clamp-3">{story.description}</p>
+        <p className="mt-2 text-sm text-gray-600 line-clamp-3 transition-colors duration-300 group-hover:text-gray-700">{story.description}</p>
         
         {/* Tags */}
         {story.tags && story.tags.length > 0 && (
@@ -560,7 +565,7 @@ const StoryCard: React.FC<{
             {story.tags.slice(0, 3).map((tag, index) => (
               <span
                 key={index}
-                className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+                className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full transition-all duration-300 hover:bg-blue-200 hover:scale-105"
               >
                 {tag}
               </span>
@@ -568,19 +573,19 @@ const StoryCard: React.FC<{
           </div>
         )}
         
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-4 flex items-center justify-between group">
           <div className="flex items-center space-x-4">
             <button
               onClick={onLike}
               disabled={isLiking}
-              className={`flex items-center space-x-1 ${
+              className={`flex items-center space-x-1 transition-all duration-300 hover:scale-110 ${
                 isLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'
               }`}
             >
-              <Heart className={`w-5 h-5 ${isLiking ? 'animate-pulse' : ''}`} fill={isLiked ? 'currentColor' : 'none'} />
+              <Heart className={`w-5 h-5 ${isLiking ? 'animate-pulse' : ''} transition-transform duration-300 hover:scale-110`} fill={isLiked ? 'currentColor' : 'none'} />
               <span>{story.likes_count || 0}</span>
             </button>
-            <button
+            <button              
               onClick={onComment}
               className="flex items-center space-x-1 text-gray-500 hover:text-blue-500"
             >

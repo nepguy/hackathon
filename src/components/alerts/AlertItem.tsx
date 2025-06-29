@@ -77,22 +77,22 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onMarkAsRead }) => {
   };
 
   return (
-    <div className={`bg-white rounded-lg border shadow-sm overflow-hidden transition-all duration-300 ${
-      !alert.read ? 'ring-1 ring-blue-200' : ''
+    <div className={`bg-white rounded-lg border shadow-sm overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${
+      !alert.read ? 'ring-1 ring-blue-200 animate-pulse-slow' : ''
     }`}>
       <div className={`p-3 md:p-4 ${getSeverityColor(alert.severity)}`}>
         {/* Header */}
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 mt-1">
+        <div className="flex items-start gap-3 group">
+          <div className="flex-shrink-0 mt-1 transition-transform duration-300 group-hover:scale-125 group-hover:rotate-12">
             {getTypeIcon(alert.type)}
           </div>
           
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1">
-              <h3 className="text-sm md:text-base font-semibold text-gray-900 line-clamp-1">
+              <h3 className="text-sm md:text-base font-semibold text-gray-900 line-clamp-1 transition-colors duration-300 group-hover:text-blue-600">
                 {alert.title}
               </h3>
-              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getSeverityBadge(alert.severity)}`}>
+              <span className={`px-2 py-0.5 text-xs font-medium rounded-full transition-all duration-300 group-hover:scale-110 ${getSeverityBadge(alert.severity)}`}>
                 {alert.severity.toUpperCase()}
               </span>
               {!alert.read && (
@@ -100,23 +100,23 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onMarkAsRead }) => {
               )}
             </div>
             
-            <p className="text-sm text-gray-700 line-clamp-2 mb-2">
+            <p className="text-sm text-gray-700 line-clamp-2 mb-2 transition-colors duration-300 group-hover:text-gray-800">
               {alert.description}
             </p>
             
             {/* Meta Information */}
-            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
-              <div className="flex items-center">
-                <MapPin className="w-3.5 h-3.5" />
+            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600 transition-colors duration-300 group-hover:text-gray-700">
+              <div className="flex items-center transition-all duration-300 hover:text-blue-600">
+                <MapPin className="w-3.5 h-3.5 transition-transform duration-300 group-hover:scale-110" />
                 <span className="ml-1 line-clamp-1">{alert.location}</span>
               </div>
-              <div className="flex items-center">
-                <Clock className="w-3.5 h-3.5" />
+              <div className="flex items-center transition-all duration-300 hover:text-blue-600">
+                <Clock className="w-3.5 h-3.5 transition-transform duration-300 group-hover:scale-110" />
                 <span className="ml-1">{formatTime(alert.timestamp)}</span>
               </div>
               {alert.source && (
-                <div className="flex items-center">
-                  <Info className="w-3.5 h-3.5" />
+                <div className="flex items-center transition-all duration-300 hover:text-blue-600">
+                  <Info className="w-3.5 h-3.5 transition-transform duration-300 group-hover:scale-110" />
                   <span className="ml-1 line-clamp-1">Source: {alert.source}</span>
                 </div>
               )}
@@ -129,7 +129,7 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onMarkAsRead }) => {
           <div className="mt-3 pt-3 border-t border-gray-100">
             <button
               onClick={() => setShowTips(!showTips)}
-              className="flex items-center text-gray-700 hover:text-gray-900 text-sm font-medium"
+              className="flex items-center text-gray-700 hover:text-gray-900 text-sm font-medium transition-all duration-300 hover:translate-x-1"
             >
               <Shield className="w-4 h-4" />
               <span className="ml-1.5">Safety Tips</span>
@@ -142,10 +142,10 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onMarkAsRead }) => {
             
             {showTips && (
               <div className="mt-2 space-y-2">
-                {alert.tips.map((tip, index) => (
-                  <div key={index} className="flex items-start gap-2 p-2 bg-white/80 rounded-lg">
-                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <span className="text-sm text-gray-700">{tip}</span>
+                {alert.tips.map((tip, index) => (                  
+                  <div key={index} className={`flex items-start gap-2 p-2 bg-white/80 rounded-lg transition-all duration-300 hover:bg-blue-50 hover:shadow-sm animate-fade-in-up stagger-${index + 1}`}>
+                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0 transition-transform duration-300 hover:scale-150"></div>
+                    <span className="text-sm text-gray-700 transition-colors duration-300 hover:text-blue-700">{tip}</span>
                   </div>
                 ))}
               </div>
@@ -157,7 +157,7 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onMarkAsRead }) => {
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
           <div className="flex items-center gap-3">
             {!alert.read && (
-              <button 
+              <button
                 onClick={() => {
                   onMarkAsRead(alert.id);
                   if (user && (alert.severity === 'high' || alert.severity === 'medium')) {
@@ -170,20 +170,22 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onMarkAsRead }) => {
                     });
                   }
                 }}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-all duration-300 hover:translate-x-1 relative group"
               >
                 Mark as read
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-500 group-hover:w-full transition-all duration-300"></span>
               </button>
             )}
             {alert.source && (
-              <button className="text-xs text-gray-600 hover:text-gray-700 font-medium flex items-center">
-                <ExternalLink className="w-3.5 h-3.5" />
+              <button className="text-xs text-gray-600 hover:text-gray-700 font-medium flex items-center transition-all duration-300 hover:translate-x-1 relative group">
+                <ExternalLink className="w-3.5 h-3.5 transition-transform duration-300 group-hover:scale-110" />
                 <span className="ml-1">View source</span>
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gray-500 group-hover:w-full transition-all duration-300"></span>
               </button>
             )}
           </div>
           
-          <div className="text-xs text-gray-500 capitalize">
+          <div className="text-xs text-gray-500 capitalize transition-colors duration-300 hover:text-blue-600">
             {alert.type}
           </div>
         </div>
