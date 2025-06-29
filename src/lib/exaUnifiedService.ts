@@ -78,6 +78,7 @@ class ExaUnifiedService {
   private readonly CACHE_DURATION = 15 * 60 * 1000; // 15 minutes cache
   private readonly API_KEY: string;
   private isApiAvailable = true;
+  private exa: any;
 
   constructor() {
     this.API_KEY = import.meta.env.VITE_EXA_API_KEY;
@@ -86,8 +87,14 @@ class ExaUnifiedService {
       this.isApiAvailable = false;
       console.log('🔄 Exa service will use fallback data');
     } else {
-      this.exa = new Exa(this.API_KEY);
-      console.log('✅ Exa Unified Service initialized - replacing traditional APIs');
+      try {
+        this.exa = new Exa(this.API_KEY);
+        console.log('✅ Exa Unified Service initialized - replacing traditional APIs');
+      } catch (error) {
+        console.warn('⚠️ Failed to initialize Exa client:', error);
+        this.isApiAvailable = false;
+        console.log('🔄 Exa service will use fallback data due to initialization error');
+      }
     }
   }
 
@@ -98,6 +105,11 @@ class ExaUnifiedService {
   ): Promise<T> {
     if (!this.isApiAvailable) {
       console.log(`🔄 Using fallback data for ${operationName} (API not available)`);
+      return fallbackData;
+    }
+    
+    if (!this.exa) {
+      console.log(`🔄 Using fallback data for ${operationName} (Exa client not initialized)`);
       return fallbackData;
     }
 
@@ -165,6 +177,10 @@ class ExaUnifiedService {
       async () => {
       const categoryFilter = category ? ` ${category}` : '';
       const searchQuery = `Local news and current events in ${location}${categoryFilter}:`;
+      
+      if (!this.exa) {
+        throw new Error('Exa client not initialized');
+      }
 
       console.log('📰 Exa search for local news:', searchQuery);
 
@@ -181,7 +197,7 @@ class ExaUnifiedService {
         startPublishedDate: this.getDateDaysAgo(7) // Last week
       });
 
-      const localNews: LocalNews[] = response.results.map((result) => ({
+      const localNews: LocalNews[] = (response.results || []).map((result: any) => ({
         id: this.generateId(result.url),
         title: result.title || 'Local News Update',
         description: result.highlights?.[0] || result.text?.substring(0, 200) + '...' || 'No description available',
@@ -218,6 +234,10 @@ class ExaUnifiedService {
       async () => {
       const locationFilter = location ? ` affecting ${location}` : '';
       const searchQuery = `Recent scam alerts and fraud warnings${locationFilter}:`;
+      
+      if (!this.exa) {
+        throw new Error('Exa client not initialized');
+      }
 
       console.log('🚨 Exa search for scam alerts:', searchQuery);
 
@@ -237,7 +257,7 @@ class ExaUnifiedService {
         startPublishedDate: this.getDateDaysAgo(30) // Last month
       });
 
-      const scamAlerts: ScamAlert[] = response.results.map((result) => ({
+      const scamAlerts: ScamAlert[] = (response.results || []).map((result: any) => ({
         id: this.generateId(result.url),
         title: result.title || 'Scam Alert',
         description: result.highlights?.[0] || result.text?.substring(0, 200) + '...' || 'Scam warning',
@@ -273,6 +293,10 @@ class ExaUnifiedService {
       async () => {
       const categoryFilter = category ? ` ${category}` : '';
       const searchQuery = `Upcoming local events and activities in ${location}${categoryFilter}:`;
+      
+      if (!this.exa) {
+        throw new Error('Exa client not initialized');
+      }
 
       console.log('🎉 Exa search for local events:', searchQuery);
 
@@ -292,7 +316,7 @@ class ExaUnifiedService {
         startPublishedDate: this.getDateDaysAgo(14) // Last 2 weeks
       });
 
-      const localEvents: LocalEvent[] = response.results.map((result) => ({
+      const localEvents: LocalEvent[] = (response.results || []).map((result: any) => ({
         id: this.generateId(result.url),
         title: result.title || 'Local Event',
         description: result.highlights?.[0] || result.text?.substring(0, 200) + '...' || 'Event details',
@@ -329,6 +353,10 @@ class ExaUnifiedService {
       async () => {
       const searchQuery = `Official travel safety alerts and advisories for ${location}:`;
 
+      if (!this.exa) {
+        throw new Error('Exa client not initialized');
+      }
+
       console.log('🛡️ Exa search for travel safety:', searchQuery);
 
       const response = await this.exa.searchAndContents(searchQuery, {
@@ -347,7 +375,7 @@ class ExaUnifiedService {
         startPublishedDate: this.getDateDaysAgo(60) // Last 2 months
       });
 
-      const travelSafetyAlerts: TravelSafetyAlert[] = response.results.map((result) => ({
+      const travelSafetyAlerts: TravelSafetyAlert[] = (response.results || []).map((result: any) => ({
         id: this.generateId(result.url),
         title: result.title || 'Travel Safety Alert',
         description: result.highlights?.[0] || result.text?.substring(0, 300) + '...' || 'Safety advisory',

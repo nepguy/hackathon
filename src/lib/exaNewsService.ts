@@ -19,6 +19,7 @@ class ExaNewsService {
   private readonly CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache
   private readonly API_KEY: string;
   private isApiAvailable = true;
+  private exa: any;
 
   constructor() {
     this.API_KEY = import.meta.env.VITE_EXA_API_KEY;
@@ -27,8 +28,14 @@ class ExaNewsService {
       this.isApiAvailable = false;
       console.log('🔄 Exa news service will use fallback data');
     } else {
-      this.exa = new Exa(this.API_KEY);
-      console.log('✅ Exa News Service initialized');
+      try {
+        this.exa = new Exa(this.API_KEY);
+        console.log('✅ Exa News Service initialized');
+      } catch (error) {
+        console.warn('⚠️ Failed to initialize Exa client:', error);
+        this.isApiAvailable = false;
+        console.log('🔄 Exa news service will use fallback data due to initialization error');
+      }
     }
   }
 
@@ -39,6 +46,11 @@ class ExaNewsService {
   ): Promise<T> {
     if (!this.isApiAvailable) {
       console.log(`🔄 Using fallback data for ${operationName} (API not available)`);
+      return fallbackData;
+    }
+    
+    if (!this.exa) {
+      console.log(`🔄 Using fallback data for ${operationName} (Exa client not initialized)`);
       return fallbackData;
     }
 
@@ -162,23 +174,23 @@ class ExaNewsService {
       async () => {
       const searchQuery = location 
         ? `Current travel alerts and safety incidents affecting travelers in ${location}:`
-        : 'Recent travel safety alerts and incidents affecting international travelers:';
+        : 'Recent travel safety alerts and incidents affecting international travelers';
 
       console.log('🔍 Exa search for travel news:', searchQuery);
 
-             const response = await this.exa.searchAndContents(searchQuery, {
-         type: 'neural',
-         useAutoprompt: true,
-         numResults: 8,
-         text: true,
-         highlights: {
-           numSentences: 2,
-           highlightsPerUrl: 1
-         },
-         startPublishedDate: this.getDateDaysAgo(30) // Last 30 days
-       });
+      const response = await this.exa.searchAndContents(searchQuery, {
+        type: 'neural',
+        useAutoprompt: true,
+        numResults: 8,
+        text: true,
+        highlights: {
+          numSentences: 2,
+          highlightsPerUrl: 1
+        },
+        startPublishedDate: this.getDateDaysAgo(30) // Last 30 days
+      });
 
-             const articles = this.transformExaResults(response.results as ExaResult[], 'travel');
+      const articles = this.transformExaResults(response.results || [], 'travel');
       
       const result: NewsApiResponse = {
         totalArticles: articles.length,
@@ -207,24 +219,24 @@ class ExaNewsService {
       async () => {
       const searchQuery = location 
         ? `Safety warnings and security alerts for travelers visiting ${location}:`
-        : 'Current safety warnings and security alerts for international travelers:';
+        : 'Current safety warnings and security alerts for international travelers';
 
       console.log('🚨 Exa search for safety alerts:', searchQuery);
 
-             const response = await this.exa.searchAndContents(searchQuery, {
-         type: 'neural',
-         useAutoprompt: true,
-         numResults: 6,
-         text: true,
-         highlights: {
-           numSentences: 3,
-           highlightsPerUrl: 1
-         },
-         includeDomains: ['state.gov', 'gov.uk', 'smartraveller.gov.au', 'travel.gc.ca', 'auswaertiges-amt.de'],
-         startPublishedDate: this.getDateDaysAgo(14) // Last 2 weeks
-       });
+      const response = await this.exa.searchAndContents(searchQuery, {
+        type: 'neural',
+        useAutoprompt: true,
+        numResults: 6,
+        text: true,
+        highlights: {
+          numSentences: 3,
+          highlightsPerUrl: 1
+        },
+        includeDomains: ['state.gov', 'gov.uk', 'smartraveller.gov.au', 'travel.gc.ca', 'auswaertiges-amt.de'],
+        startPublishedDate: this.getDateDaysAgo(14) // Last 2 weeks
+      });
 
-             const articles = this.transformExaResults(response.results as ExaResult[], 'safety');
+      const articles = this.transformExaResults(response.results || [], 'safety');
       
       const result: NewsApiResponse = {
         totalArticles: articles.length,
@@ -253,23 +265,23 @@ class ExaNewsService {
       async () => {
       const searchQuery = location 
         ? `Weather alerts and travel disruptions affecting ${location}:`
-        : 'Weather alerts and travel disruptions affecting international travel:';
+        : 'Weather alerts and travel disruptions affecting international travel';
 
       console.log('🌤️ Exa search for weather news:', searchQuery);
 
-             const response = await this.exa.searchAndContents(searchQuery, {
-         type: 'neural',
-         useAutoprompt: true,
-         numResults: 5,
-         text: true,
-         highlights: {
-           numSentences: 2,
-           highlightsPerUrl: 1
-         },
-         startPublishedDate: this.getDateDaysAgo(7) // Last week
-       });
+      const response = await this.exa.searchAndContents(searchQuery, {
+        type: 'neural',
+        useAutoprompt: true,
+        numResults: 5,
+        text: true,
+        highlights: {
+          numSentences: 2,
+          highlightsPerUrl: 1
+        },
+        startPublishedDate: this.getDateDaysAgo(7) // Last week
+      });
 
-       const articles = this.transformExaResults(response.results as ExaResult[], 'weather');
+      const articles = this.transformExaResults(response.results || [], 'weather');
       
       const result: NewsApiResponse = {
         totalArticles: articles.length,
@@ -300,19 +312,19 @@ class ExaNewsService {
 
       console.log('⚡ Exa search for breaking news:', searchQuery);
 
-             const response = await this.exa.searchAndContents(searchQuery, {
-         type: 'neural',
-         useAutoprompt: true,
-         numResults: 10,
-         text: true,
-         highlights: {
-           numSentences: 2,
-           highlightsPerUrl: 1
-         },
-         startPublishedDate: this.getDateDaysAgo(3) // Last 3 days
-       });
+      const response = await this.exa.searchAndContents(searchQuery, {
+        type: 'neural',
+        useAutoprompt: true,
+        numResults: 10,
+        text: true,
+        highlights: {
+          numSentences: 2,
+          highlightsPerUrl: 1
+        },
+        startPublishedDate: this.getDateDaysAgo(3) // Last 3 days
+      });
 
-       const articles = this.transformExaResults(response.results as ExaResult[], 'general');
+      const articles = this.transformExaResults(response.results || [], 'general');
       
       const result: NewsApiResponse = {
         totalArticles: articles.length,
@@ -341,23 +353,23 @@ class ExaNewsService {
       async () => {
       const searchQuery = location 
         ? `${query} ${location} travel news:`
-        : `${query} travel news:`;
+        : `${query} travel news`;
 
       console.log('🔎 Exa custom search:', searchQuery);
 
-             const response = await this.exa.searchAndContents(searchQuery, {
-         type: 'neural',
-         useAutoprompt: true,
-         numResults: 8,
-         text: true,
-         highlights: {
-           numSentences: 2,
-           highlightsPerUrl: 1
-         },
-         startPublishedDate: this.getDateDaysAgo(21) // Last 3 weeks
-       });
+      const response = await this.exa.searchAndContents(searchQuery, {
+        type: 'neural',
+        useAutoprompt: true,
+        numResults: 8,
+        text: true,
+        highlights: {
+          numSentences: 2,
+          highlightsPerUrl: 1
+        },
+        startPublishedDate: this.getDateDaysAgo(21) // Last 3 weeks
+      });
 
-       const articles = this.transformExaResults(response.results as ExaResult[], 'general');
+      const articles = this.transformExaResults(response.results || [], 'general');
       
       const result: NewsApiResponse = {
         totalArticles: articles.length,

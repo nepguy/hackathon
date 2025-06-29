@@ -565,47 +565,61 @@ class AISafetyService {
   private async generateExaBasedAlerts(context: LocationContext): Promise<AISafetyAlert[]> {
     const alerts: AISafetyAlert[] = [];
 
+    // If no location context, return empty alerts
+    if (!context || !context.destination) {
+      console.log('⚠️ No location context provided for Exa alerts');
+      return [];
+    }
+
     try {
       // Get scam alerts from Exa.ai
-      const scamAlerts = await exaUnifiedService.getScamAlerts(context.destination);
-      for (const scam of scamAlerts.slice(0, 2)) {
-        alerts.push({
-          id: `exa-scam-${Date.now()}-${Math.random()}`,
-          type: 'security',
-          severity: 'high',
-          title: scam.title,
-          message: scam.description,
-          location: context.destination,
-          source: 'ai',
-          timestamp: new Date().toISOString(),
-          actionable_advice: [
-            'Stay vigilant about common scams',
-            'Verify information before taking action',
-            'Report suspicious activities to authorities'
-          ],
-          relevant_links: [scam.source.url].filter(Boolean)
-        });
+      try {
+        const scamAlerts = await exaUnifiedService.getScamAlerts(context.destination);
+        for (const scam of scamAlerts.slice(0, 2)) {
+          alerts.push({
+            id: `exa-scam-${Date.now()}-${Math.random()}`,
+            type: 'security',
+            severity: 'high',
+            title: scam.title,
+            message: scam.description,
+            location: context.destination,
+            source: 'ai',
+            timestamp: new Date().toISOString(),
+            actionable_advice: [
+              'Stay vigilant about common scams',
+              'Verify information before taking action',
+              'Report suspicious activities to authorities'
+            ],
+            relevant_links: [scam.source?.url].filter(Boolean)
+          });
+        }
+      } catch (scamError) {
+        console.warn('Error fetching scam alerts from Exa:', scamError);
       }
 
       // Get travel safety alerts from Exa.ai
-      const safetyAlerts = await exaUnifiedService.getTravelSafetyAlerts(context.destination);
-      for (const safety of safetyAlerts.slice(0, 2)) {
-        alerts.push({
-          id: `exa-safety-${Date.now()}-${Math.random()}`,
-          type: 'health',
-          severity: safety.severity === 'critical' ? 'high' : safety.severity === 'high' ? 'high' : 'medium',
-          title: safety.title,
-          message: safety.description,
-          location: context.destination,
-          source: 'ai',
-          timestamp: new Date().toISOString(),
-          actionable_advice: safety.recommendations || [
-            'Follow local health guidelines',
-            'Stay informed about current conditions',
-            'Take necessary precautions'
-          ],
-          relevant_links: [safety.source.url].filter(Boolean)
-        });
+      try {
+        const safetyAlerts = await exaUnifiedService.getTravelSafetyAlerts(context.destination);
+        for (const safety of safetyAlerts.slice(0, 2)) {
+          alerts.push({
+            id: `exa-safety-${Date.now()}-${Math.random()}`,
+            type: 'health',
+            severity: safety.severity === 'critical' ? 'high' : safety.severity === 'high' ? 'high' : 'medium',
+            title: safety.title,
+            message: safety.description,
+            location: context.destination,
+            source: 'ai',
+            timestamp: new Date().toISOString(),
+            actionable_advice: safety.recommendations || [
+              'Follow local health guidelines',
+              'Stay informed about current conditions',
+              'Take necessary precautions'
+            ],
+            relevant_links: [safety.source?.url].filter(Boolean)
+          });
+        }
+      } catch (safetyError) {
+        console.warn('Error fetching safety alerts from Exa:', safetyError);
       }
     } catch (error) {
       console.warn('Error generating Exa.ai-based alerts:', error);
