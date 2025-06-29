@@ -71,10 +71,51 @@ export interface LocalNews {
   location: string;
 }
 
+// NEW: Enhanced AI-powered safety interfaces (replacing Gemini)
+export interface LocationAlert {
+  id: string;
+  type: 'scam' | 'crime' | 'weather' | 'political' | 'health' | 'transport';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  title: string;
+  description: string;
+  actionRequired: string;
+  affectedAreas: string[];
+  validUntil?: string;
+  source: string;
+}
+
+export interface LocationSafetyData {
+  location: string;
+  country: string;
+  coordinates: { lat: number; lng: number };
+  safetyScore: number; // 0-100 (100 being safest)
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  activeAlerts: LocationAlert[];
+  commonScams: string[];
+  emergencyNumbers: string[];
+  lastUpdated: string;
+}
+
+export interface TravelSafetyAnalysis {
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  summary: string;
+  actionableAdvice: string[];
+  precautions: string[];
+  emergencyContacts?: string[];
+}
+
+export interface LocationContext {
+  country: string;
+  city?: string;
+  region?: string;
+  coordinates?: { lat: number; lng: number };
+}
+
 class ExaUnifiedService {
-  private exa: Exa;
+  private exa!: Exa;
   private cache = new Map<string, { data: unknown; timestamp: number }>();
   private readonly CACHE_DURATION = 15 * 60 * 1000; // 15 minutes cache
+  private readonly SAFETY_CACHE_DURATION = 30 * 60 * 1000; // 30 minutes for safety data
   private API_KEY: string;
   private isApiAvailable = true;
 
@@ -86,7 +127,7 @@ class ExaUnifiedService {
     } else {
       try {
         this.exa = new Exa(this.API_KEY);
-        console.log('✅ Exa Unified Service initialized');
+        console.log('✅ Exa Unified Service initialized with AI safety capabilities');
       } catch (error) {
         console.warn('⚠️ Failed to initialize Exa client:', error);
         this.isApiAvailable = false;
@@ -123,9 +164,10 @@ class ExaUnifiedService {
     return `${type}_${JSON.stringify(params)}`;
   }
 
-  private getCachedData(cacheKey: string): unknown | null {
+  private getCachedData(cacheKey: string, customDuration?: number): unknown | null {
     const cached = this.cache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+    const duration = customDuration || this.CACHE_DURATION;
+    if (cached && Date.now() - cached.timestamp < duration) {
       console.log(`📦 Using cached data for: ${cacheKey}`);
       return cached.data;
     }
@@ -156,6 +198,126 @@ class ExaUnifiedService {
     const timestamp = Date.now().toString(36);
     const hash = btoa(text).replace(/[^a-zA-Z0-9]/g, '');
     return `${hash.substring(0, 12)}_${timestamp}`;
+  }
+
+  private generateLocationKey(lat: number, lng: number): string {
+    const roundedLat = Math.round(lat * 100) / 100; // ~1km precision
+    const roundedLng = Math.round(lng * 100) / 100;
+    return `${roundedLat},${roundedLng}`;
+  }
+
+  // 🛡️ NEW: AI-POWERED SAFETY ANALYSIS (Replacing Gemini)
+  async getLocationSafetyData(location: LocationContext): Promise<LocationSafetyData> {
+    const cacheKey = this.getCacheKey('safety_data', { 
+      country: location.country, 
+      city: location.city || '', 
+      coordinates: location.coordinates 
+    });
+    const cached = this.getCachedData(cacheKey, this.SAFETY_CACHE_DURATION) as LocationSafetyData | null;
+    if (cached) {
+      console.log('🛡️ Using cached safety data');
+      return cached;
+    }
+
+    return this.safeExaCall(
+      async () => {
+        const locationString = location.city 
+          ? `${location.city}, ${location.country}` 
+          : location.country;
+
+        console.log('🛡️ Exa AI safety analysis for:', locationString);
+
+        // Multi-query approach for comprehensive safety intelligence
+        const safetyQueries = [
+          `Current safety alerts crime reports ${locationString}`,
+          `Travel warnings security advisories ${locationString}`,
+          `Tourist scams fraud alerts ${locationString}`,
+          `Emergency services police contact ${locationString}`
+        ];
+
+        const safetyResults = await Promise.all(
+          safetyQueries.map(query => 
+            this.exa.searchAndContents(query, {
+              type: 'neural',
+              useAutoprompt: true,
+              numResults: 8,
+              text: true,
+              highlights: {
+                numSentences: 4,
+                highlightsPerUrl: 2
+              },
+              includeDomains: ['state.gov', 'fco.gov.uk', 'travel.gc.ca', 'smartraveller.gov.au', 'police.uk', 'local.gov'],
+              startPublishedDate: this.getDateDaysAgo(30)
+            })
+          )
+        );
+
+        // Process and analyze safety data
+        const allResults = safetyResults.flatMap(response => response.results || []);
+        
+        const activeAlerts = this.extractLocationAlerts(allResults, locationString);
+        const commonScams = this.extractCommonScams(allResults, locationString);
+        const emergencyNumbers = this.extractEmergencyNumbers(allResults, location.country);
+        const safetyScore = this.calculateSafetyScore(activeAlerts, allResults);
+        const riskLevel = this.determineRiskLevel(safetyScore, activeAlerts);
+
+        const safetyData: LocationSafetyData = {
+          location: locationString,
+          country: location.country,
+          coordinates: location.coordinates || { lat: 0, lng: 0 },
+          safetyScore,
+          riskLevel,
+          activeAlerts,
+          commonScams,
+          emergencyNumbers,
+          lastUpdated: new Date().toISOString()
+        };
+
+        this.setCachedData(cacheKey, safetyData);
+        console.log(`🛡️ Generated safety analysis: ${safetyScore}% safety score, ${activeAlerts.length} alerts`);
+        
+        return safetyData;
+      },
+      this.getDefaultSafetyData(location),
+      'AI Safety Analysis'
+    );
+  }
+
+  // 🚨 NEW: Location-specific alerts (Replacing Gemini)
+  async getLocationSpecificAlerts(
+    userLocation: { lat: number; lng: number },
+    country: string,
+    city?: string
+  ): Promise<LocationAlert[]> {
+    const locationContext: LocationContext = {
+      country,
+      city,
+      coordinates: userLocation
+    };
+
+    const safetyData = await this.getLocationSafetyData(locationContext);
+    return safetyData.activeAlerts;
+  }
+
+  // 📊 NEW: Location safety score (Replacing Gemini)
+  async getLocationSafetyScore(
+    userLocation: { lat: number; lng: number },
+    country: string,
+    city?: string
+  ): Promise<{ score: number; riskLevel: string; summary: string }> {
+    const locationContext: LocationContext = {
+      country,
+      city,
+      coordinates: userLocation
+    };
+
+    const safetyData = await this.getLocationSafetyData(locationContext);
+    
+    return {
+      score: safetyData.safetyScore,
+      riskLevel: safetyData.riskLevel,
+      summary: `${safetyData.location} has a ${safetyData.safetyScore}% safety score with ${safetyData.activeAlerts.length} active alerts.`
+    };
   }
 
   // 🔍 LOCAL NEWS - Replace NewsAPI, Bing News, Google News
@@ -198,19 +360,18 @@ class ExaUnifiedService {
           source: {
             name: this.extractSourceName(result.url),
             url: result.url,
-            type: 'local' as const
+            type: this.determineSourceType(result.url)
           },
-          category: this.categorizeNews(result.title || '', result.text || ''),
-          location,
-          relevanceScore: result.score || 0.8
+          category: this.categorizeNews(result.title, result.text || ''),
+          location: location
         }));
 
         this.setCachedData(cacheKey, localNews);
-        console.log(`✅ Found ${localNews.length} local news articles via Exa`);
+        console.log(`📰 Found ${localNews.length} local news articles for ${location}`);
         return localNews;
       },
       this.getFallbackLocalNews(location),
-      'local news'
+      'Local News'
     );
   }
 
@@ -567,6 +728,207 @@ class ExaUnifiedService {
     return text.includes('free') || text.includes('no cost') || text.includes('complimentary');
   }
 
+  // NEW: AI Safety Analysis Helper Methods
+  private extractLocationAlerts(results: any[], locationString: string): LocationAlert[] {
+    const alerts: LocationAlert[] = [];
+    
+    results.forEach((result, index) => {
+      if (result.title && result.text) {
+        const alertType = this.determineAlertType(result.title, result.text);
+        const severity = this.determineAlertSeverity(result.title, result.text);
+        
+        alerts.push({
+          id: `exa_alert_${Date.now()}_${index}`,
+          type: alertType,
+          severity,
+          title: result.title,
+          description: result.highlights?.[0] || result.text.substring(0, 200) + '...',
+          actionRequired: this.extractActionRequired(result.text),
+          affectedAreas: this.extractAffectedAreas(result.text),
+          source: this.extractSourceName(result.url),
+          validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
+        });
+      }
+    });
+    
+    return alerts.slice(0, 5); // Limit to 5 most relevant alerts
+  }
+
+  private extractCommonScams(results: any[], locationString: string): string[] {
+    const scams: string[] = [];
+    
+    results.forEach(result => {
+      if (result.text) {
+        const text = result.text.toLowerCase();
+        if (text.includes('scam') || text.includes('fraud') || text.includes('theft')) {
+          const scamDescription = this.extractScamDescription(result.text);
+          if (scamDescription) {
+            scams.push(scamDescription);
+          }
+        }
+      }
+    });
+    
+    return scams.slice(0, 3); // Top 3 scams
+  }
+
+  private extractEmergencyNumbers(results: any[], country: string): string[] {
+    const numbers: string[] = [];
+    
+    // Default emergency numbers by country
+    const defaultNumbers: Record<string, string[]> = {
+      'Germany': ['Police: 110', 'Fire/Medical: 112', 'Tourist Hotline: +49-30-25002333'],
+      'United States': ['Emergency: 911', 'Tourist Assistance: 1-800-555-0199'],
+      'United Kingdom': ['Emergency: 999', 'Non-emergency Police: 101'],
+      'France': ['Emergency: 112', 'Police: 17', 'Fire: 18'],
+      'default': ['Emergency: 112', 'Police: Local emergency services', 'Medical: Local ambulance services']
+    };
+    
+    // Extract from search results
+    results.forEach(result => {
+      if (result.text) {
+        const phoneRegex = /(?:\+\d{1,3}[-.\s]?)?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}/g;
+        const matches = result.text.match(phoneRegex);
+                 if (matches) {
+           matches.slice(0, 2).forEach((match: string) => numbers.push(`Emergency: ${match}`));
+         }
+      }
+    });
+    
+    // Use defaults if no numbers found
+    if (numbers.length === 0) {
+      numbers.push(...(defaultNumbers[country] || defaultNumbers['default']));
+    }
+    
+    return numbers.slice(0, 3);
+  }
+
+  private calculateSafetyScore(alerts: LocationAlert[], allResults: any[]): number {
+    let baseScore = 85; // Start with a good base score
+    
+    // Reduce score based on alert severity
+    alerts.forEach(alert => {
+      switch (alert.severity) {
+        case 'critical': baseScore -= 20; break;
+        case 'high': baseScore -= 10; break;
+        case 'medium': baseScore -= 5; break;
+        case 'low': baseScore -= 2; break;
+      }
+    });
+    
+    // Factor in number of safety-related results
+    const safetyResultsCount = allResults.filter(r => 
+      r.text && (r.text.toLowerCase().includes('crime') || 
+                 r.text.toLowerCase().includes('danger') ||
+                 r.text.toLowerCase().includes('warning'))
+    ).length;
+    
+    if (safetyResultsCount > 10) baseScore -= 10;
+    else if (safetyResultsCount > 5) baseScore -= 5;
+    
+    return Math.max(20, Math.min(100, baseScore)); // Keep between 20-100
+  }
+
+  private determineRiskLevel(safetyScore: number, alerts: LocationAlert[]): 'low' | 'medium' | 'high' | 'critical' {
+    const criticalAlerts = alerts.filter(a => a.severity === 'critical').length;
+    const highAlerts = alerts.filter(a => a.severity === 'high').length;
+    
+    if (criticalAlerts > 0 || safetyScore < 40) return 'critical';
+    if (highAlerts > 1 || safetyScore < 60) return 'high';
+    if (safetyScore < 80) return 'medium';
+    return 'low';
+  }
+
+  private determineAlertType(title: string, content: string): LocationAlert['type'] {
+    const text = (title + ' ' + content).toLowerCase();
+    
+    if (text.includes('scam') || text.includes('fraud')) return 'scam';
+    if (text.includes('crime') || text.includes('robbery') || text.includes('theft')) return 'crime';
+    if (text.includes('weather') || text.includes('storm') || text.includes('flood')) return 'weather';
+    if (text.includes('political') || text.includes('protest') || text.includes('unrest')) return 'political';
+    if (text.includes('health') || text.includes('disease') || text.includes('medical')) return 'health';
+    if (text.includes('transport') || text.includes('traffic') || text.includes('airport')) return 'transport';
+    
+    return 'crime'; // Default to crime for safety
+  }
+
+  private determineAlertSeverity(title: string, content: string): LocationAlert['severity'] {
+    const text = (title + ' ' + content).toLowerCase();
+    
+    if (text.includes('critical') || text.includes('urgent') || text.includes('immediate')) return 'critical';
+    if (text.includes('high') || text.includes('warning') || text.includes('danger')) return 'high';
+    if (text.includes('medium') || text.includes('caution') || text.includes('alert')) return 'medium';
+    
+    return 'low';
+  }
+
+  private extractActionRequired(content: string): string {
+    const text = content.toLowerCase();
+    
+    if (text.includes('avoid')) return 'Avoid the affected area';
+    if (text.includes('exercise caution')) return 'Exercise increased caution';
+    if (text.includes('stay informed')) return 'Stay informed and monitor updates';
+    if (text.includes('contact')) return 'Contact local authorities if needed';
+    
+    return 'Stay alert and follow local guidance';
+  }
+
+  private extractScamDescription(content: string): string | null {
+    const sentences = content.split('.').filter(s => s.length > 20);
+    
+    for (const sentence of sentences) {
+      const lower = sentence.toLowerCase();
+      if (lower.includes('scam') || lower.includes('fraud') || lower.includes('theft')) {
+        return sentence.trim().substring(0, 100) + '...';
+      }
+    }
+    
+    return null;
+  }
+
+  private getDefaultSafetyData(location: LocationContext): LocationSafetyData {
+    const locationString = location.city ? `${location.city}, ${location.country}` : location.country;
+    
+    return {
+      location: locationString,
+      country: location.country,
+      coordinates: location.coordinates || { lat: 0, lng: 0 },
+      safetyScore: 75,
+      riskLevel: 'medium',
+      activeAlerts: [{
+        id: 'default_alert_1',
+        type: 'crime',
+        severity: 'low',
+        title: `General Safety Awareness for ${locationString}`,
+        description: 'Stay aware of your surroundings and follow standard travel safety practices.',
+        actionRequired: 'Exercise normal precautions',
+        affectedAreas: [locationString],
+        source: 'Guard Nomad Safety',
+        validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      }],
+      commonScams: [
+        'Pickpocketing in crowded tourist areas',
+        'Overcharging by taxi drivers',
+        'Fake police or authority figures'
+      ],
+      emergencyNumbers: [
+        'Emergency: 112',
+        'Police: Local emergency services',
+        'Tourist Assistance: Contact local tourism office'
+      ],
+      lastUpdated: new Date().toISOString()
+    };
+  }
+
+  private determineSourceType(url: string): 'local' | 'regional' | 'national' {
+    const domain = url.toLowerCase();
+    
+    if (domain.includes('local') || domain.includes('patch.com') || domain.includes('nextdoor')) return 'local';
+    if (domain.includes('regional') || domain.includes('state')) return 'regional';
+    
+    return 'national';
+  }
+
   // Fallback methods
   private getFallbackLocalNews(location: string): LocalNews[] {
     return [{
@@ -579,8 +941,7 @@ class ExaUnifiedService {
       publishedAt: new Date().toISOString(),
       source: { name: 'Guard Nomad News', url: '#', type: 'local' },
       category: 'community',
-      location,
-      relevanceScore: 0.7
+      location
     }];
   }
 

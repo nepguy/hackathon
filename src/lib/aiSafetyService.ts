@@ -1,6 +1,5 @@
-import { geminiAiService } from './geminiAi';
-import { locationSafetyService } from './locationSafetyService';
 import { exaUnifiedService } from './exaUnifiedService';
+import { locationSafetyService } from './locationSafetyService';
 
 export interface AISafetyAlert {
   id: string;
@@ -117,7 +116,7 @@ class AISafetyService {
       // Get location safety information
       if (context.coordinates) {
         try {
-          const safetyInfo = await geminiAiService.getLocationSafetyData({
+          const safetyInfo = await exaUnifiedService.getLocationSafetyData({
             country: context.country,
             city: context.city,
             coordinates: context.coordinates
@@ -166,13 +165,13 @@ class AISafetyService {
   }
 
   /**
-   * Generate AI-powered safety alerts using Gemini AI service
+   * Generate AI-powered safety alerts using Exa.ai service
    */
   private async generateAIAlerts(context: LocationContext, contextData: any): Promise<AISafetyAlert[]> {
     try {
       console.log('🤖 Generating AI alerts for:', context.destination);
       
-      // First, try to get safety data from Gemini AI service
+      // First, try to get safety data from Exa.ai service
       if (context.coordinates || context.country) {
         try {
           const locationContext = {
@@ -181,10 +180,10 @@ class AISafetyService {
             coordinates: context.coordinates
           };
           
-          const safetyData = await geminiAiService.getLocationSafetyData(locationContext);
+          const safetyData = await exaUnifiedService.getLocationSafetyData(locationContext);
           
           if (safetyData && safetyData.activeAlerts && safetyData.activeAlerts.length > 0) {
-            console.log(`✅ Got ${safetyData.activeAlerts.length} alerts from Gemini AI`);
+            console.log(`✅ Got ${safetyData.activeAlerts.length} alerts from Exa.ai`);
             
             return safetyData.activeAlerts.map((alert: any, index: number) => ({
               id: `gemini-${Date.now()}-${index}`,
@@ -234,8 +233,8 @@ class AISafetyService {
             console.log('✅ Generated safety score-based alert');
             return [generalAlert];
           }
-        } catch (geminiError) {
-          console.warn('Gemini AI service unavailable, falling back to basic alerts:', geminiError);
+        } catch (exaError) {
+          console.warn('Exa.ai service unavailable, falling back to basic alerts:', exaError);
         }
       }
       
@@ -280,9 +279,9 @@ class AISafetyService {
   }
 
   /**
-   * Map Gemini alert types to our alert types
+   * Map Exa.ai alert types to our alert types
    */
-  private mapAlertType(geminiType: string): AISafetyAlert['type'] {
+  private mapAlertType(exaType: string): AISafetyAlert['type'] {
     const typeMap: Record<string, AISafetyAlert['type']> = {
       'scam': 'security',
       'crime': 'security', 
@@ -291,7 +290,7 @@ class AISafetyService {
       'health': 'health',
       'transport': 'transportation'
     };
-    return typeMap[geminiType] || 'safety';
+    return typeMap[exaType] || 'safety';
   }
 
   /**

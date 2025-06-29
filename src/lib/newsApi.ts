@@ -10,7 +10,7 @@ export interface NewsArticle {
     url: string;
   };
   category: 'travel' | 'safety' | 'weather' | 'general';
-  severity: 'low' | 'medium' | 'high';
+  severity: 'low' | 'medium' | 'high' | 'critical';
   location?: string;
 }
 
@@ -213,126 +213,90 @@ class NewsService {
   }
 
   /**
-   * Generate AI-powered location-specific news and alerts
+   * Generate AI-powered location-specific news and alerts using Exa.ai
    */
   private async generateAINews(location: string): Promise<NewsApiResponse> {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
-
-    if (!apiKey || !apiKey.startsWith('AIza')) {
-      console.warn('🔑 Gemini API key not available for AI news generation');
-      throw new Error('AI service not available');
-    }
-
-    // Parse location for better context
-    const locationParts = location.split(',').map(p => p.trim());
-    const city = locationParts[0];
-    const country = locationParts.length > 1 ? locationParts[locationParts.length - 1] : locationParts[0];
-
-    const prompt = `
-      As a professional travel news reporter, generate 5-6 realistic, current travel safety alerts and news for ${location} (January 2025).
-
-      **REQUIREMENTS:**
-      1. Create SPECIFIC, LOCALIZED alerts mentioning real areas, neighborhoods, or landmarks in ${city}
-      2. Include diverse alert types: pickpocketing, bicycle theft, weather advisories, transportation issues, local events
-      3. Make them sound like real news headlines with specific locations
-      4. Use realistic timestamps (last 1-3 days)
-      5. Vary severity levels from low to high
-      6. Include actionable advice for travelers
-
-      **EXAMPLES of the style wanted:**
-      - "Increased Reports of Pickpocketing near ${city} Main Train Station"
-      - "Elevated Bicycle Theft in [Local Park Name] and along [Local River/Street] Pathways" 
-      - "Weather Advisory: Strong Winds Expected in [City] Downtown Area"
-      - "Construction Delays on [Local Transport Line] - Allow Extra Travel Time"
-
-      Return ONLY valid JSON array with this structure:
-      [
-        {
-          "title": "Specific headline mentioning exact location in ${city}",
-          "description": "Detailed description with specific areas, times, and circumstances. Mention exact neighborhoods, streets, or landmarks.",
-          "content": "Full article content with actionable travel advice",
-          "url": "#",
-          "image": "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400",
-          "publishedAt": "${new Date(Date.now() - Math.random() * 259200000).toISOString()}",
-          "source": { 
-            "name": "Local Police Reports|${city} Tourism Authority|Regional Safety Network|${country} Travel Advisory", 
-            "url": "#" 
-          },
-          "category": "safety|weather|travel|general",
-          "severity": "low|medium|high",
-          "location": "${location}"
-        }
-      ]
-
-      **FOCUS ON ${city.toUpperCase()} SPECIFICALLY:**
-      - Mention real-sounding local areas (train station, main square, shopping districts, parks)
-      - Include local transportation (buses, trams, metro lines)
-      - Reference weather conditions appropriate for ${country} in winter
-      - Create alerts that tourists would actually encounter
-      - Make each alert unique and location-specific
-
-      Generate 5-6 diverse alerts covering different types of travel concerns.
-    `;
-
+    // Import Exa service for AI-powered news generation
+    const { exaUnifiedService } = await import('./exaUnifiedService');
+    
     try {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey,
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ "text": prompt }]
-          }],
-          generationConfig: {
-            temperature: 0.8,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 3000,
+      console.log('🔍 Generating AI-powered news for', location, 'using Exa.ai');
+      
+      // Use Exa.ai to get real local news and safety alerts
+      const [localNews, scamAlerts, safetyAlerts] = await Promise.all([
+        exaUnifiedService.getLocalNews(location),
+        exaUnifiedService.getScamAlerts(location),
+        exaUnifiedService.getTravelSafetyAlerts(location)
+      ]);
+
+      // Combine all sources into news articles
+      const articles: NewsArticle[] = [
+        // Convert local news
+        ...localNews.map(news => ({
+          title: news.title,
+          description: news.description,
+          content: news.content,
+          url: news.url,
+          image: news.imageUrl || 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400',
+          publishedAt: news.publishedAt,
+          source: {
+            name: news.source.name,
+            url: news.source.url
           },
-          safetySettings: [
-            {
-              category: "HARM_CATEGORY_HARASSMENT",
-              threshold: "BLOCK_ONLY_HIGH"
-            }
-          ]
-        })
-      });
+          category: 'general' as const,
+          severity: 'low' as const,
+          location: news.location
+        })),
+        
+        // Convert scam alerts to news format
+        ...scamAlerts.map(alert => ({
+          title: alert.title,
+          description: alert.description,
+          content: `${alert.description} Affected areas: ${alert.affectedAreas.join(', ')}`,
+          url: alert.source.url,
+          image: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=400',
+          publishedAt: alert.reportedDate,
+          source: {
+            name: alert.source.name,
+            url: alert.source.url
+          },
+          category: 'safety' as const,
+          severity: alert.severity,
+          location: alert.location || location
+        })),
+        
+        // Convert safety alerts to news format
+        ...safetyAlerts.map(alert => ({
+          title: alert.title,
+          description: alert.description,
+          content: `${alert.description} Recommendations: ${alert.recommendations.join(', ')}`,
+          url: alert.source.url,
+          image: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400',
+          publishedAt: alert.issuedDate,
+          source: {
+            name: alert.source.name,
+            url: alert.source.url
+          },
+          category: 'safety' as const,
+          severity: alert.severity,
+          location: alert.location
+        }))
+      ];
 
-      if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-      if (!aiResponse) {
-        throw new Error('No AI response received');
-      }
-
-      // Parse the JSON response
-      const cleanedResponse = aiResponse.replace(/```json\n?|\n?```/g, '').trim();
-      const aiArticles = JSON.parse(cleanedResponse);
-
-      console.log('🤖 Generated', aiArticles.length, 'AI news articles for', location);
+      console.log('🤖 Generated', articles.length, 'AI-powered news articles for', location);
 
       return {
-        totalArticles: aiArticles.length,
-        articles: aiArticles.map((article: any) => ({
-          ...article,
-          source: typeof article.source === 'string' 
-            ? { name: article.source, url: '#' }
-            : article.source
-        }))
+        totalArticles: articles.length,
+        articles: articles.slice(0, 10) // Limit to 10 most relevant
       };
 
     } catch (error) {
-      console.error('❌ AI news generation failed:', error);
-      throw error;
+      console.error('❌ Exa.ai news generation failed:', error);
+      throw new Error('AI service not available');
     }
   }
+
+
 
   private transformArticles(articles: any[]): NewsArticle[] {
     return articles.map(article => ({

@@ -4,8 +4,8 @@
  * Shared data across users in the same location for efficiency
  */
 
-import { geminiAiService } from './geminiAi';
-import type { LocationAlert, LocationSafetyData } from './geminiAi';
+import { exaUnifiedService } from './exaUnifiedService';
+import type { LocationAlert, LocationSafetyData } from './exaUnifiedService';
 
 interface UserLocation {
   lat: number;
@@ -50,7 +50,7 @@ class LocationSafetyService {
     const { location } = userLocationData;
     
     try {
-      const alerts = await geminiAiService.getLocationSpecificAlerts(
+      const alerts = await exaUnifiedService.getLocationSpecificAlerts(
         { lat: location.lat, lng: location.lng },
         location.country,
         location.city
@@ -91,7 +91,7 @@ class LocationSafetyService {
     const { location } = userLocationData;
     
     try {
-      const safetyScore = await geminiAiService.getLocationSafetyScore(
+      const safetyScore = await exaUnifiedService.getLocationSafetyScore(
         { lat: location.lat, lng: location.lng },
         location.country,
         location.city
@@ -128,7 +128,7 @@ class LocationSafetyService {
     const { location } = userLocationData;
     
     try {
-      const safetyData = await geminiAiService.getLocationSafetyData({
+      const safetyData = await exaUnifiedService.getLocationSafetyData({
         country: location.country,
         city: location.city,
         region: location.region,
