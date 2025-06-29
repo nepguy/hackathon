@@ -16,6 +16,11 @@ export class ResendService {
   private constructor() {
     this.supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     this.supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    
+    // Validate required environment variables
+    if (!this.supabaseUrl || !this.supabaseAnonKey) {
+      console.warn('⚠️ Missing Supabase configuration. Email functionality will be limited.');
+    }
   }
 
   public static getInstance(): ResendService {
@@ -27,6 +32,11 @@ export class ResendService {
 
   private async callEmailFunction(type: string, to: string, data: any): Promise<{ success: boolean; id?: string; error?: string }> {
     try {
+      if (!this.supabaseUrl || !this.supabaseAnonKey) {
+        console.error('Missing Supabase configuration for email function');
+        return { success: false, error: 'Email service not configured' };
+      }
+
       const response = await fetch(`${this.supabaseUrl}/functions/v1/send-email`, {
         method: 'POST',
         headers: {

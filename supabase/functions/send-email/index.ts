@@ -1,4 +1,8 @@
+// Secure email service that handles all email sending on the server side
+// This prevents exposing API keys in the frontend
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { Resend } from 'npm:resend@1.0.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,21 +31,24 @@ serve(async (req) => {
       throw new Error('RESEND_API_KEY environment variable is not set')
     }
 
+    // Initialize Resend client
+    const resend = new Resend(resendApiKey)
+
     let emailTemplate: any = {}
 
     switch (type) {
       case 'welcome':
         emailTemplate = {
-          from: 'Guard Nomad <noreply@guardnomad.com>',
+          from: 'Guard Nomand <noreply@guardnomand.com>',
           to: [to],
-          subject: 'Welcome to Guard Nomad - Your Safe Travel Journey Begins!',
+          subject: 'Welcome to Guard Nomand - Your Safe Travel Journey Begins!',
           html: generateWelcomeEmail(data.userName)
         }
         break
 
       case 'travel_alert':
         emailTemplate = {
-          from: 'Guard Nomad <alerts@guardnomad.com>',
+          from: 'Guard Nomand <alerts@guardnomand.com>',
           to: [to],
           subject: `${getSeverityEmoji(data.severity)} ${getSeverityLabel(data.severity)}: ${data.title}`,
           html: generateTravelAlertEmail(data)
@@ -50,18 +57,18 @@ serve(async (req) => {
 
       case 'confirmation_reminder':
         emailTemplate = {
-          from: 'Guard Nomad <noreply@guardnomad.com>',
+          from: 'Guard Nomand <noreply@guardnomand.com>',
           to: [to],
-          subject: 'Please confirm your Guard Nomad account',
+          subject: 'Please confirm your Guard Nomand account',
           html: generateConfirmationReminderEmail(data.userName)
         }
         break
 
       case 'password_reset_success':
         emailTemplate = {
-          from: 'Guard Nomad <security@guardnomad.com>',
+          from: 'Guard Nomand <security@guardnomand.com>',
           to: [to],
-          subject: 'Your Guard Nomad password has been reset',
+          subject: 'Your Guard Nomand password has been reset',
           html: generatePasswordResetSuccessEmail(data.userName)
         }
         break
@@ -70,25 +77,15 @@ serve(async (req) => {
         throw new Error(`Unknown email type: ${type}`)
     }
 
-    // Send email using Resend API
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(emailTemplate),
-    })
+    // Send email using Resend
+    const { data: responseData, error } = await resend.emails.send(emailTemplate)
 
-    if (!response.ok) {
-      const errorData = await response.text()
-      throw new Error(`Resend API error: ${response.status} - ${errorData}`)
+    if (error) {
+      throw new Error(`Resend API error: ${error.message}`)
     }
 
-    const result = await response.json()
-
     return new Response(
-      JSON.stringify({ success: true, id: result.id }),
+      JSON.stringify({ success: true, id: responseData?.id }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
@@ -140,18 +137,18 @@ function generateWelcomeEmail(userName: string): string {
         <div style="background-color: rgba(255,255,255,0.1); padding: 16px; border-radius: 16px; display: inline-block; margin-bottom: 20px;">
           <span style="font-size: 48px;">🛡️</span>
         </div>
-        <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">Welcome to Guard Nomad!</h1>
+        <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">Welcome to Guard Nomand!</h1>
         <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 18px;">Your trusted companion for safe travels</p>
       </div>
       
       <div style="padding: 40px 20px;">
         <h2 style="color: #1f2937; margin-bottom: 20px;">Hi ${userName}!</h2>
         <p style="color: #4b5563; line-height: 1.6; margin-bottom: 20px;">
-          We're excited to have you join our community of safe travelers. Guard Nomad is here to help you explore the world with confidence and peace of mind.
+          We're excited to have you join our community of safe travelers. Guard Nomand is here to help you explore the world with confidence and peace of mind.
         </p>
         
         <div style="background-color: #f8fafc; border-radius: 12px; padding: 24px; margin: 24px 0;">
-          <h3 style="color: #1f2937; margin-bottom: 16px; font-size: 18px;">🌟 What you can do with Guard Nomad:</h3>
+          <h3 style="color: #1f2937; margin-bottom: 16px; font-size: 18px;">🌟 What you can do with Guard Nomand:</h3>
           <div style="margin-bottom: 12px;">
             <span style="color: #3b82f6; font-weight: bold;">🛡️</span>
             <span style="color: #4b5563; margin-left: 8px;">Get real-time safety alerts for your destinations</span>
@@ -171,7 +168,7 @@ function generateWelcomeEmail(userName: string): string {
         </div>
         
         <div style="text-align: center; margin: 32px 0;">
-          <a href="https://guardnomad.com/home" 
+          <a href="https://guardnomand.com/home" 
              style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
             🚀 Start Your Safe Journey
           </a>
@@ -180,7 +177,7 @@ function generateWelcomeEmail(userName: string): string {
       
       <div style="background-color: #f8fafc; padding: 24px 20px; text-align: center; border-top: 1px solid #e5e7eb;">
         <p style="color: #4b5563; margin: 0 0 8px 0;">Safe travels,</p>
-        <p style="color: #1f2937; font-weight: bold; margin: 0;">The Guard Nomad Team</p>
+        <p style="color: #1f2937; font-weight: bold; margin: 0;">The Guard Nomand Team</p>
       </div>
     </div>
   `
@@ -221,11 +218,27 @@ function generateTravelAlertEmail(alert: any): string {
         </div>
         
         <div style="text-align: center; margin: 32px 0;">
-          <a href="https://guardnomad.com/alerts" 
+          <a href="https://guardnomand.com/alerts" 
              style="background-color: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">
             📱 View All Alerts
           </a>
         </div>
+        
+        <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 24px 0; border-radius: 8px;">
+          <p style="color: #92400e; margin: 0; font-size: 14px;">
+            <strong>💡 Stay Safe:</strong> Always check local conditions and follow official guidance when traveling. 
+            Keep your emergency contacts updated in your profile.
+          </p>
+        </div>
+      </div>
+      
+      <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+        <p style="color: #6b7280; font-size: 12px; margin: 0;">
+          This alert was sent because you have notifications enabled for ${alert.location}.
+          <br>
+          <a href="https://guardnomand.com/profile-settings" 
+             style="color: #3b82f6; text-decoration: none;">Manage your notification preferences</a>
+        </p>
       </div>
     </div>
   `
@@ -242,15 +255,34 @@ function generateConfirmationReminderEmail(userName: string): string {
       <div style="padding: 32px 20px;">
         <h2 style="color: #1f2937; margin-bottom: 16px;">Hi ${userName},</h2>
         <p style="color: #4b5563; line-height: 1.6; margin-bottom: 20px;">
-          We noticed you haven't confirmed your Guard Nomad account yet. To access all features and receive important safety alerts, please confirm your email address.
+          We noticed you haven't confirmed your Guard Nomand account yet. To access all features and receive important safety alerts, please confirm your email address.
         </p>
         
+        <div style="background-color: #fef3c7; border-radius: 12px; padding: 20px; margin: 24px 0;">
+          <h3 style="color: #92400e; margin-bottom: 12px;">🔒 Why confirm your account?</h3>
+          <ul style="color: #92400e; margin: 0; padding-left: 20px;">
+            <li>Receive critical safety alerts for your destinations</li>
+            <li>Access personalized travel recommendations</li>
+            <li>Connect with the travel community</li>
+            <li>Secure your account and travel data</li>
+          </ul>
+        </div>
+        
         <div style="text-align: center; margin: 32px 0;">
-          <a href="https://guardnomad.com/auth" 
+          <p style="color: #4b5563; margin-bottom: 16px;">
+            Check your email for the confirmation link, or click below to resend:
+          </p>
+          <a href="https://guardnomand.com/auth" 
              style="background-color: #f59e0b; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
             📧 Resend Confirmation
           </a>
         </div>
+      </div>
+      
+      <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+        <p style="color: #6b7280; font-size: 12px; margin: 0;">
+          If you didn't create this account, you can safely ignore this email.
+        </p>
       </div>
     </div>
   `
@@ -267,15 +299,39 @@ function generatePasswordResetSuccessEmail(userName: string): string {
       <div style="padding: 32px 20px;">
         <h2 style="color: #1f2937; margin-bottom: 16px;">Hi ${userName},</h2>
         <p style="color: #4b5563; line-height: 1.6; margin-bottom: 20px;">
-          Your Guard Nomad password has been successfully reset. You can now sign in with your new password.
+          Your Guard Nomand password has been successfully reset. You can now sign in with your new password.
         </p>
         
+        <div style="background-color: #ecfdf5; border-radius: 12px; padding: 20px; margin: 24px 0; border: 1px solid #d1fae5;">
+          <h3 style="color: #047857; margin-bottom: 12px;">🔐 Security Tips:</h3>
+          <ul style="color: #047857; margin: 0; padding-left: 20px; font-size: 14px;">
+            <li>Use a strong, unique password for your account</li>
+            <li>Don't share your password with anyone</li>
+            <li>Consider enabling two-factor authentication</li>
+            <li>Contact support if you notice any suspicious activity</li>
+          </ul>
+        </div>
+        
         <div style="text-align: center; margin: 32px 0;">
-          <a href="https://guardnomad.com/auth" 
+          <a href="https://guardnomand.com/auth" 
              style="background-color: #10b981; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
             🔑 Sign In Now
           </a>
         </div>
+        
+        <div style="background-color: #fef2f2; border-radius: 8px; padding: 16px; margin: 24px 0; border: 1px solid #fecaca;">
+          <p style="color: #dc2626; margin: 0; font-size: 14px;">
+            <strong>⚠️ Important:</strong> If you didn't reset your password, please contact our support team immediately at 
+            <a href="mailto:support@guardnomand.com" style="color: #dc2626;">support@guardnomand.com</a>
+          </p>
+        </div>
+      </div>
+      
+      <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+        <p style="color: #4b5563; margin: 0;">
+          Safe travels,<br>
+          <strong>The Guard Nomand Team</strong>
+        </p>
       </div>
     </div>
   `
