@@ -454,4 +454,4 @@ class ExaNewsService {
 
 // Export singleton instance
 export const exaNewsService = new ExaNewsService();
-export default exaNewsService; 
+export default exaNewsService;
