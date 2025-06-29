@@ -186,6 +186,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
               <Lock className="w-5 h-5" />
               <div>
                 <h4 className="font-medium text-blue-900">Secure Payment</h4>
+              </div>
+            </div>
           </div>
         </div>
       </div>
