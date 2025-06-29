@@ -57,47 +57,43 @@ const ExplorePage: React.FC = () => {
   const loadTravelStories = async () => {
     setLoading(true);
     try {
-      // Get stories with user profile data - use proper join through auth.users
+      // Get stories with user profile data by fetching separately and merging
       const { supabase } = await import('../lib/supabase');
       
-      // First try to get stories with profile data using a custom query
-      const { data: storiesWithProfiles, error } = await supabase
-        .rpc('get_travel_stories_with_profiles', { story_limit: 50 });
+      console.log('📚 Loading travel stories with user profiles...');
+      
+      // Get stories and profiles separately, then merge them
+      const [storiesResult, profilesResult] = await Promise.all([
+        supabase
+          .from('travel_stories')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50),
+        supabase
+          .from('user_profiles')
+          .select('id, full_name, email')
+      ]);
 
       let stories: TravelStory[] = [];
-      if (error || !storiesWithProfiles) {
-        console.warn('Custom function not available, using fallback approach:', error?.message);
-        
-        // Fallback: Get stories and profiles separately, then merge
-        const [storiesResult, profilesResult] = await Promise.all([
-          supabase
-            .from('travel_stories')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(50),
-          supabase
-            .from('user_profiles')
-            .select('id, full_name, email')
-        ]);
-
-        if (storiesResult.error) {
-          console.error('Error fetching stories:', storiesResult.error);
-          stories = await getTravelStories({ limit: 50 });
-        } else {
-          const storiesData = storiesResult.data || [];
-          const profilesData = profilesResult.data || [];
-          
-          // Create a map of user profiles for quick lookup
-          const profilesMap = new Map(profilesData.map((p: any) => [p.id, p]));
-          
-          // Merge stories with profile data
-          stories = storiesData.map((story: any) => ({
-            ...story,
-            user_profiles: profilesMap.get(story.user_id) || null
-          }));
-        }
+      
+      if (storiesResult.error) {
+        console.error('Error fetching stories:', storiesResult.error);
+        // Final fallback to service method
+        stories = await getTravelStories({ limit: 50 });
       } else {
-        stories = storiesWithProfiles || [];
+        const storiesData = storiesResult.data || [];
+        const profilesData = profilesResult.data || [];
+        
+        console.log(`📚 Found ${storiesData.length} stories and ${profilesData.length} user profiles`);
+        
+        // Create a map of user profiles for quick lookup
+        const profilesMap = new Map(profilesData.map((p: any) => [p.id, p]));
+        
+        // Merge stories with profile data
+        stories = storiesData.map((story: any) => ({
+          ...story,
+          user_profiles: profilesMap.get(story.user_id) || null
+        }));
       }
 
       const stats = await getStoriesStats();

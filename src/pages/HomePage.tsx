@@ -116,46 +116,31 @@ const HomePage: React.FC = () => {
   };
 
   const loadTravelNews = async () => {
-    if (!userLocation) return;
-    
     console.log('🔄 Loading travel news...');
     setIsLoadingNews(true);
+    
     try {
-      // Format location string
-      const locationString = `${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}`;
-      console.log('📍 Using location string for news:', locationString);
+      // Use location if available, otherwise use a default
+      const locationString = userLocation 
+        ? `${userLocation.latitude.toFixed(4)},${userLocation.longitude.toFixed(4)}` 
+        : 'Global Travel News';
       
+      console.log('🌍 Using location for news:', locationString);
       
-      // Use a try-catch block to handle potential errors
-      try {
-        const locationString = userLocation 
-          ? `${userLocation.latitude.toFixed(4)},${userLocation.longitude.toFixed(4)}` 
-          : 'Global';
-        
-        console.log('🌍 Using location for news:', locationString);
-        const newsData = await exaUnifiedService.getLocalNews(locationString);
-        
-        if (newsData && newsData.length > 0) {
-          setTravelNews(newsData.slice(0, 5));
-          console.log('✅ Travel news loaded successfully via Exa:', newsData.length, 'items');
-        } else {
-          console.log('⚠️ No news data returned from Exa service');
-          setTravelNews([]);
-        }
-      } catch (exaError) {
-        console.error('❌ Error from Exa service:', exaError);
-        setTravelNews([]);
-      }
+      // Use Exa.ai service for travel news
+      const newsData = await exaUnifiedService.getLocalNews(locationString);
       
-      if (response && response.articles) {
-        console.log(`✅ Loaded ${response.articles.length} travel news items`);
-        setTravelNews(response.articles.slice(0, 3)); // Show only 3 latest news items
+      if (newsData && newsData.length > 0) {
+        // Limit to 3-5 most recent news items
+        setTravelNews(newsData.slice(0, 3));
+        console.log('✅ Travel news loaded successfully via Exa.ai:', newsData.length, 'items');
       } else {
-        console.warn('⚠️ No travel news articles returned');
+        console.log('⚠️ No news data returned from Exa.ai service');
         setTravelNews([]);
       }
+      
     } catch (error: any) {
-      console.error('Failed to load travel news:', error?.message || error);
+      console.error('❌ Failed to load travel news from Exa.ai:', error?.message || error);
       // Set empty array to avoid undefined errors
       setTravelNews([]);
     } finally {

@@ -1,7 +1,6 @@
 import { geminiAiService } from './geminiAi';
 import { locationSafetyService } from './locationSafetyService';
 import { exaUnifiedService } from './exaUnifiedService';
-import { exaUnifiedService } from './exaUnifiedService';
 
 export interface AISafetyAlert {
   id: string;
@@ -80,7 +79,7 @@ class AISafetyService {
       const exaAlerts = await this.generateExaBasedAlerts(context);
       
       // Combine and prioritize alerts
-      const allAlerts = [...aiAlerts, ...realTimeAlerts];
+      const allAlerts = [...aiAlerts, ...realTimeAlerts, ...exaAlerts];
       const prioritizedAlerts = this.prioritizeAlerts(allAlerts);
       
       // Use location safety service for backup data
@@ -586,7 +585,7 @@ class AISafetyService {
         message: alert.description,
         location: alert.location,
         coordinates: context.coordinates,
-        source: 'ai',
+        source: 'ai' as const,
         timestamp: alert.issuedDate,
         actionable_advice: alert.recommendations,
         relevant_links: [alert.source.url].filter(url => url !== '#'),
@@ -598,6 +597,7 @@ class AISafetyService {
       
     } catch (error: any) {
       console.warn('❌ Error generating Exa-based alerts:', error?.message || error);
+    }
 
     return alerts;
   }
@@ -641,124 +641,8 @@ class AISafetyService {
       ]
     };
   }
-  /**
-   * Generate alerts based on Exa.ai data
-   */
-  private async generateExaBasedAlerts(context: LocationContext): Promise<AISafetyAlert[]> {
-    const alerts: AISafetyAlert[] = [];
 
-    // Validate location context
-    if (!context?.destination) {
-      console.log('⚠️ No valid location context provided for Exa alerts');
-      return [];
-    }
 
-    try {
-      console.log('🔍 Generating Exa-based alerts for:', context.destination);
-      
-      // Get scam alerts from Exa.ai with error handling
-      try {
-        const scamAlerts = await exaUnifiedService.getScamAlerts(context.destination);
-        
-        if (scamAlerts && scamAlerts.length > 0) {
-          for (const scam of scamAlerts.slice(0, 2)) {
-            alerts.push({
-              id: `exa-scam-${Date.now()}-${Math.random()}`,
-              type: 'security',
-              severity: 'high',
-              title: scam.title,
-              message: scam.description,
-              location: context.destination,
-              source: 'ai',
-              timestamp: new Date().toISOString(),
-              actionable_advice: [
-                'Stay vigilant about common scams',
-                'Verify information before taking action',
-                'Report suspicious activities to authorities'
-              ],
-              relevant_links: [scam.source?.url].filter(Boolean)
-            });
-          }
-          console.log('✅ Added', Math.min(scamAlerts.length, 2), 'scam alerts from Exa');
-        } else {
-          console.log('ℹ️ No scam alerts found from Exa');
-        }
-      } catch (scamError) {
-        console.warn('❌ Error fetching scam alerts from Exa:', scamError);
-      }
-
-      // Get travel safety alerts from Exa.ai with error handling
-      try {
-        const safetyAlerts = await exaUnifiedService.getTravelSafetyAlerts(context.destination);
-        
-        if (safetyAlerts && safetyAlerts.length > 0) {
-          for (const safety of safetyAlerts.slice(0, 2)) {
-            alerts.push({
-              id: `exa-safety-${Date.now()}-${Math.random()}`,
-              type: 'health',
-              severity: safety.severity === 'critical' ? 'high' : safety.severity === 'high' ? 'high' : 'medium',
-              title: safety.title,
-              message: safety.description,
-              location: context.destination,
-              source: 'ai',
-              timestamp: new Date().toISOString(),
-              actionable_advice: safety.recommendations || [
-                'Follow local health guidelines',
-                'Stay informed about current conditions',
-                'Take necessary precautions'
-              ],
-              relevant_links: [safety.source?.url].filter(Boolean)
-            });
-          }
-          console.log('✅ Added', Math.min(safetyAlerts.length, 2), 'safety alerts from Exa');
-        } else {
-          console.log('ℹ️ No safety alerts found from Exa');
-        }
-      } catch (safetyError) {
-        console.warn('❌ Error fetching safety alerts from Exa:', safetyError);
-      }
-      
-      console.log('✅ Generated', alerts.length, 'total Exa-based alerts');
-      
-    } catch (error) {
-      console.error('❌ Error generating Exa.ai-based alerts:', error);
-    }
-
-    return alerts;
-  }
-
-  
-    /**
-   * Check if news article is safety-relevant
-   */
-  private isNewsSafetyRelevant(article: any): boolean {
-    const safetyKeywords = [
-      'safety', 'security', 'crime', 'theft', 'scam', 'danger', 'warning',
-      'emergency', 'alert', 'incident', 'accident', 'violence', 'protest',
-      'strike', 'disruption', 'closure', 'evacuation', 'health', 'outbreak'
-    ];
-
-    const text = `${article.title} ${article.description}`.toLowerCase();
-    return safetyKeywords.some(keyword => text.includes(keyword));
-  }
-
-  /**
-   * Assess severity based on news content
-   */
-  private assessNewsSeverity(article: any): 'low' | 'medium' | 'high' | 'critical' {
-    const text = `${article.title} ${article.description}`.toLowerCase();
-    
-    if (text.includes('emergency') || text.includes('critical') || text.includes('evacuation')) {
-      return 'critical';
-    }
-    if (text.includes('warning') || text.includes('danger') || text.includes('violence')) {
-      return 'high';
-    }
-    if (text.includes('crime') || text.includes('theft') || text.includes('scam')) {
-      return 'medium';
-    }
-    return 'low';
-  }
 
   /**
    * Prioritize alerts by severity and relevance
@@ -783,7 +667,6 @@ class AISafetyService {
    */
   private getFallbackAlerts(context: LocationContext | any): AISafetyAlert[] {
     const destination = context?.destination || 'your destination';
-    const country = context?.country || 'this country';
     
     return [
       {
