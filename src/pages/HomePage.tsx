@@ -348,7 +348,7 @@ const HomePage: React.FC = () => {
                 </div>
               ) : travelNews.length > 0 ? (
                 <div className="space-y-4">
-                  {travelNews.map((article) => (
+                  {travelNews.map((article, index) => (
                     <div key={article.url} className={`bg-white rounded-lg border border-gray-200 p-4 hover-lift animate-fade-in-up stagger-${index + 1} group`}>
                       <div className="flex items-start space-x-3">
                         <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0 transition-transform duration-300 group-hover:scale-150"></div>
