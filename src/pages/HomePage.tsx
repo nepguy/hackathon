@@ -19,7 +19,7 @@ import { getUserStatistics } from '../lib/userStatisticsService';
 import { getAISafetyInsights } from '../lib/aiSafetyService';
 import { exaUnifiedService } from '../lib/exaUnifiedService';
 import { TravelPlan, Activity, SafetyTip } from '../types';
-import { AISafetyAlert } from '../lib/aiSafetyService';
+import type { AISafetyAlert } from '../lib/aiSafetyService';
 import { LocalNews } from '../lib/exaUnifiedService';
 import { useUserDestinations } from '../contexts/UserDestinationContext';
 
@@ -87,12 +87,14 @@ const HomePage: React.FC = () => {
   const loadAISafetyInsights = async () => {
     if (!user || !userLocation) return;
 
+    console.log('🔄 Loading AI safety insights...');
     setIsLoadingAISafety(true);
     try {
-      const insights = await getAISafetyInsights(
-        user.id,
-        userLocation.latitude.toString() + ',' + userLocation.longitude.toString()
-      ) as AISafetyAlert[];
+      // Format location string
+      const locationString = userLocation.latitude.toString() + ',' + userLocation.longitude.toString();
+      console.log('📍 Using location string:', locationString);
+      
+      const insights = await getAISafetyInsights(user.id, locationString) as AISafetyAlert[];
       
       // Convert AISafetyAlert to SafetyTip
       const safetyTips = insights.map(alert => ({
@@ -102,9 +104,12 @@ const HomePage: React.FC = () => {
         imageUrl: `https://source.unsplash.com/800x600/?${encodeURIComponent(alert.type)}`
       }));
       
+      console.log(`✅ Loaded ${safetyTips.length} AI safety insights`);
       setAiSafetyInsights(safetyTips);
-    } catch (error) {
-      console.error('Error loading AI safety insights:', error);
+    } catch (error: any) {
+      console.error('Error loading AI safety insights:', error?.message || error);
+      // Set empty array to avoid undefined errors
+      setAiSafetyInsights([]);
     } finally {
       setIsLoadingAISafety(false);
     }
@@ -113,9 +118,13 @@ const HomePage: React.FC = () => {
   const loadTravelNews = async () => {
     if (!userLocation) return;
     
+    console.log('🔄 Loading travel news...');
     setIsLoadingNews(true);
     try {
-      console.log('📰 Loading travel news via Exa service');
+      // Format location string
+      const locationString = `${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}`;
+      console.log('📍 Using location string for news:', locationString);
+      
       
       // Use a try-catch block to handle potential errors
       try {
@@ -137,8 +146,17 @@ const HomePage: React.FC = () => {
         console.error('❌ Error from Exa service:', exaError);
         setTravelNews([]);
       }
-    } catch (error) {
-      console.error('❌ Error loading travel news:', error);
+      
+      if (response && response.articles) {
+        console.log(`✅ Loaded ${response.articles.length} travel news items`);
+        setTravelNews(response.articles.slice(0, 3)); // Show only 3 latest news items
+      } else {
+        console.warn('⚠️ No travel news articles returned');
+        setTravelNews([]);
+      }
+    } catch (error: any) {
+      console.error('Failed to load travel news:', error?.message || error);
+      // Set empty array to avoid undefined errors
       setTravelNews([]);
     } finally {
       setIsLoadingNews(false);
@@ -374,8 +392,8 @@ const HomePage: React.FC = () => {
                 <div className="text-center py-8 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border-2 border-dashed border-green-200">
                   <Shield className="w-12 h-12 text-green-400 mx-auto mb-3" />
                   <h3 className="text-lg font-medium text-slate-700 mb-2">All Clear!</h3>
-                  <p className="text-sm text-slate-500 mb-2">No critical travel alerts for your area</p>
-                  <p className="text-xs text-slate-400">We'll notify you of any important updates</p>
+                  <p className="text-sm text-slate-500 mb-2">No critical travel alerts for your area at this time</p>
+                  <p className="text-xs text-slate-400">Guard Nomad will notify you of any important updates</p>
                 </div>
               )}
             </div>
@@ -414,7 +432,7 @@ const HomePage: React.FC = () => {
             ) : aiSafetyInsights.length > 0 ? (
               <div className="space-y-3">
                 {aiSafetyInsights.slice(0, 2).map((tip) => (
-                  <SafetyTipCard key={tip.id} tip={tip} />
+                  <SafetyTipCard key={`${tip.id}-${Date.now()}`} tip={tip} />
                 ))}
                 <button 
                   onClick={() => navigate('/alerts?tab=safety')}
@@ -427,7 +445,7 @@ const HomePage: React.FC = () => {
               <div className="text-center py-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg">
                 <Shield className="w-8 h-8 text-green-400 mx-auto mb-2" />
                 <p className="text-sm text-slate-600">You're all set!</p>
-                <p className="text-xs text-slate-500">No safety concerns detected</p>
+                <p className="text-xs text-slate-500">Guard Nomad has detected no safety concerns</p>
               </div>
             )}
           </div>

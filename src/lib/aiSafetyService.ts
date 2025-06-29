@@ -1,6 +1,7 @@
 import { geminiAiService } from './geminiAi';
 import { locationSafetyService } from './locationSafetyService';
 import { exaUnifiedService } from './exaUnifiedService';
+import { exaUnifiedService } from './exaUnifiedService';
 
 export interface AISafetyAlert {
   id: string;
@@ -50,6 +51,12 @@ class AISafetyService {
   async generateSafetyAlerts(context: LocationContext): Promise<AISafetyAlert[]> {
     const cacheKey = this.getCacheKey(context);
     
+    // Validate context
+    if (!context || (!context.destination && !context.coordinates)) {
+      console.warn('❌ Invalid location context provided to generateSafetyAlerts');
+      return this.getFallbackAlerts({ destination: 'Unknown', country: 'Unknown' });
+    }
+    
     // Check cache first
     const cached = this.alertCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < this.ALERT_CACHE_DURATION) {
@@ -58,7 +65,7 @@ class AISafetyService {
     }
 
     try {
-      console.log('🤖 Generating AI safety alerts for:', context.destination);
+      console.log('🤖 Generating AI safety alerts for:', context.destination || 'coordinates-based location');
       
       // Gather context information
       const contextData = await this.gatherContextData(context);
@@ -68,6 +75,9 @@ class AISafetyService {
       
       // Merge with real-time data
       const realTimeAlerts = await this.getRealTimeAlerts(context);
+      
+      // Get Exa-based alerts
+      const exaAlerts = await this.generateExaBasedAlerts(context);
       
       // Combine and prioritize alerts
       const allAlerts = [...aiAlerts, ...realTimeAlerts];
@@ -85,7 +95,7 @@ class AISafetyService {
       console.log(`✅ Generated ${prioritizedAlerts.length} AI safety alerts`);
       return prioritizedAlerts;
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating AI safety alerts:', error);
       // Return fallback alerts
       return this.getFallbackAlerts(context);
@@ -516,6 +526,8 @@ class AISafetyService {
   private async getRealTimeAlerts(context: LocationContext): Promise<AISafetyAlert[]> {
     const alerts: AISafetyAlert[] = [];
 
+    console.log('🔄 Getting real-time alerts for:', context.destination || 'coordinates-based location');
+
     try {
       // Weather-based alerts
       const weatherAlert = await this.generateWeatherAlert(context);
@@ -528,12 +540,86 @@ class AISafetyService {
       } catch (error) {
         console.warn('Error fetching Exa.ai alerts:', error);
       }
+      
+      // Add Exa-based alerts
+      const exaAlerts = await this.generateExaBasedAlerts(context);
+      alerts.push(...exaAlerts);
+
+    } catch (error: any) {
+      console.warn('Error fetching real-time alerts:', error?.message || error);
+    }
+
+    return alerts;
+  }
+
+  /**
+   * Generate alerts using Exa.ai unified service
+   */
+  private async generateExaBasedAlerts(context: LocationContext): Promise<AISafetyAlert[]> {
+    const alerts: AISafetyAlert[] = [];
+    
+    if (!context.destination && !context.coordinates) {
+      console.warn('❌ No location provided for Exa-based alerts');
+      return [];
+    }
+    
+    const locationString = context.destination || 
+      (context.coordinates ? `${context.coordinates.lat.toFixed(4)}, ${context.coordinates.lng.toFixed(4)}` : '');
+    
+    if (!locationString) {
+      console.warn('❌ Could not determine location string for Exa-based alerts');
+      return [];
+    }
+    
+    console.log('🔍 Getting Exa-based alerts for:', locationString);
+    
+    try {
+      // Get travel safety alerts from Exa
+      const safetyAlerts = await exaUnifiedService.getTravelSafetyAlerts(locationString);
+      
+      // Convert to AISafetyAlert format
+      const convertedAlerts = safetyAlerts.map(alert => ({
+        id: `exa-${alert.id}`,
+        type: this.mapExaAlertType(alert.alertType),
+        severity: alert.severity,
+        title: alert.title,
+        message: alert.description,
+        location: alert.location,
+        coordinates: context.coordinates,
+        source: 'ai',
+        timestamp: alert.issuedDate,
+        actionable_advice: alert.recommendations,
+        relevant_links: [alert.source.url].filter(url => url !== '#'),
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
+      }));
+      
+      alerts.push(...convertedAlerts);
+      console.log(`✅ Added ${convertedAlerts.length} Exa-based alerts`);
+      
+    } catch (error: any) {
+      console.warn('❌ Error generating Exa-based alerts:', error?.message || error);
 
     } catch (error) {
       console.warn('Error fetching real-time alerts:', error);
     }
 
     return alerts;
+  }
+
+  /**
+   * Map Exa alert types to our alert types
+   */
+  private mapExaAlertType(exaType: string): AISafetyAlert['type'] {
+    const typeMap: Record<string, AISafetyAlert['type']> = {
+      'security': 'security',
+      'health': 'health',
+      'weather': 'weather',
+      'political': 'safety',
+      'transport': 'transportation',
+      'natural-disaster': 'weather'
+    };
+    
+    return typeMap[exaType] || 'safety';
   }
 
   /**
@@ -699,15 +785,18 @@ class AISafetyService {
   /**
    * Get fallback alerts when AI fails
    */
-  private getFallbackAlerts(context: LocationContext): AISafetyAlert[] {
+  private getFallbackAlerts(context: LocationContext | any): AISafetyAlert[] {
+    const destination = context?.destination || 'your destination';
+    const country = context?.country || 'this country';
+    
     return [
       {
         id: `fallback-general-${Date.now()}`,
         type: 'safety',
         severity: 'medium',
         title: 'General Travel Safety',
-        message: `Stay alert and follow general safety practices while in ${context.destination}.`,
-        location: context.destination,
+        message: `Stay alert and follow general safety practices while in ${destination}.`,
+        location: destination,
         source: 'ai',
         timestamp: new Date().toISOString(),
         actionable_advice: [
@@ -716,6 +805,22 @@ class AISafetyService {
           'Have emergency contacts readily available',
           'Follow local laws and customs'
         ]
+      },
+      {
+        id: `fallback-health-${Date.now()}`,
+        type: 'health',
+        severity: 'low',
+        title: 'Health & Hygiene Reminder',
+        message: `Remember to maintain good hygiene practices during your travels in ${destination}.`,
+        location: destination,
+        source: 'ai',
+        timestamp: new Date().toISOString(),
+        actionable_advice: [
+          'Wash hands frequently',
+          'Carry hand sanitizer',
+          'Stay hydrated',
+          'Be cautious with street food'
+        ]
       }
     ];
   }
@@ -723,8 +828,12 @@ class AISafetyService {
   /**
    * Generate cache key for location context
    */
-  private getCacheKey(context: LocationContext): string {
-    return `${context.destination}-${context.country}-${context.coordinates?.lat || 'no-coords'}`;
+  private getCacheKey(context: LocationContext | any): string {
+    const destination = context?.destination || 'unknown';
+    const country = context?.country || 'unknown';
+    const coords = context?.coordinates?.lat ? `${context.coordinates.lat.toFixed(4)}-${context.coordinates.lng.toFixed(4)}` : 'no-coords';
+    
+    return `${destination}-${country}-${coords}`;
   }
 
   /**
@@ -742,21 +851,21 @@ class AISafetyService {
   /**
    * Use location safety service for backup data and additional context
    */
-  private async useLocationSafetyService(context: LocationContext): Promise<void> {
+  private async useLocationSafetyService(context: LocationContext | any): Promise<void> {
     try {
-      if (context.coordinates) {
+      if (context?.coordinates) {
         // Use locationSafetyService as a backup/additional data source
         // This provides redundancy in case primary AI service fails
         await locationSafetyService.updateUserLocation('system', {
           lat: context.coordinates.lat,
           lng: context.coordinates.lng,
-          country: context.country,
-          city: context.city
+          country: context.country || 'Unknown',
+          city: context.city || undefined
         });
         console.log('🔄 Updated location safety service with context data');
       }
-    } catch (error) {
-      console.warn('Could not update location safety service:', error);
+    } catch (error: any) {
+      console.warn('Could not update location safety service:', error?.message || error);
     }
   }
 
@@ -786,8 +895,8 @@ export const aiSafetyService = new AISafetyService();
 export const getAISafetyInsights = async (_userId: string, destination: string) => {
   // Wrapper for backward compatibility
   return aiSafetyService.generateSafetyAlerts({
-    destination,
-    country: 'Unknown',
-    city: destination
+    destination: destination || 'Unknown',
+    country: destination?.split(',').pop()?.trim() || 'Unknown',
+    city: destination?.split(',')[0]?.trim() || undefined
   });
 }; 

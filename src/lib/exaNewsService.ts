@@ -2,6 +2,9 @@
 import Exa from 'exa-js';
 import type { NewsArticle, NewsApiResponse } from './newsApi';
 
+// Define API key from environment variables
+const EXA_API_KEY = import.meta.env.VITE_EXA_API_KEY;
+
 interface ExaResult {
   id: string;
   url: string;
@@ -22,10 +25,18 @@ class ExaNewsService {
   private exa: any;
 
   constructor() {
-    this.API_KEY = import.meta.env.VITE_EXA_API_KEY;
-    if (!this.API_KEY) {
+    this.API_KEY = EXA_API_KEY;
+    if (!this.API_KEY || this.API_KEY === 'your_exa_api_key') {
       console.warn('⚠️ Exa API key not found in environment variables');
-      this.isApiAvailable = false;
+      console.info('Using fallback news data instead of Exa.ai');
+    } else {
+      try {
+        this.exa = new Exa(this.API_KEY);
+        console.log('✅ Exa News Service initialized');
+      } catch (error) {
+        console.error('❌ Failed to initialize Exa client:', error);
+        console.info('Using fallback news data instead of Exa.ai');
+      }
       console.log('🔄 Exa news service will use fallback data');
     } else {
       try {
@@ -64,9 +75,6 @@ class ExaNewsService {
       setTimeout(() => {
         this.isApiAvailable = true;
         console.log('🔄 Exa API re-enabled for retry');
-      }, 5 * 60 * 1000);
-      
-      return fallbackData;
     }
   }
   private getCacheKey(params: Record<string, any>): string {
@@ -168,10 +176,19 @@ class ExaNewsService {
   async getTravelNews(location?: string): Promise<NewsApiResponse> {
     const cacheKey = this.getCacheKey({ type: 'travel', location });
     const cached = this.getCachedData(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      console.log('📦 Using cached travel news data');
+      return cached;
+    }
 
     return this.safeExaCall(
       async () => {
+      // Check if Exa client is initialized
+      if (!this.exa) {
+        console.warn('⚠️ Exa client not initialized, using fallback data');
+        return this.getFallbackNews('travel', location);
+      }
+
       const searchQuery = location 
         ? `Current travel alerts and safety incidents affecting travelers in ${location}:`
         : 'Recent travel safety alerts and incidents affecting international travelers';
@@ -201,8 +218,8 @@ class ExaNewsService {
       console.log(`✅ Found ${articles.length} travel news articles via Exa`);
       
       return result;
-      },
-      this.getFallbackNews('travel', location),
+    } catch (error: any) {
+      console.error('❌ Exa travel news search failed:', error?.message || error);
       'travel news'
     );
   }
@@ -213,10 +230,19 @@ class ExaNewsService {
   async getSafetyAlerts(location?: string): Promise<NewsApiResponse> {
     const cacheKey = this.getCacheKey({ type: 'safety', location });
     const cached = this.getCachedData(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      console.log('📦 Using cached safety alerts data');
+      return cached;
+    }
 
     return this.safeExaCall(
       async () => {
+      // Check if Exa client is initialized
+      if (!this.exa) {
+        console.warn('⚠️ Exa client not initialized, using fallback data');
+        return this.getFallbackNews('safety', location);
+      }
+
       const searchQuery = location 
         ? `Safety warnings and security alerts for travelers visiting ${location}:`
         : 'Current safety warnings and security alerts for international travelers';
@@ -247,8 +273,8 @@ class ExaNewsService {
       console.log(`🛡️ Found ${articles.length} safety alerts via Exa`);
       
       return result;
-      },
-      this.getFallbackNews('safety', location),
+    } catch (error: any) {
+      console.error('❌ Exa safety alerts search failed:', error?.message || error);
       'safety alerts'
     );
   }
@@ -259,10 +285,19 @@ class ExaNewsService {
   async getWeatherNews(location?: string): Promise<NewsApiResponse> {
     const cacheKey = this.getCacheKey({ type: 'weather', location });
     const cached = this.getCachedData(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      console.log('📦 Using cached weather news data');
+      return cached;
+    }
 
     return this.safeExaCall(
       async () => {
+      // Check if Exa client is initialized
+      if (!this.exa) {
+        console.warn('⚠️ Exa client not initialized, using fallback data');
+        return this.getFallbackNews('weather', location);
+      }
+
       const searchQuery = location 
         ? `Weather alerts and travel disruptions affecting ${location}:`
         : 'Weather alerts and travel disruptions affecting international travel';
@@ -292,8 +327,8 @@ class ExaNewsService {
       console.log(`⛈️ Found ${articles.length} weather alerts via Exa`);
       
       return result;
-      },
-      this.getFallbackNews('weather', location),
+    } catch (error: any) {
+      console.error('❌ Exa weather news search failed:', error?.message || error);
       'weather news'
     );
   }
@@ -304,10 +339,19 @@ class ExaNewsService {
   async getBreakingNews(): Promise<NewsApiResponse> {
     const cacheKey = this.getCacheKey({ type: 'breaking' });
     const cached = this.getCachedData(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      console.log('📦 Using cached breaking news data');
+      return cached;
+    }
 
     return this.safeExaCall(
       async () => {
+      // Check if Exa client is initialized
+      if (!this.exa) {
+        console.warn('⚠️ Exa client not initialized, using fallback data');
+        return this.getFallbackNews('general');
+      }
+
       const searchQuery = 'Breaking news affecting international travel and tourism:';
 
       console.log('⚡ Exa search for breaking news:', searchQuery);
@@ -335,8 +379,8 @@ class ExaNewsService {
       console.log(`📰 Found ${articles.length} breaking news articles via Exa`);
       
       return result;
-      },
-      this.getFallbackNews('general'),
+    } catch (error: any) {
+      console.error('❌ Exa breaking news search failed:', error?.message || error);
       'breaking news'
     );
   }
@@ -347,10 +391,19 @@ class ExaNewsService {
   async searchNews(query: string, location?: string): Promise<NewsApiResponse> {
     const cacheKey = this.getCacheKey({ type: 'search', query, location });
     const cached = this.getCachedData(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      console.log('📦 Using cached search results');
+      return cached;
+    }
 
     return this.safeExaCall(
       async () => {
+      // Check if Exa client is initialized
+      if (!this.exa) {
+        console.warn('⚠️ Exa client not initialized, using fallback data');
+        return this.getFallbackNews('general', location);
+      }
+
       const searchQuery = location 
         ? `${query} ${location} travel news:`
         : `${query} travel news`;
@@ -380,8 +433,8 @@ class ExaNewsService {
       console.log(`🎯 Found ${articles.length} search results via Exa`);
       
       return result;
-      },
-      this.getFallbackNews('general', location),
+    } catch (error: any) {
+      console.error('❌ Exa search failed:', error?.message || error);
       'search news'
     );
   }
@@ -395,19 +448,34 @@ class ExaNewsService {
   private getFallbackNews(category: NewsArticle['category'], location?: string): NewsApiResponse {
     const fallbackArticles: NewsArticle[] = [
       {
-        title: `Travel Advisory: ${location || 'General'} Safety Guidelines`,
-        description: 'Important safety information for travelers.',
-        content: 'Stay informed about current travel conditions and safety recommendations.',
+        title: `${location ? `${location} Travel Advisory` : 'General Travel Safety Guidelines'}`,
+        description: `Important safety information for travelers ${location ? `visiting ${location}` : 'worldwide'}.`,
+        content: `Stay informed about current travel conditions and safety recommendations ${location ? `in ${location}` : 'wherever you travel'}.`,
         url: '#',
         image: this.getDefaultImage(category),
         publishedAt: new Date().toISOString(),
-        source: { name: 'Travel Safety Network', url: '#' },
+        source: { name: 'Guard Nomad Safety', url: '#' },
         category,
         severity: 'medium',
+        location: location || 'Global'
+      },
+      {
+        title: `${category === 'weather' ? 'Weather Alert' : category === 'safety' ? 'Safety Notice' : 'Travel Update'}`,
+        description: `${category === 'weather' ? 'Check local weather conditions before traveling.' : 
+                      category === 'safety' ? 'Be aware of your surroundings and local regulations.' : 
+                      'Stay updated with the latest travel information.'}`,
+        content: 'Guard Nomad provides real-time travel intelligence to keep you safe and informed.',
+        url: '#',
+        image: this.getDefaultImage(category),
+        publishedAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+        source: { name: 'Guard Nomad Intelligence', url: '#' },
+        category,
+        severity: 'low',
         location: location || 'Global'
       }
     ];
 
+    console.log(`🔄 Using ${fallbackArticles.length} fallback news articles for ${category} category`);
     return {
       totalArticles: fallbackArticles.length,
       articles: fallbackArticles

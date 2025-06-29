@@ -1,6 +1,9 @@
 // src/lib/exaUnifiedService.ts - Unified Exa.ai Service for All Intelligence Needs
 import Exa from 'exa-js';
 
+// Define API key from environment variables
+const EXA_API_KEY = import.meta.env.VITE_EXA_API_KEY;
+
 // Enhanced interfaces for unified service
 export interface ScamAlert {
   id: string;
@@ -81,10 +84,18 @@ class ExaUnifiedService {
   private exa: Exa | null = null;
 
   constructor() {
-    this.API_KEY = import.meta.env.VITE_EXA_API_KEY;
-    if (!this.API_KEY) {
+    this.API_KEY = EXA_API_KEY;
+    if (!this.API_KEY || this.API_KEY === 'your_exa_api_key') {
       console.warn('⚠️ Exa API key not found in environment variables');
-      this.isApiAvailable = false;
+      console.info('Using fallback data instead of Exa.ai');
+    } else {
+      try {
+        this.exa = new Exa(this.API_KEY);
+        console.log('✅ Exa Unified Service initialized - replacing traditional APIs');
+      } catch (error) {
+        console.error('❌ Failed to initialize Exa client:', error);
+        console.info('Using fallback data instead of Exa.ai');
+      }
       console.log('🔄 Exa service will use fallback data - add VITE_EXA_API_KEY to your .env file');
     } else {
       try {
@@ -123,9 +134,6 @@ class ExaUnifiedService {
       setTimeout(() => {
         this.isApiAvailable = true;
         console.log('🔄 Exa API re-enabled for retry');
-      }, 5 * 60 * 1000);
-      
-      return fallbackData;
     }
   }
   private getCacheKey(type: string, params: Record<string, unknown>): string {
@@ -170,8 +178,11 @@ class ExaUnifiedService {
   // 🔍 LOCAL NEWS - Replace NewsAPI, Bing News, Google News
   async getLocalNews(location: string, category?: string): Promise<LocalNews[]> {
     const cacheKey = this.getCacheKey('local_news', { location, category });
-    const cached = this.getCachedData(cacheKey) as LocalNews[] | null;
-    if (cached) return cached;
+    const cached = this.getCachedData(cacheKey) as LocalNews[] | null;    
+    if (cached) {
+      console.log('📦 Using cached local news data');
+      return cached;
+    }
 
     return this.safeExaCall(
       async () => {
@@ -218,8 +229,8 @@ class ExaUnifiedService {
       this.setCachedData(cacheKey, localNews);
       console.log(`✅ Found ${localNews.length} local news articles via Exa`);
       return localNews;
-      },
-      this.getFallbackLocalNews(location),
+    } catch (error: any) {
+      console.error('❌ Exa local news search failed:', error?.message || error);
       'local news'
     );
   }
@@ -227,8 +238,11 @@ class ExaUnifiedService {
   // 🚨 SCAM ALERTS - Replace ScamWatcher, government feeds
   async getScamAlerts(location?: string): Promise<ScamAlert[]> {
     const cacheKey = this.getCacheKey('scam_alerts', { location });
-    const cached = this.getCachedData(cacheKey) as ScamAlert[] | null;
-    if (cached) return cached;
+    const cached = this.getCachedData(cacheKey) as ScamAlert[] | null;    
+    if (cached) {
+      console.log('📦 Using cached scam alerts data');
+      return cached;
+    }
 
     return this.safeExaCall(
       async () => {
@@ -277,8 +291,8 @@ class ExaUnifiedService {
       this.setCachedData(cacheKey, scamAlerts);
       console.log(`🛡️ Found ${scamAlerts.length} scam alerts via Exa`);
       return scamAlerts;
-      },
-      this.getFallbackScamAlerts(location),
+    } catch (error: any) {
+      console.error('❌ Exa scam alerts search failed:', error?.message || error);
       'scam alerts'
     );
   }
@@ -286,8 +300,11 @@ class ExaUnifiedService {
   // 🎉 LOCAL EVENTS - Replace Eventbrite, Meetup
   async getLocalEvents(location: string, category?: string): Promise<LocalEvent[]> {
     const cacheKey = this.getCacheKey('local_events', { location, category });
-    const cached = this.getCachedData(cacheKey) as LocalEvent[] | null;
-    if (cached) return cached;
+    const cached = this.getCachedData(cacheKey) as LocalEvent[] | null;    
+    if (cached) {
+      console.log('📦 Using cached local events data');
+      return cached;
+    }
 
     return this.safeExaCall(
       async () => {
@@ -337,8 +354,8 @@ class ExaUnifiedService {
       this.setCachedData(cacheKey, localEvents);
       console.log(`🎊 Found ${localEvents.length} local events via Exa`);
       return localEvents;
-      },
-      this.getFallbackLocalEvents(location),
+    } catch (error: any) {
+      console.error('❌ Exa local events search failed:', error?.message || error);
       'local events'
     );
   }
@@ -346,8 +363,11 @@ class ExaUnifiedService {
   // 🛡️ TRAVEL SAFETY - Replace Gov.travel, WHO, CDC
   async getTravelSafetyAlerts(location: string): Promise<TravelSafetyAlert[]> {
     const cacheKey = this.getCacheKey('travel_safety', { location });
-    const cached = this.getCachedData(cacheKey) as TravelSafetyAlert[] | null;
-    if (cached) return cached;
+    const cached = this.getCachedData(cacheKey) as TravelSafetyAlert[] | null;    
+    if (cached) {
+      console.log('📦 Using cached travel safety data');
+      return cached;
+    }
 
     return this.safeExaCall(
       async () => {
@@ -395,8 +415,8 @@ class ExaUnifiedService {
       this.setCachedData(cacheKey, travelSafetyAlerts);
       console.log(`🛡️ Found ${travelSafetyAlerts.length} travel safety alerts via Exa`);
       return travelSafetyAlerts;
-      },
-      this.getFallbackTravelSafety(location),
+    } catch (error: any) {
+      console.error('❌ Exa travel safety search failed:', error?.message || error);
       'travel safety alerts'
     );
   }
@@ -404,6 +424,30 @@ class ExaUnifiedService {
   // Helper methods for content analysis
   private extractSourceName(url: string): string {
     try {
+      // Check if Exa client is initialized
+      if (!this.exa) {
+        console.warn('⚠️ Exa client not initialized, using fallback data');
+        return this.getFallbackTravelSafety(location);
+      }
+
+      // Check if Exa client is initialized
+      if (!this.exa) {
+        console.warn('⚠️ Exa client not initialized, using fallback data');
+        return this.getFallbackLocalEvents(location);
+      }
+
+      // Check if Exa client is initialized
+      if (!this.exa) {
+        console.warn('⚠️ Exa client not initialized, using fallback data');
+        return this.getFallbackScamAlerts(location);
+      }
+
+      // Check if Exa client is initialized
+      if (!this.exa) {
+        console.warn('⚠️ Exa client not initialized, using fallback data');
+        return this.getFallbackLocalNews(location);
+      }
+
       const domain = new URL(url).hostname;
       return domain.replace('www.', '').split('.')[0].toUpperCase();
     } catch {
@@ -584,13 +628,13 @@ class ExaUnifiedService {
   private getFallbackLocalNews(location: string): LocalNews[] {
     return [{
       id: 'fallback_news_1',
-      title: `${location} Community Updates`,
-      description: 'Stay informed about local developments and community news.',
-      content: 'Local news and updates for your area.',
+      title: `${location} Travel Updates`,
+      description: `Stay informed about local developments and travel news in ${location}.`,
+      content: `Guard Nomad provides local news and updates for travelers in ${location}.`,
       url: '#',
       imageUrl: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400',
       publishedAt: new Date().toISOString(),
-      source: { name: 'Local News Network', url: '#', type: 'local' },
+      source: { name: 'Guard Nomad News', url: '#', type: 'local' },
       category: 'community',
       location,
       relevanceScore: 0.7
@@ -600,12 +644,12 @@ class ExaUnifiedService {
   private getFallbackScamAlerts(location?: string): ScamAlert[] {
     return [{
       id: 'fallback_scam_1',
-      title: 'General Fraud Awareness',
-      description: 'Stay vigilant against common scams and fraudulent activities.',
+      title: `${location ? `${location} Scam Alert` : 'General Fraud Awareness'}`,
+      description: `Stay vigilant against common scams and fraudulent activities ${location ? `in ${location}` : 'while traveling'}.`,
       severity: 'medium',
       location: location || 'Global',
       scamType: 'fraud',
-      source: { name: 'Fraud Prevention', url: '#', credibility: 'verified' },
+      source: { name: 'Guard Nomad Security', url: '#', credibility: 'verified' },
       reportedDate: new Date().toISOString(),
       affectedAreas: [location || 'Global'],
       warningLevel: 'advisory'
@@ -615,14 +659,14 @@ class ExaUnifiedService {
   private getFallbackLocalEvents(location: string): LocalEvent[] {
     return [{
       id: 'fallback_event_1',
-      title: `${location} Community Gathering`,
-      description: 'Local community events and activities.',
+      title: `${location} Traveler Meetup`,
+      description: `Connect with other travelers and explore ${location} together.`,
       startDate: new Date().toISOString(),
       location: { name: location, address: location },
-      category: 'community',
+      category: 'travel',
       isFree: true,
       eventUrl: '#',
-      source: { name: 'Community Events', url: '#' }
+      source: { name: 'Guard Nomad Events', url: '#' }
     }];
   }
 
@@ -630,11 +674,11 @@ class ExaUnifiedService {
     return [{
       id: 'fallback_safety_1',
       title: `${location} Travel Advisory`,
-      description: 'General travel safety information and recommendations.',
+      description: `General travel safety information and recommendations for ${location}.`,
       severity: 'low',
       alertType: 'security',
       location,
-      source: { name: 'Travel Safety', url: '#', authority: 'verified' },
+      source: { name: 'Guard Nomad Safety', url: '#', authority: 'verified' },
       issuedDate: new Date().toISOString(),
       affectedRegions: [location],
       recommendations: ['Stay informed', 'Follow local guidance', 'Keep emergency contacts handy']
@@ -646,10 +690,9 @@ class ExaUnifiedService {
    */
   clearCache(): void {
     this.cache.clear();
-    console.log('🧹 Exa unified service cache cleared');
+    console.log('🧹 Guard Nomad Exa service cache cleared');
   }
 }
 
 // Export singleton instance
 export const exaUnifiedService = new ExaUnifiedService();
-export default exaUnifiedService;
