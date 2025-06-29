@@ -104,7 +104,12 @@ const ProfileSettingsPage: React.FC = () => {
   };
 
   const updatePreference = async (category: string, key: string, value: boolean | string) => {
-    if (!user) return;
+    if (!user) {
+      console.error('❌ No user found for updating preferences');
+      return;
+    }
+
+    console.log('🔧 Updating preference:', { category, key, value, userId: user.id });
 
     // Update local state immediately
     setPreferences(prev => ({

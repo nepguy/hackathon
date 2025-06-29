@@ -407,7 +407,7 @@ const AlertsPage: React.FC = () => {
                   </div>
                   <p className="text-gray-600 text-sm mb-3">{alert.description}</p>
                   
-                  {alert.recommendations.length > 0 && (
+                  {alert.recommendations && alert.recommendations.length > 0 && (
                     <div className="mb-3">
                       <h5 className="text-sm font-medium text-gray-900 mb-1">Recommendations:</h5>
                       <ul className="text-sm text-gray-600 space-y-1">
@@ -424,15 +424,15 @@ const AlertsPage: React.FC = () => {
                   <div className="flex justify-between items-center text-xs text-gray-500">
                     <span className="flex items-center">
                       <span className={`w-2 h-2 rounded-full mr-1 ${
-                        alert.source.authority === 'government' ? 'bg-green-500' :
-                        alert.source.authority === 'international' ? 'bg-blue-500' :
+                        alert.source?.authority === 'government' ? 'bg-green-500' :
+                        alert.source?.authority === 'international' ? 'bg-blue-500' :
                         'bg-gray-500'
                       }`}></span>
-                      {alert.source.name}
+                      {alert.source?.name || 'Unknown Source'}
                     </span>
                     <span>{new Date(alert.issuedDate).toLocaleDateString()}</span>
                   </div>
-                  {alert.source.url !== '#' && (
+                  {alert.source?.url && alert.source.url !== '#' && (
                     <a
                       href={alert.source.url}
                       target="_blank"
