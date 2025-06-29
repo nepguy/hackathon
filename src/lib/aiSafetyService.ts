@@ -119,17 +119,9 @@ class AISafetyService {
         }
       }
 
-      // Get recent news for the destination using Exa service instead of GNews
-      try {
-        console.log('🔍 Using Exa service for news instead of GNews API');
-        const newsData = await newsService.getTravelNews(context.destination);
-        data.recent_news = newsData.articles?.slice(0, 3) || [];
-        console.log('✅ Successfully fetched news via Exa service');
-      } catch (error) {
-        console.warn('Could not fetch recent news via Exa:', error);
-        // Fallback to empty array instead of failing
-        data.recent_news = [];
-      }
+      // Skip news gathering to avoid API query syntax errors
+      console.log('ℹ️ Skipping news gathering to avoid News API syntax errors');
+      data.recent_news = [];
 
       // Add travel dates context
       if (context.travel_dates) {
@@ -522,9 +514,8 @@ class AISafetyService {
       const weatherAlert = await this.generateWeatherAlert(context);
       if (weatherAlert) alerts.push(weatherAlert);
 
-      // News-based alerts
-      const newsAlerts = await this.generateNewsBasedAlerts(context);
-      alerts.push(...newsAlerts);
+      // Skip news-based alerts to avoid API query syntax errors
+      console.log('ℹ️ Skipping news-based alerts to avoid News API syntax errors');
 
     } catch (error) {
       console.warn('Error fetching real-time alerts:', error);
