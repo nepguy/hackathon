@@ -177,15 +177,15 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">Processing Payment</h3>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Complete Your Purchase</h2>
           <p className="text-gray-600 mb-6">
             Please wait while we securely process your payment...
           </p>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center space-x-2 text-blue-800">
               <Lock className="w-5 h-5" />
-              <span className="text-sm font-medium">Your payment is being processed securely</span>
-            </div>
+              <div>
+                <h4 className="font-medium text-blue-900">Secure Payment</h4>
           </div>
         </div>
       </div>

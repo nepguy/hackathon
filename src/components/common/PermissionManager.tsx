@@ -334,4 +334,4 @@ export const useLocationPermissionRequest = () => {
   };
 };
 
-export default PermissionManager; 
+export default PermissionManager;

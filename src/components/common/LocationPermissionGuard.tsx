@@ -133,7 +133,7 @@ const LocationPermissionGuard: React.FC<LocationPermissionGuardProps> = ({
               </div>
               
               <p className="text-gray-600 mb-6">
-                GuardNomad works best with location access to provide:
+                Guard Nomand works best with location access to provide:
               </p>
               
               <ul className="text-sm text-gray-600 mb-6 space-y-2">
@@ -177,4 +177,4 @@ const LocationPermissionGuard: React.FC<LocationPermissionGuardProps> = ({
   );
 };
 
-export default LocationPermissionGuard; 
+export default LocationPermissionGuard;

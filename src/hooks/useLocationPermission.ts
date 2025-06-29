@@ -214,7 +214,7 @@ export const showLocationPermissionDialog = (
       </div>
       
       <p class="text-gray-600 mb-6">
-        GuardNomad needs access to your location to provide:
+        Guard Nomand needs access to your location to provide:
       </p>
       
       <ul class="text-sm text-gray-600 mb-6 space-y-2">

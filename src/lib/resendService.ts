@@ -27,7 +27,7 @@ export class ResendService {
   async sendEmail(template: EmailTemplate): Promise<{ success: boolean; id?: string; error?: string }> {
     try {
       const { data, error } = await this.resendClient.emails.send({
-        from: template.from || 'GuardNomad <noreply@guardnomad.com>',
+        from: template.from || 'Guard Nomand <noreply@guardnomand.com>',
         to: template.to,
         subject: template.subject,
         html: template.html,
@@ -49,25 +49,25 @@ export class ResendService {
   async sendWelcomeEmail(userEmail: string, userName: string): Promise<void> {
     const template: EmailTemplate = {
       to: [userEmail],
-      subject: 'Welcome to GuardNomad - Your Safe Travel Journey Begins!',
+      subject: 'Welcome to Guard Nomand - Your Safe Travel Journey Begins!',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); padding: 40px 20px; text-align: center;">
             <div style="background-color: rgba(255,255,255,0.1); padding: 16px; border-radius: 16px; display: inline-block; margin-bottom: 20px;">
               <span style="font-size: 48px;">🛡️</span>
             </div>
-            <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">Welcome to GuardNomad!</h1>
+            <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">Welcome to Guard Nomand!</h1>
             <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 18px;">Your trusted companion for safe travels</p>
           </div>
           
           <div style="padding: 40px 20px;">
             <h2 style="color: #1f2937; margin-bottom: 20px;">Hi ${userName}!</h2>
             <p style="color: #4b5563; line-height: 1.6; margin-bottom: 20px;">
-              We're excited to have you join our community of safe travelers. GuardNomad is here to help you explore the world with confidence and peace of mind.
+              We're excited to have you join our community of safe travelers. Guard Nomand is here to help you explore the world with confidence and peace of mind.
             </p>
             
             <div style="background-color: #f8fafc; border-radius: 12px; padding: 24px; margin: 24px 0;">
-              <h3 style="color: #1f2937; margin-bottom: 16px; font-size: 18px;">🌟 What you can do with GuardNomad:</h3>
+              <h3 style="color: #1f2937; margin-bottom: 16px; font-size: 18px;">🌟 What you can do with Guard Nomand:</h3>
               <div style="margin-bottom: 12px;">
                 <span style="color: #3b82f6; font-weight: bold;">🛡️</span>
                 <span style="color: #4b5563; margin-left: 8px;">Get real-time safety alerts for your destinations</span>
@@ -87,7 +87,7 @@ export class ResendService {
             </div>
             
             <div style="text-align: center; margin: 32px 0;">
-              <a href="https://guardnomad.com/home" 
+              <a href="https://guardnomand.com/home" 
                  style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
                 🚀 Start Your Safe Journey
               </a>
@@ -108,13 +108,13 @@ export class ResendService {
           
           <div style="background-color: #f8fafc; padding: 24px 20px; text-align: center; border-top: 1px solid #e5e7eb;">
             <p style="color: #4b5563; margin: 0 0 8px 0;">Safe travels,</p>
-            <p style="color: #1f2937; font-weight: bold; margin: 0;">The GuardNomad Team</p>
+            <p style="color: #1f2937; font-weight: bold; margin: 0;">The Guard Nomand Team</p>
           </div>
           
           <div style="padding: 16px 20px; text-align: center; background-color: #1f2937;">
             <p style="color: #9ca3af; font-size: 12px; margin: 0;">
               This email was sent to ${userEmail}. If you have any questions, contact us at 
-              <a href="mailto:support@guardnomad.com" style="color: #60a5fa;">support@guardnomad.com</a>
+              <a href="mailto:support@guardnomand.com" style="color: #60a5fa;">support@guardnomand.com</a>
             </p>
           </div>
         </div>
@@ -170,7 +170,7 @@ export class ResendService {
             </div>
             
             <div style="text-align: center; margin: 32px 0;">
-              <a href="https://guardnomad.com/alerts" 
+              <a href="https://guardnomand.com/alerts" 
                  style="background-color: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">
                 📱 View All Alerts
               </a>
@@ -188,7 +188,7 @@ export class ResendService {
             <p style="color: #6b7280; font-size: 12px; margin: 0; text-align: center;">
               This alert was sent because you have notifications enabled for ${alert.location}.
               <br>
-              <a href="https://guardnomad.com/profile-settings" 
+              <a href="https://guardnomand.com/profile-settings" 
                  style="color: #3b82f6; text-decoration: none;">Manage your notification preferences</a>
             </p>
           </div>
@@ -203,7 +203,7 @@ export class ResendService {
   async sendConfirmationReminder(userEmail: string, userName: string): Promise<void> {
     const template: EmailTemplate = {
       to: [userEmail],
-      subject: 'Please confirm your GuardNomad account',
+      subject: 'Please confirm your Guard Nomand account',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <div style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); padding: 32px 20px; text-align: center;">
@@ -214,7 +214,7 @@ export class ResendService {
           <div style="padding: 32px 20px;">
             <h2 style="color: #1f2937; margin-bottom: 16px;">Hi ${userName},</h2>
             <p style="color: #4b5563; line-height: 1.6; margin-bottom: 20px;">
-              We noticed you haven't confirmed your GuardNomad account yet. To access all features and receive important safety alerts, please confirm your email address.
+              We noticed you haven't confirmed your Guard Nomand account yet. To access all features and receive important safety alerts, please confirm your email address.
             </p>
             
             <div style="background-color: #fef3c7; border-radius: 12px; padding: 20px; margin: 24px 0;">
@@ -231,7 +231,7 @@ export class ResendService {
               <p style="color: #4b5563; margin-bottom: 16px;">
                 Check your email for the confirmation link, or click below to resend:
               </p>
-              <a href="https://guardnomad.com/auth" 
+              <a href="https://guardnomand.com/auth" 
                  style="background-color: #f59e0b; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
                 📧 Resend Confirmation
               </a>
@@ -254,7 +254,7 @@ export class ResendService {
   async sendPasswordResetSuccess(userEmail: string, userName: string): Promise<void> {
     const template: EmailTemplate = {
       to: [userEmail],
-      subject: 'Your GuardNomad password has been reset',
+      subject: 'Your Guard Nomand password has been reset',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <div style="background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); padding: 32px 20px; text-align: center;">
@@ -265,7 +265,7 @@ export class ResendService {
           <div style="padding: 32px 20px;">
             <h2 style="color: #1f2937; margin-bottom: 16px;">Hi ${userName},</h2>
             <p style="color: #4b5563; line-height: 1.6; margin-bottom: 20px;">
-              Your GuardNomad password has been successfully reset. You can now sign in with your new password.
+              Your Guard Nomand password has been successfully reset. You can now sign in with your new password.
             </p>
             
             <div style="background-color: #ecfdf5; border-radius: 12px; padding: 20px; margin: 24px 0; border: 1px solid #d1fae5;">
@@ -279,7 +279,7 @@ export class ResendService {
             </div>
             
             <div style="text-align: center; margin: 32px 0;">
-              <a href="https://guardnomad.com/auth" 
+              <a href="https://guardnomand.com/auth" 
                  style="background-color: #10b981; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
                 🔑 Sign In Now
               </a>
@@ -288,7 +288,7 @@ export class ResendService {
             <div style="background-color: #fef2f2; border-radius: 8px; padding: 16px; margin: 24px 0; border: 1px solid #fecaca;">
               <p style="color: #dc2626; margin: 0; font-size: 14px;">
                 <strong>⚠️ Important:</strong> If you didn't reset your password, please contact our support team immediately at 
-                <a href="mailto:support@guardnomad.com" style="color: #dc2626;">support@guardnomad.com</a>
+                <a href="mailto:support@guardnomand.com" style="color: #dc2626;">support@guardnomand.com</a>
               </p>
             </div>
           </div>
@@ -296,7 +296,7 @@ export class ResendService {
           <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
             <p style="color: #4b5563; margin: 0;">
               Safe travels,<br>
-              <strong>The GuardNomad Team</strong>
+              <strong>The Guard Nomand Team</strong>
             </p>
           </div>
         </div>
@@ -307,4 +307,4 @@ export class ResendService {
   }
 }
 
-export const resendService = ResendService.getInstance(); 
+export const resendService = ResendService.getInstance();

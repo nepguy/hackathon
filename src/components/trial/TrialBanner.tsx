@@ -85,7 +85,7 @@ const TrialBanner: React.FC = () => {
                   }
                 </p>
                 <p className="text-sm opacity-90">
-                  Enjoying GuardNomad? Upgrade to keep all premium features
+                  Enjoying Guard Nomand? Upgrade to keep all premium features
                 </p>
               </div>
             </div>

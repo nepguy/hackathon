@@ -436,7 +436,7 @@ class RevenueCatService {
    */
   private saveSimulatedPurchases() {
     try {
-      localStorage.setItem('guardnomad_simulated_purchases', JSON.stringify(this.simulatedPurchases));
+      localStorage.setItem('guard_nomand_simulated_purchases', JSON.stringify(this.simulatedPurchases));
     } catch (error) {
       console.warn('Could not save simulated purchases:', error);
     }
@@ -447,7 +447,7 @@ class RevenueCatService {
    */
   private loadSimulatedPurchases() {
     try {
-      const saved = localStorage.getItem('guardnomad_simulated_purchases');
+      const saved = localStorage.getItem('guard_nomand_simulated_purchases');
       if (saved) {
         const parsed = JSON.parse(saved);
         // Convert date strings back to Date objects

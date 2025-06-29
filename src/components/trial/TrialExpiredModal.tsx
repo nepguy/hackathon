@@ -69,7 +69,7 @@ const TrialExpiredModal: React.FC<TrialExpiredModalProps> = ({ isOpen, onClose }
             </div>
             <h2 className="text-3xl font-bold mb-4">Your Trial Has Ended</h2>
             <p className="text-xl opacity-90">
-              Thanks for trying GuardNomad Premium! Ready to continue your safe travels?
+              Thanks for trying Guard Nomand Premium! Ready to continue your safe travels?
             </p>
           </div>
         </div>

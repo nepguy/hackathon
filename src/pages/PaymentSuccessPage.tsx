@@ -82,7 +82,7 @@ Thank you for your subscription to GuardNomad Premium!
           </div>
 
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Welcome to <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">GuardNomad Premium!</span>
+            Welcome to <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Guard Nomand Premium!</span>
           </h1>
           
           <p className="text-xl text-gray-600 mb-8">
@@ -281,7 +281,7 @@ Thank you for your subscription to GuardNomad Premium!
             Need help getting started with your premium features?
           </p>
           <a
-            href="mailto:support@guardnomad.com"
+            href="mailto:support@guardnomand.com"
             className="text-blue-600 hover:text-blue-800 font-medium text-sm"
           >
             Contact Premium Support

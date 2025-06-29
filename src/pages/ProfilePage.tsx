@@ -375,7 +375,7 @@ const ProfilePage: React.FC = () => {
         {/* App Information */}
         <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 border border-blue-200 text-center">
           <Shield className="w-12 h-12 text-blue-600 mx-auto mb-3" />
-          <h4 className="font-bold text-gray-900 mb-2">GuardNomad</h4>
+          <h4 className="font-bold text-gray-900 mb-2">Guard Nomand</h4>
           <p className="text-sm text-gray-600 mb-3">
             Your trusted companion for safe travels worldwide
           </p>
