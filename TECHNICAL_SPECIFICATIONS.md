@@ -364,7 +364,8 @@ VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # AI Service Configuration
-VITE_GEMINI_API_KEY=your_gemini_api_key
+# VITE_GEMINI_API_KEY=your_gemini_api_key  # DEPRECATED: Replaced with Exa.ai
+VITE_EXA_API_KEY=your_exa_api_key
 
 # External APIs
 VITE_NEWS_API_KEY=your_news_api_key
