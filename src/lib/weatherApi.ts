@@ -73,7 +73,7 @@ class WeatherService {
     }
   }
 
-  private async fetchWeatherData(endpoint: string, params: Record<string, string>): Promise<any> {
+  private async fetchWeatherData(endpoint: string, params: Record<string, string>): Promise<any | null> {
     if (!this.apiKey) {
       console.warn('Weather API key not configured, using fallback data');
       return this.getFallbackWeatherData(params.q || 'Unknown Location');
@@ -92,7 +92,7 @@ class WeatherService {
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Weather API error response:', errorText);
+        console.error(`Weather API error response (${response.status}):`, errorText);
         
         if (response.status === 403) {
           console.warn('Weather API access forbidden (403), using fallback data');
@@ -106,7 +106,7 @@ class WeatherService {
       console.log('Weather API success response:', data);
       return data;
     } catch (error) {
-      console.error('Error fetching weather data:', error);
+      console.error('Error fetching weather data:', error instanceof Error ? error.message : error);
       console.warn('Falling back to mock weather data');
       return this.getFallbackWeatherData(params.q || 'Unknown Location');
     }
@@ -336,7 +336,7 @@ class WeatherService {
     return this.transformWeatherData(data);
   }
 
-  async getWeatherForecast(location: string, days: number = 3): Promise<WeatherData> {
+  async getWeatherForecast(location: string, days: number = 3): Promise<WeatherData | null> {
     const data = await this.fetchWeatherData('/forecast.json', {
       q: location,
       days: Math.min(days, 10).toString(),
@@ -347,7 +347,7 @@ class WeatherService {
     return this.transformWeatherData(data);
   }
 
-  async getWeatherByCoordinates(lat: number, lng: number, days: number = 3): Promise<WeatherData> {
+  async getWeatherByCoordinates(lat: number, lng: number, days: number = 3): Promise<WeatherData | null> {
     const data = await this.fetchWeatherData('/forecast.json', {
       q: `${lat},${lng}`,
       days: Math.min(days, 10).toString(),

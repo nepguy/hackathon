@@ -78,14 +78,14 @@ class ExaUnifiedService {
   private readonly CACHE_DURATION = 15 * 60 * 1000; // 15 minutes cache
   private readonly API_KEY: string;
   private isApiAvailable = true;
-  private exa: any;
+  private exa: Exa | null = null;
 
   constructor() {
     this.API_KEY = import.meta.env.VITE_EXA_API_KEY;
     if (!this.API_KEY) {
       console.warn('⚠️ Exa API key not found in environment variables');
       this.isApiAvailable = false;
-      console.log('🔄 Exa service will use fallback data');
+      console.log('🔄 Exa service will use fallback data - add VITE_EXA_API_KEY to your .env file');
     } else {
       try {
         this.exa = new Exa(this.API_KEY);
@@ -179,7 +179,7 @@ class ExaUnifiedService {
       const searchQuery = `Local news and current events in ${location}${categoryFilter}:`;
       
       if (!this.exa) {
-        throw new Error('Exa client not initialized');
+        return this.getFallbackLocalNews(location);
       }
 
       console.log('📰 Exa search for local news:', searchQuery);
@@ -236,7 +236,7 @@ class ExaUnifiedService {
       const searchQuery = `Recent scam alerts and fraud warnings${locationFilter}:`;
       
       if (!this.exa) {
-        throw new Error('Exa client not initialized');
+        return this.getFallbackScamAlerts(location);
       }
 
       console.log('🚨 Exa search for scam alerts:', searchQuery);
@@ -295,7 +295,7 @@ class ExaUnifiedService {
       const searchQuery = `Upcoming local events and activities in ${location}${categoryFilter}:`;
       
       if (!this.exa) {
-        throw new Error('Exa client not initialized');
+        return this.getFallbackLocalEvents(location);
       }
 
       console.log('🎉 Exa search for local events:', searchQuery);
@@ -354,7 +354,7 @@ class ExaUnifiedService {
       const searchQuery = `Official travel safety alerts and advisories for ${location}:`;
 
       if (!this.exa) {
-        throw new Error('Exa client not initialized');
+        return this.getFallbackTravelSafety(location);
       }
 
       console.log('🛡️ Exa search for travel safety:', searchQuery);

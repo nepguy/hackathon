@@ -565,64 +565,81 @@ class AISafetyService {
   private async generateExaBasedAlerts(context: LocationContext): Promise<AISafetyAlert[]> {
     const alerts: AISafetyAlert[] = [];
 
-    // If no location context, return empty alerts
-    if (!context || !context.destination) {
-      console.log('⚠️ No location context provided for Exa alerts');
+    // Validate location context
+    if (!context?.destination) {
+      console.log('⚠️ No valid location context provided for Exa alerts');
       return [];
     }
 
     try {
-      // Get scam alerts from Exa.ai
+      console.log('🔍 Generating Exa-based alerts for:', context.destination);
+      
+      // Get scam alerts from Exa.ai with error handling
       try {
         const scamAlerts = await exaUnifiedService.getScamAlerts(context.destination);
-        for (const scam of scamAlerts.slice(0, 2)) {
-          alerts.push({
-            id: `exa-scam-${Date.now()}-${Math.random()}`,
-            type: 'security',
-            severity: 'high',
-            title: scam.title,
-            message: scam.description,
-            location: context.destination,
-            source: 'ai',
-            timestamp: new Date().toISOString(),
-            actionable_advice: [
-              'Stay vigilant about common scams',
-              'Verify information before taking action',
-              'Report suspicious activities to authorities'
-            ],
-            relevant_links: [scam.source?.url].filter(Boolean)
-          });
+        
+        if (scamAlerts && scamAlerts.length > 0) {
+          for (const scam of scamAlerts.slice(0, 2)) {
+            alerts.push({
+              id: `exa-scam-${Date.now()}-${Math.random()}`,
+              type: 'security',
+              severity: 'high',
+              title: scam.title,
+              message: scam.description,
+              location: context.destination,
+              source: 'ai',
+              timestamp: new Date().toISOString(),
+              actionable_advice: [
+                'Stay vigilant about common scams',
+                'Verify information before taking action',
+                'Report suspicious activities to authorities'
+              ],
+              relevant_links: [scam.source?.url].filter(Boolean)
+            });
+          }
+          console.log('✅ Added', Math.min(scamAlerts.length, 2), 'scam alerts from Exa');
+        } else {
+          console.log('ℹ️ No scam alerts found from Exa');
         }
       } catch (scamError) {
-        console.warn('Error fetching scam alerts from Exa:', scamError);
+        console.warn('❌ Error fetching scam alerts from Exa:', scamError);
       }
 
-      // Get travel safety alerts from Exa.ai
+      // Get travel safety alerts from Exa.ai with error handling
       try {
         const safetyAlerts = await exaUnifiedService.getTravelSafetyAlerts(context.destination);
-        for (const safety of safetyAlerts.slice(0, 2)) {
-          alerts.push({
-            id: `exa-safety-${Date.now()}-${Math.random()}`,
-            type: 'health',
-            severity: safety.severity === 'critical' ? 'high' : safety.severity === 'high' ? 'high' : 'medium',
-            title: safety.title,
-            message: safety.description,
-            location: context.destination,
-            source: 'ai',
-            timestamp: new Date().toISOString(),
-            actionable_advice: safety.recommendations || [
-              'Follow local health guidelines',
-              'Stay informed about current conditions',
-              'Take necessary precautions'
-            ],
-            relevant_links: [safety.source?.url].filter(Boolean)
-          });
+        
+        if (safetyAlerts && safetyAlerts.length > 0) {
+          for (const safety of safetyAlerts.slice(0, 2)) {
+            alerts.push({
+              id: `exa-safety-${Date.now()}-${Math.random()}`,
+              type: 'health',
+              severity: safety.severity === 'critical' ? 'high' : safety.severity === 'high' ? 'high' : 'medium',
+              title: safety.title,
+              message: safety.description,
+              location: context.destination,
+              source: 'ai',
+              timestamp: new Date().toISOString(),
+              actionable_advice: safety.recommendations || [
+                'Follow local health guidelines',
+                'Stay informed about current conditions',
+                'Take necessary precautions'
+              ],
+              relevant_links: [safety.source?.url].filter(Boolean)
+            });
+          }
+          console.log('✅ Added', Math.min(safetyAlerts.length, 2), 'safety alerts from Exa');
+        } else {
+          console.log('ℹ️ No safety alerts found from Exa');
         }
       } catch (safetyError) {
-        console.warn('Error fetching safety alerts from Exa:', safetyError);
+        console.warn('❌ Error fetching safety alerts from Exa:', safetyError);
       }
+      
+      console.log('✅ Generated', alerts.length, 'total Exa-based alerts');
+      
     } catch (error) {
-      console.warn('Error generating Exa.ai-based alerts:', error);
+      console.error('❌ Error generating Exa.ai-based alerts:', error);
     }
 
     return alerts;

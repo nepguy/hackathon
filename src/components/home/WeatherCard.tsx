@@ -26,7 +26,7 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
     setError(null);
     
     try {
-      let data: WeatherData;
+      let data: WeatherData | null = null;
       
       // Try to get user's current location if requested
       if (requestLocation) {
@@ -66,7 +66,7 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
         
         // Try to get current location
         await getCurrentLocation();
-        
+
         // Wait a moment for location to be retrieved
         await new Promise(resolve => setTimeout(resolve, 1500));
         
@@ -101,8 +101,12 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
         data = await weatherService.getWeatherForecast('Current Location', 3);
       }
       
-      setWeatherData(data);
-      console.log('✅ Weather data loaded successfully');
+      if (data) {
+        setWeatherData(data);
+        console.log('✅ Weather data loaded successfully');
+      } else {
+        throw new Error('No weather data returned');
+      }
       
     } catch (error) {
       console.error('❌ Weather fetch error:', error);
@@ -111,9 +115,13 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
       // Try fallback weather as last resort
       try {
         const fallbackData = await weatherService.getWeatherForecast('Current Location', 3);
-        setWeatherData(fallbackData);
-        setError(null);
-        console.log('✅ Fallback weather data loaded');
+        if (fallbackData) {
+          setWeatherData(fallbackData);
+          setError(null);
+          console.log('✅ Fallback weather data loaded');
+        } else {
+          setError('Weather service temporarily unavailable');
+        }
       } catch (fallbackError) {
         console.error('❌ Fallback weather also failed:', fallbackError);
         setError('Weather service temporarily unavailable');

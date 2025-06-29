@@ -116,11 +116,27 @@ const HomePage: React.FC = () => {
     setIsLoadingNews(true);
     try {
       console.log('📰 Loading travel news via Exa service');
-      const newsData = await exaUnifiedService.getLocalNews(
-        userLocation ? `${userLocation.latitude},${userLocation.longitude}` : 'Global'
-      );
-      setTravelNews(newsData.slice(0, 5) || []);
-      console.log('✅ Travel news loaded successfully via Exa');
+      
+      // Use a try-catch block to handle potential errors
+      try {
+        const locationString = userLocation 
+          ? `${userLocation.latitude.toFixed(4)},${userLocation.longitude.toFixed(4)}` 
+          : 'Global';
+        
+        console.log('🌍 Using location for news:', locationString);
+        const newsData = await exaUnifiedService.getLocalNews(locationString);
+        
+        if (newsData && newsData.length > 0) {
+          setTravelNews(newsData.slice(0, 5));
+          console.log('✅ Travel news loaded successfully via Exa:', newsData.length, 'items');
+        } else {
+          console.log('⚠️ No news data returned from Exa service');
+          setTravelNews([]);
+        }
+      } catch (exaError) {
+        console.error('❌ Error from Exa service:', exaError);
+        setTravelNews([]);
+      }
     } catch (error) {
       console.error('❌ Error loading travel news:', error);
       setTravelNews([]);
