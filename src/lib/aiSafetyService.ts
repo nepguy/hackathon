@@ -77,8 +77,12 @@ class AISafetyService {
       // Get Exa-based alerts
       const exaAlerts = await this.generateExaBasedAlerts(context);
       
-      // Combine and prioritize alerts
-      const allAlerts = [...aiAlerts, ...realTimeAlerts, ...exaAlerts];
+      // Combine and prioritize alerts (handle empty arrays)
+      const allAlerts = [
+        ...(aiAlerts || []), 
+        ...(realTimeAlerts || []), 
+        ...(exaAlerts || [])
+      ];
       const prioritizedAlerts = this.prioritizeAlerts(allAlerts);
       
       // Use location safety service for backup data
@@ -548,7 +552,7 @@ class AISafetyService {
   private async generateExaBasedAlerts(context: LocationContext): Promise<AISafetyAlert[]> {
     const alerts: AISafetyAlert[] = [];
     
-    if (!context || (!context.destination && !context.coordinates)) {
+    if (!context || (!context?.destination && !context?.coordinates)) {
       console.warn('❌ No location provided for Exa-based alerts');
       return [];
     }
@@ -567,30 +571,34 @@ class AISafetyService {
       try {
         // Get travel safety alerts from Exa
         const safetyAlerts = await exaUnifiedService.getTravelSafetyAlerts(locationString);
-        
+
         // Convert to AISafetyAlert format
-        const convertedAlerts = safetyAlerts.map(alert => ({
-          id: `exa-${alert.id}`,
-          type: this.mapExaAlertType(alert.alertType),
-          severity: alert.severity,
-          title: alert.title,
-          message: alert.description,
-          location: alert.location,
-          coordinates: context.coordinates,
-          source: 'ai' as const,
-          timestamp: alert.issuedDate,
-          actionable_advice: alert.recommendations,
-          relevant_links: [alert.source.url].filter(url => url !== '#'),
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
-        }));
-        
-        alerts.push(...convertedAlerts);
-        console.log(`✅ Added ${convertedAlerts.length} Exa-based alerts`);
+        if (safetyAlerts && safetyAlerts.length > 0) {
+          const convertedAlerts = safetyAlerts.map(alert => ({
+            id: `exa-${alert.id}`,
+            type: this.mapExaAlertType(alert.alertType),
+            severity: alert.severity,
+            title: alert.title,
+            message: alert.description,
+            location: alert.location,
+            coordinates: context.coordinates,
+            source: 'ai' as const,
+            timestamp: alert.issuedDate,
+            actionable_advice: alert.recommendations || [],
+            relevant_links: [alert.source?.url].filter(url => url && url !== '#'),
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
+          }));
+          
+          alerts.push(...convertedAlerts);
+          console.log(`✅ Added ${convertedAlerts.length} Exa-based alerts`);
+        } else {
+          console.log('ℹ️ No safety alerts returned from Exa.ai');
+        }
       } catch (exaError) {
         console.warn('❌ Error generating Exa-based alerts:', exaError);
       }
-    } catch (error: any) {
-      console.warn('❌ Error generating Exa-based alerts:', error?.message || error);
+    } catch (error) {
+      console.warn('❌ Error generating Exa-based alerts:', error);
     }
 
     return alerts;

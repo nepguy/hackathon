@@ -122,23 +122,25 @@ class ExaUnifiedService {
   constructor() {
     this.API_KEY = import.meta.env.VITE_EXA_API_KEY;
     if (!this.API_KEY || this.API_KEY === 'your_exa_api_key') {
-      console.warn('⚠️ Exa API key not found in environment variables');
+      console.warn('⚠️ Exa API key not found in environment variables or is invalid');
+      console.log('🔄 Exa service will use fallback data - add VITE_EXA_API_KEY to your .env file');
       this.isApiAvailable = false;
-    } else {
-      try {
-        this.exa = new Exa(this.API_KEY);
-        console.log('✅ Exa Unified Service initialized with AI safety capabilities');
-      } catch (error) {
-        console.warn('⚠️ Failed to initialize Exa client:', error);
-        this.isApiAvailable = false;
-      }
+      return;
+    }
+    
+    try {
+      this.exa = new Exa(this.API_KEY);
+      console.log('✅ Exa Unified Service initialized with AI safety capabilities');
+    } catch (error) {
+      console.warn('⚠️ Failed to initialize Exa client:', error);
+      this.isApiAvailable = false;
     }
   }
 
   private async safeExaCall<T>(
     operation: () => Promise<T>,
     fallbackData: T,
-    operationName: string
+    operationName: string = 'operation'
   ): Promise<T> {
     if (!this.isApiAvailable) {
       console.log(`🔄 Using fallback data for ${operationName} (API not available)`);
@@ -209,9 +211,9 @@ class ExaUnifiedService {
   // 🛡️ NEW: AI-POWERED SAFETY ANALYSIS (Replacing Gemini)
   async getLocationSafetyData(location: LocationContext): Promise<LocationSafetyData> {
     const cacheKey = this.getCacheKey('safety_data', { 
-      country: location.country, 
-      city: location.city || '', 
-      coordinates: location.coordinates 
+      country: location?.country || 'Unknown', 
+      city: location?.city || '', 
+      coordinates: location?.coordinates || null
     });
     const cached = this.getCachedData(cacheKey, this.SAFETY_CACHE_DURATION) as LocationSafetyData | null;
     if (cached) {
@@ -323,7 +325,7 @@ class ExaUnifiedService {
   // 🔍 LOCAL NEWS - Replace NewsAPI, Bing News, Google News
   async getLocalNews(location: string, category?: string): Promise<LocalNews[]> {
     const cacheKey = this.getCacheKey('local_news', { location, category });
-    const cached = this.getCachedData(cacheKey) as LocalNews[] | null;    
+    const cached = this.getCachedData(cacheKey) as LocalNews[] | null;
     if (cached) {
       console.log('📦 Using cached local news data');
       return cached;
@@ -378,7 +380,7 @@ class ExaUnifiedService {
   // 🚨 SCAM ALERTS - Replace ScamWatcher, government feeds
   async getScamAlerts(location?: string): Promise<ScamAlert[]> {
     const cacheKey = this.getCacheKey('scam_alerts', { location });
-    const cached = this.getCachedData(cacheKey) as ScamAlert[] | null;    
+    const cached = this.getCachedData(cacheKey) as ScamAlert[] | null;
     if (cached) {
       console.log('📦 Using cached scam alerts data');
       return cached;
@@ -436,7 +438,7 @@ class ExaUnifiedService {
   // 🎉 LOCAL EVENTS - Replace Eventbrite, Meetup
   async getLocalEvents(location: string, category?: string): Promise<LocalEvent[]> {
     const cacheKey = this.getCacheKey('local_events', { location, category });
-    const cached = this.getCachedData(cacheKey) as LocalEvent[] | null;    
+    const cached = this.getCachedData(cacheKey) as LocalEvent[] | null;
     if (cached) {
       console.log('📦 Using cached local events data');
       return cached;
@@ -495,7 +497,7 @@ class ExaUnifiedService {
   // 🛡️ TRAVEL SAFETY - Replace Gov.travel, WHO, CDC
   async getTravelSafetyAlerts(location: string): Promise<TravelSafetyAlert[]> {
     const cacheKey = this.getCacheKey('travel_safety', { location });
-    const cached = this.getCachedData(cacheKey) as TravelSafetyAlert[] | null;    
+    const cached = this.getCachedData(cacheKey) as TravelSafetyAlert[] | null;
     if (cached) {
       console.log('📦 Using cached travel safety data');
       return cached;
@@ -732,7 +734,7 @@ class ExaUnifiedService {
   private extractLocationAlerts(results: any[], locationString: string): LocationAlert[] {
     const alerts: LocationAlert[] = [];
     
-    results.forEach((result, index) => {
+    (results || []).forEach((result, index) => {
       if (result.title && result.text) {
         const alertType = this.determineAlertType(result.title, result.text);
         const severity = this.determineAlertSeverity(result.title, result.text);
@@ -757,7 +759,7 @@ class ExaUnifiedService {
   private extractCommonScams(results: any[], locationString: string): string[] {
     const scams: string[] = [];
     
-    results.forEach(result => {
+    (results || []).forEach(result => {
       if (result.text) {
         const text = result.text.toLowerCase();
         if (text.includes('scam') || text.includes('fraud') || text.includes('theft')) {
@@ -785,13 +787,13 @@ class ExaUnifiedService {
     };
     
     // Extract from search results
-    results.forEach(result => {
+    (results || []).forEach(result => {
       if (result.text) {
         const phoneRegex = /(?:\+\d{1,3}[-.\s]?)?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}/g;
         const matches = result.text.match(phoneRegex);
-                 if (matches) {
-           matches.slice(0, 2).forEach((match: string) => numbers.push(`Emergency: ${match}`));
-         }
+        if (matches) {
+          matches.slice(0, 2).forEach((match: string) => numbers.push(`Emergency: ${match}`));
+        }
       }
     });
     
@@ -807,7 +809,7 @@ class ExaUnifiedService {
     let baseScore = 85; // Start with a good base score
     
     // Reduce score based on alert severity
-    alerts.forEach(alert => {
+    (alerts || []).forEach(alert => {
       switch (alert.severity) {
         case 'critical': baseScore -= 20; break;
         case 'high': baseScore -= 10; break;
@@ -818,9 +820,9 @@ class ExaUnifiedService {
     
     // Factor in number of safety-related results
     const safetyResultsCount = allResults.filter(r => 
-      r.text && (r.text.toLowerCase().includes('crime') || 
-                 r.text.toLowerCase().includes('danger') ||
-                 r.text.toLowerCase().includes('warning'))
+      r?.text && (r.text.toLowerCase().includes('crime') || 
+                  r.text.toLowerCase().includes('danger') ||
+                  r.text.toLowerCase().includes('warning'))
     ).length;
     
     if (safetyResultsCount > 10) baseScore -= 10;
@@ -830,8 +832,8 @@ class ExaUnifiedService {
   }
 
   private determineRiskLevel(safetyScore: number, alerts: LocationAlert[]): 'low' | 'medium' | 'high' | 'critical' {
-    const criticalAlerts = alerts.filter(a => a.severity === 'critical').length;
-    const highAlerts = alerts.filter(a => a.severity === 'high').length;
+    const criticalAlerts = (alerts || []).filter(a => a.severity === 'critical').length;
+    const highAlerts = (alerts || []).filter(a => a.severity === 'high').length;
     
     if (criticalAlerts > 0 || safetyScore < 40) return 'critical';
     if (highAlerts > 1 || safetyScore < 60) return 'high';
