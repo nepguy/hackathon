@@ -5,7 +5,10 @@ import { PageContainer } from '../components/layout/PageContainer';
 import { AlertTriangle, MapPin, Calendar, Bell, Newspaper, Globe, Navigation, Shield, Clock, ExternalLink, RefreshCw } from 'lucide-react';
 import { useRealTimeData } from '../hooks/useRealTimeData';
 import { useUserDestinations } from '../contexts/UserDestinationContext';
-import { eventsApiService, type LocalEvent } from '../lib/eventsApi';
+import { eventsApiService } from '../lib/eventsApi';
+import type { LocalEvent } from '../lib/eventsApi';
+import { exaUnifiedService } from '../lib/exaUnifiedService';
+import type { LocalNews, ScamAlert, TravelSafetyAlert } from '../lib/exaUnifiedService';
 import DestinationManager from '../components/destinations/DestinationManager';
 import NotificationsSection from '../components/alerts/NotificationsSection';
 
@@ -18,13 +21,12 @@ const AlertsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('news');
   const { currentDestination } = useUserDestinations();
   const { safetyAlerts, isLoading, refreshData } = useRealTimeData();
-  
-  // Local data states
-  const [localNews, setLocalNews] = useState<any[]>([]);
-  const [scamAlerts, setScamAlerts] = useState<any[]>([]);
+  // Local data states - using proper Exa API types
+  const [localNews, setLocalNews] = useState<LocalNews[]>([]);
+  const [scamAlerts, setScamAlerts] = useState<ScamAlert[]>([]);
   const [localEvents, setLocalEvents] = useState<LocalEvent[]>([]);
-  const [travelSafety, setTravelSafety] = useState<any[]>([]);
-  const [, setUnifiedLoading] = useState(false);
+  const [travelSafety, setTravelSafety] = useState<TravelSafetyAlert[]>([]);
+  const [unifiedLoading, setUnifiedLoading] = useState(false);
 
   // Handle navigation state for events focus
   useEffect(() => {
@@ -141,39 +143,20 @@ const AlertsPage: React.FC = () => {
         setLocalEvents([]);
       }
 
-      // Set fallback data for other sections
-      setLocalNews([
-        {
-          id: 'news-1',
-          title: 'Local Travel Update',
-          summary: 'Current travel conditions and updates for your area.',
-          category: 'travel',
-          publishedAt: new Date().toISOString(),
-          source: { name: 'Local News', url: '#' }
-        }
+      // Load real data from Exa API instead of fallback
+      const [newsData, scamData, safetyData] = await Promise.all([
+        exaUnifiedService.getLocalNews(locationString),
+        exaUnifiedService.getScamAlerts(locationString),
+        exaUnifiedService.getTravelSafetyAlerts(locationString)
       ]);
-      
-      setScamAlerts([
-        {
-          id: 'scam-1',
-          title: 'General Travel Safety',
-          description: 'Stay alert and verify information from official sources.',
-          severity: 'medium',
-          location: locationString,
-          reportedAt: new Date().toISOString()
-        }
-      ]);
-      
-      setTravelSafety([
-        {
-          id: 'safety-1',
-          title: 'Travel Safety Guidelines',
-          description: 'Follow local guidelines and stay informed about current conditions.',
-          severity: 'info',
-          issuedDate: new Date().toISOString(),
-          source: { name: 'Travel Authority', url: '#' }
-        }
-      ]);
+
+      setLocalNews(newsData);
+      setScamAlerts(scamData);
+      setTravelSafety(safetyData);
+
+      console.log('📰 Loaded Exa local news:', newsData.length);
+      console.log('🚨 Loaded Exa scam alerts:', scamData.length);
+      console.log('🛡️ Loaded Exa travel safety:', safetyData.length);
 
     } catch (error) {
       console.error('❌ Failed to load local data:', error);
@@ -187,11 +170,13 @@ const AlertsPage: React.FC = () => {
   }, [loadUnifiedData]);
 
   const renderContent = () => {
-    if (isLoading) {
+    if (isLoading || unifiedLoading) {
       return (
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-3 text-gray-600">Loading intelligence data...</span>
+          <span className="ml-3 text-gray-600">
+            {unifiedLoading ? 'Loading location-based data from Exa.ai...' : 'Loading intelligence data...'}
+          </span>
         </div>
       );
     }
@@ -356,6 +341,9 @@ const AlertsPage: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-center text-xs text-gray-500">
                     <span className="capitalize">{event.source}</span>
+                    {event.attendeeCount && (
+                      <span>{event.attendeeCount} attending</span>
+                    )}
                   </div>
                   {event.ticketUrl && event.ticketUrl !== '#' && (
                     <a
@@ -572,6 +560,12 @@ const AlertsPage: React.FC = () => {
               onClick={() => setActiveTab('news')}
               icon={<Newspaper className="w-4 h-4" />}
               label="Live News"
+            />
+            <TabButton
+              active={activeTab === 'scams'}
+              onClick={() => setActiveTab('scams')}
+              icon={<AlertTriangle className="w-4 h-4" />}
+              label="Scam Alerts"
             />
             <TabButton
               active={activeTab === 'events'}
