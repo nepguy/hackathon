@@ -136,4 +136,113 @@ const switchMode = (mode: 'signin' | 'signup' | 'forgot') => {
 - [ ] Proper loading states
 - [ ] Accessibility compliance
 
-The authentication system now provides a complete, secure, and user-friendly password reset experience integrated with Supabase's robust authentication infrastructure. 
+The authentication system now provides a complete, secure, and user-friendly password reset experience integrated with Supabase's robust authentication infrastructure.
+
+## 🔧 Supabase Configuration
+
+### **Email Redirect URLs Setup**
+
+To ensure proper email confirmation and password reset functionality, configure these redirect URLs in your Supabase dashboard:
+
+### **Step 1: Update Code URLs**
+
+```typescript
+// In AuthContext.tsx
+const { data, error } = await supabase.auth.signUp({
+  email,
+  password,
+  options: {
+    data: metadata,
+    emailRedirectTo: 'https://guardnomand.com/auth'
+  },
+})
+```
+
+```typescript
+// In AuthContext.tsx and AuthPage.tsx
+const { error } = await supabase.auth.resetPasswordForEmail(email, {
+  redirectTo: 'https://guardnomand.com/password-reset'
+})
+```
+
+### **Step 2: Set Site URL**
+```
+Site URL: https://guardnomand.com
+```
+
+For development testing:
+```
+Site URL: http://localhost:5177
+```
+
+### **Step 3: Configure Redirect URLs**
+
+**With Wildcards (Recommended):**
+```
+https://guardnomand.com/*
+https://*.guardnomand.com/*
+http://localhost:5177/*
+http://localhost:5176/*
+http://localhost:5175/*
+http://localhost:5174/*
+http://localhost:5173/*
+```
+
+**Specific URLs (Fallback if wildcards don't work):**
+```
+https://guardnomand.com/auth
+https://guardnomand.com/password-reset
+http://localhost:5177/auth
+http://localhost:5177/password-reset
+http://localhost:5176/auth
+http://localhost:5176/password-reset
+http://localhost:5175/auth
+http://localhost:5175/password-reset
+http://localhost:5174/auth
+http://localhost:5174/password-reset
+http://localhost:5173/auth
+http://localhost:5173/password-reset
+```
+
+### **Testing the Configuration**
+
+### **1. Test Email Confirmation**
+1. Create a new account
+2. Check email for confirmation link
+3. Click link → Should redirect to `https://guardnomand.com/auth`
+4. Verify account is confirmed
+
+### **2. Test Password Reset**
+1. Go to sign-in page
+2. Click "Forgot password?"
+3. Enter email and submit
+4. Check email for reset link
+5. Click link → Should redirect to `https://guardnomand.com/password-reset`
+6. Complete password reset
+
+### **3. Development Testing**
+- Use `http://localhost:5177` as Site URL
+- Test with local development server
+- Verify redirects work properly
+
+## ⚠️ **Important Notes**
+
+1. **Domain Consistency**: All redirect URLs use `guardnomand.com`
+2. **HTTPS Required**: Production URLs must use HTTPS
+3. **Wildcard Support**: Using wildcards (`/*`) covers all possible routes
+4. **Multiple Ports**: Added support for different development ports (5173-5177)
+5. **Case Sensitivity**: URLs must match exactly
+
+### **Common Issues:**
+- **Wrong domain**: Make sure it's `guardnomand.com`
+- **Missing protocol**: Always include `https://` or `http://`
+- **Port mismatch**: Your dev server might be on a different port
+- **Case sensitivity**: URLs must match exactly
+
+### **Supabase Dashboard Path:**
+1. Go to your Supabase project
+2. Navigate to **Authentication** → **URL Configuration**
+3. Update **Site URL** and **Redirect URLs**
+4. Save changes and test
+
+This configuration ensures that all email links (confirmation and password reset) redirect properly to your application with the correct authentication tokens.

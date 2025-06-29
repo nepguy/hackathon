@@ -145,7 +145,7 @@ const LandingPage: React.FC = () => {
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full animate-pulse"></div>
               </div>
               <span className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-                TravelSafe
+                Guard Nomand
               </span>
             </div>
 
@@ -699,11 +699,11 @@ const LandingPage: React.FC = () => {
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                 <Shield className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold">TravelSafe</span>
+              <span className="text-xl font-bold">Guard Nomand</span>
               <span className="text-gray-400 text-sm">Full time educator making travel safer</span>
             </div>
             <div className="text-gray-400 text-sm">
-              All rights reserved © TravelSafe 2025
+              All rights reserved © Guard Nomand 2025
             </div>
           </div>
         </div>

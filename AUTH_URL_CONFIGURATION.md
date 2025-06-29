@@ -12,7 +12,7 @@ const { data, error } = await supabase.auth.signUp({
   password,
   options: {
     data: metadata,
-    emailRedirectTo: 'https://guardnomad.com/auth'
+    emailRedirectTo: 'https://guardnomand.com/auth'
   },
 })
 ```
@@ -21,7 +21,7 @@ const { data, error } = await supabase.auth.signUp({
 ```typescript
 // In AuthContext.tsx and AuthPage.tsx
 const { error } = await supabase.auth.resetPasswordForEmail(email, {
-  redirectTo: 'https://guardnomad.com/password-reset'
+  redirectTo: 'https://guardnomand.com/password-reset'
 })
 ```
 
@@ -34,7 +34,7 @@ const { error } = await supabase.auth.resetPasswordForEmail(email, {
 
 ### **Step 2: Set Site URL**
 ```
-Site URL: https://guardnomad.com
+Site URL: https://guardnomand.com
 ```
 
 For development testing:
@@ -46,8 +46,8 @@ Site URL: http://localhost:5177
 
 **With Wildcards (Recommended):**
 ```
-https://guardnomad.com/*
-https://*.guardnomad.com/*
+https://guardnomand.com/*
+https://*.guardnomand.com/*
 http://localhost:5177/*
 http://localhost:5176/*
 http://localhost:5175/*
@@ -57,8 +57,8 @@ http://localhost:5173/*
 
 **Specific URLs (Fallback if wildcards don't work):**
 ```
-https://guardnomad.com/auth
-https://guardnomad.com/password-reset
+https://guardnomand.com/auth
+https://guardnomand.com/password-reset
 http://localhost:5177/auth
 http://localhost:5177/password-reset
 http://localhost:5176/auth
@@ -78,7 +78,7 @@ After configuring the URLs in Supabase:
 ### **1. Test Email Confirmation**
 1. Create a new account
 2. Check email for confirmation link
-3. Click link → Should redirect to `https://guardnomad.com/auth`
+3. Click link → Should redirect to `https://guardnomand.com/auth`
 4. Verify account is confirmed
 
 ### **2. Test Password Reset**
@@ -86,7 +86,7 @@ After configuring the URLs in Supabase:
 2. Click "Forgot password?"
 3. Enter email and submit
 4. Check email for reset link
-5. Click link → Should redirect to `https://guardnomad.com/password-reset`
+5. Click link → Should redirect to `https://guardnomand.com/password-reset`
 6. Complete password reset
 
 ### **3. Development Testing**
@@ -96,7 +96,7 @@ For local development, the same flows should work with:
 
 ## ⚠️ **Important Notes**
 
-1. **Domain Consistency**: All redirect URLs use `guardnomad.com` (note: no 'd' at the end)
+1. **Domain Consistency**: All redirect URLs use `guardnomand.com`
 2. **HTTPS Required**: Production URLs must use HTTPS
 3. **Wildcard Support**: Using wildcards (`/*`) covers all possible routes
 4. **Multiple Ports**: Added support for different development ports (5173-5177)
@@ -112,7 +112,7 @@ For local development, the same flows should work with:
 5. Ensure HTTPS for production URLs
 
 ### **Common Issues:**
-- **Wrong domain**: Make sure it's `guardnomad.com` not `guardnomand.com`
+- **Wrong domain**: Make sure it's `guardnomand.com`
 - **Missing protocol**: Always include `https://` or `http://`
 - **Port mismatch**: Your dev server might be on a different port
 - **Case sensitivity**: URLs must match exactly

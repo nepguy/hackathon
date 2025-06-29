@@ -448,4 +448,4 @@ const PersonalInfoPage: React.FC = () => {
   );
 };
 
-export default PersonalInfoPage; 
+export default PersonalInfoPage;

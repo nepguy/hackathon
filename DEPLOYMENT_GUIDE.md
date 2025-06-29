@@ -1,4 +1,4 @@
-# 🚀 Deployment Guide for guardnomad.com
+# 🚀 Deployment Guide for guardnomand.com
 
 ## 🎯 **Quick Deployment Steps**
 
@@ -9,7 +9,7 @@ npm run build
 
 ### **2. Upload to Your Domain**
 Upload the `dist/` folder contents to your web hosting:
-- **guardnomad.com** root directory
+- **guardnomand.com** root directory
 - Or subdomain if preferred
 
 ### **3. Environment Variables for Production**
@@ -24,13 +24,13 @@ VITE_GOOGLE_MAPS_API_KEY=AIzaSyBcnjNfH1nBeLWwFhAx6vBEfXvVWopAC3A
 ### **4. Configure Domain Restrictions**
 Update your Google Maps API key restrictions:
 - **Allowed domains**: 
-  - `guardnomad.com/*`
-  - `*.guardnomad.com/*`
+  - `guardnomand.com/*`
+  - `*.guardnomand.com/*`
 
 ### **5. Supabase Production Settings**
 In your Supabase project settings:
-- **Site URL**: `https://guardnomad.com`
-- **Additional redirect URLs**: `https://guardnomad.com/auth/callback`
+- **Site URL**: `https://guardnomand.com`
+- **Additional redirect URLs**: `https://guardnomand.com/auth/callback`
 
 ## 🛠️ **Hosting Options**
 
@@ -40,7 +40,7 @@ In your Supabase project settings:
 - **GitHub Pages**: Push `dist/` to gh-pages branch
 
 ### **Option B: VPS/Dedicated Server**
-- Upload `dist/` to `/var/www/guardnomad.com/`
+- Upload `dist/` to `/var/www/guardnomand.com/`
 - Configure Nginx/Apache
 
 ## 🔧 **Production Build Commands**

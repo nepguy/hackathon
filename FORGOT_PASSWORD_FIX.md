@@ -107,4 +107,4 @@ npm run dev
 - **SMTP Setup**: For production, configure custom SMTP to ensure email delivery
 - **Rate Limiting**: Be aware of Supabase's rate limits for password reset emails
 
-The forgot password functionality should now work smoothly without timeout errors! 
+The forgot password functionality should now work smoothly without timeout errors!
