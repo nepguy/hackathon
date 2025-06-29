@@ -25,9 +25,9 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
   const fetchWeather = async (requestLocation = false) => {
     setError(null);
     
+    let weatherData: WeatherData | null = null;
+    
     try {
-      let data: WeatherData | null = null;
-      
       // Try to get user's current location if requested
       if (requestLocation) {
         console.log('🌍 User requested location access for weather');
@@ -48,8 +48,10 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
         if (locationPermission === 'denied') {
           console.log('❌ Location permission was denied, using fallback weather');
           // Don't show error, just use fallback with generic location
-          data = await weatherService.getWeatherForecast('Current Location', 3);
-          setWeatherData(data);
+          weatherData = await weatherService.getWeatherForecast('Current Location', 3);
+          if (weatherData) {
+            setWeatherData(weatherData);
+          }
           return;
         }
         
@@ -72,8 +74,10 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
         
         if (!userLocation) {
           console.log('⚠️ Could not get GPS location, using fallback weather');
-          data = await weatherService.getWeatherForecast('Current Location', 3);
-          setWeatherData(data);
+          weatherData = await weatherService.getWeatherForecast('Current Location', 3);
+          if (weatherData) {
+            setWeatherData(weatherData);
+          }
           return;
         }
       }
@@ -81,33 +85,32 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
       // Get weather data based on priority: coordinates > userLocation > location string > fallback
       if (coordinates) {
         console.log('🌍 Using provided coordinates for weather');
-        data = await weatherService.getWeatherByCoordinates(
+        weatherData = await weatherService.getWeatherByCoordinates(
           coordinates.lat, 
           coordinates.lng, 
           3
         );
       } else if (userLocation && (requestLocation || locationPermission === 'granted')) {
         console.log('📍 Using user GPS location for weather');
-        data = await weatherService.getWeatherByCoordinates(
+        weatherData = await weatherService.getWeatherByCoordinates(
           userLocation.latitude, 
           userLocation.longitude, 
           3
         );
       } else if (location) {
         console.log('🏙️ Using provided location string for weather');
-        data = await weatherService.getWeatherForecast(location, 3);
+        weatherData = await weatherService.getWeatherForecast(location, 3);
       } else {
         console.log('🌐 Using fallback weather data');
-        data = await weatherService.getWeatherForecast('Current Location', 3);
+        weatherData = await weatherService.getWeatherForecast('Current Location', 3);
       }
       
-      if (data) {
-        setWeatherData(data);
+      if (weatherData) {
+        setWeatherData(weatherData);
         console.log('✅ Weather data loaded successfully');
       } else {
         throw new Error('No weather data returned');
       }
-      
     } catch (error) {
       console.error('❌ Weather fetch error:', error);
       setError('Unable to load weather data');

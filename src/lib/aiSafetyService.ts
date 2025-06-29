@@ -525,21 +525,13 @@ class AISafetyService {
   private async getRealTimeAlerts(context: LocationContext): Promise<AISafetyAlert[]> {
     const alerts: AISafetyAlert[] = [];
 
-    console.log('🔄 Getting real-time alerts for:', context.destination || 'coordinates-based location');
+    console.log('🔄 Getting real-time alerts for:', context?.destination || 'coordinates-based location');
 
     try {
       // Weather-based alerts
       const weatherAlert = await this.generateWeatherAlert(context);
       if (weatherAlert) alerts.push(weatherAlert);
 
-      // Exa.ai-based alerts
-      try {
-        const exaAlerts = await this.generateExaBasedAlerts(context);
-        alerts.push(...exaAlerts);
-      } catch (error) {
-        console.warn('Error fetching Exa.ai alerts:', error);
-      }
-      
       // Add Exa-based alerts
       const exaAlerts = await this.generateExaBasedAlerts(context);
       alerts.push(...exaAlerts);
@@ -557,7 +549,7 @@ class AISafetyService {
   private async generateExaBasedAlerts(context: LocationContext): Promise<AISafetyAlert[]> {
     const alerts: AISafetyAlert[] = [];
     
-    if (!context.destination && !context.coordinates) {
+    if (!context || (!context.destination && !context.coordinates)) {
       console.warn('❌ No location provided for Exa-based alerts');
       return [];
     }
@@ -573,28 +565,31 @@ class AISafetyService {
     console.log('🔍 Getting Exa-based alerts for:', locationString);
     
     try {
-      // Get travel safety alerts from Exa
-      const safetyAlerts = await exaUnifiedService.getTravelSafetyAlerts(locationString);
-      
-      // Convert to AISafetyAlert format
-      const convertedAlerts = safetyAlerts.map(alert => ({
-        id: `exa-${alert.id}`,
-        type: this.mapExaAlertType(alert.alertType),
-        severity: alert.severity,
-        title: alert.title,
-        message: alert.description,
-        location: alert.location,
-        coordinates: context.coordinates,
-        source: 'ai' as const,
-        timestamp: alert.issuedDate,
-        actionable_advice: alert.recommendations,
-        relevant_links: [alert.source.url].filter(url => url !== '#'),
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
-      }));
-      
-      alerts.push(...convertedAlerts);
-      console.log(`✅ Added ${convertedAlerts.length} Exa-based alerts`);
-      
+      try {
+        // Get travel safety alerts from Exa
+        const safetyAlerts = await exaUnifiedService.getTravelSafetyAlerts(locationString);
+        
+        // Convert to AISafetyAlert format
+        const convertedAlerts = safetyAlerts.map(alert => ({
+          id: `exa-${alert.id}`,
+          type: this.mapExaAlertType(alert.alertType),
+          severity: alert.severity,
+          title: alert.title,
+          message: alert.description,
+          location: alert.location,
+          coordinates: context.coordinates,
+          source: 'ai' as const,
+          timestamp: alert.issuedDate,
+          actionable_advice: alert.recommendations,
+          relevant_links: [alert.source.url].filter(url => url !== '#'),
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
+        }));
+        
+        alerts.push(...convertedAlerts);
+        console.log(`✅ Added ${convertedAlerts.length} Exa-based alerts`);
+      } catch (exaError) {
+        console.warn('❌ Error generating Exa-based alerts:', exaError);
+      }
     } catch (error: any) {
       console.warn('❌ Error generating Exa-based alerts:', error?.message || error);
     }

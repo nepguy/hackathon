@@ -1,9 +1,6 @@
 // src/lib/exaUnifiedService.ts - Unified Exa.ai Service for All Intelligence Needs
 import Exa from 'exa-js';
 
-// Define API key from environment variables
-const EXA_API_KEY = import.meta.env.VITE_EXA_API_KEY;
-
 // Enhanced interfaces for unified service
 export interface ScamAlert {
   id: string;
@@ -78,14 +75,22 @@ class ExaUnifiedService {
   private exa: Exa;
   private cache = new Map<string, { data: unknown; timestamp: number }>();
   private readonly CACHE_DURATION = 15 * 60 * 1000; // 15 minutes cache
-  private readonly API_KEY: string;
+  private API_KEY: string;
   private isApiAvailable = true;
-  private exa: Exa | null = null;
 
   constructor() {
-    this.API_KEY = EXA_API_KEY;
+    this.API_KEY = import.meta.env.VITE_EXA_API_KEY;
     if (!this.API_KEY || this.API_KEY === 'your_exa_api_key') {
       console.warn('⚠️ Exa API key not found in environment variables');
+      this.isApiAvailable = false;
+    } else {
+      try {
+        this.exa = new Exa(this.API_KEY);
+        console.log('✅ Exa Unified Service initialized');
+      } catch (error) {
+        console.warn('⚠️ Failed to initialize Exa client:', error);
+        this.isApiAvailable = false;
+      }
     }
   }
 
@@ -96,11 +101,6 @@ class ExaUnifiedService {
   ): Promise<T> {
     if (!this.isApiAvailable) {
       console.log(`🔄 Using fallback data for ${operationName} (API not available)`);
-      return fallbackData;
-    }
-    
-    if (!this.exa) {
-      console.log(`🔄 Using fallback data for ${operationName} (Exa client not initialized)`);
       return fallbackData;
     }
 
@@ -171,10 +171,6 @@ class ExaUnifiedService {
       async () => {
         const categoryFilter = category ? ` ${category}` : '';
         const searchQuery = `Local news and current events in ${location}${categoryFilter}:`;
-        
-        if (!this.exa) {
-          return this.getFallbackLocalNews(location);
-        }
 
         console.log('📰 Exa search for local news:', searchQuery);
 
@@ -231,10 +227,6 @@ class ExaUnifiedService {
       async () => {
         const locationFilter = location ? ` affecting ${location}` : '';
         const searchQuery = `Recent scam alerts and fraud warnings${locationFilter}:`;
-        
-        if (!this.exa) {
-          return this.getFallbackScamAlerts(location);
-        }
 
         console.log('🚨 Exa search for scam alerts:', searchQuery);
 
@@ -293,10 +285,6 @@ class ExaUnifiedService {
       async () => {
         const categoryFilter = category ? ` ${category}` : '';
         const searchQuery = `Upcoming local events and activities in ${location}${categoryFilter}:`;
-        
-        if (!this.exa) {
-          return this.getFallbackLocalEvents(location);
-        }
 
         console.log('🎉 Exa search for local events:', searchQuery);
 
@@ -355,10 +343,6 @@ class ExaUnifiedService {
     return this.safeExaCall(
       async () => {
         const searchQuery = `Official travel safety alerts and advisories for ${location}:`;
-
-        if (!this.exa) {
-          return this.getFallbackTravelSafety(location);
-        }
 
         console.log('🛡️ Exa search for travel safety:', searchQuery);
 

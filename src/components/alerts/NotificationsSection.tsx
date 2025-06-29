@@ -1,8 +1,71 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Bell, Check, Trash2, Users, Share2 } from 'lucide-react';
-import { useNotifications } from '../../lib/notificationsService';
-import type { Notification } from '../../lib/notificationsService';
 import { useAuth } from '../../contexts/AuthContext';
+
+// Temporary mock notification type until we implement the real service
+interface Notification {
+  id: string;
+  user_id: string; // recipient
+  actor_id: string; // who performed the action
+  actor_name: string;
+  actor_avatar?: string;
+  type: 'like' | 'comment' | 'follow' | 'story_share';
+  content: string;
+  story_id?: string;
+  story_title?: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+// Mock notifications service until we implement the real one
+const useNotifications = () => {
+  const getMockNotifications = (userId: string): Notification[] => {
+    return [
+      {
+        id: '1',
+        user_id: userId,
+        actor_id: 'actor1',
+        actor_name: 'Sarah Chen',
+        type: 'like',
+        content: 'liked your post',
+        story_id: 'story1',
+        story_title: 'My Trip to Paris',
+        is_read: false,
+        created_at: new Date(Date.now() - 3600000).toISOString() // 1 hour ago
+      },
+      {
+        id: '2',
+        user_id: userId,
+        actor_id: 'actor2',
+        actor_name: 'Mike Rodriguez',
+        type: 'comment',
+        content: 'commented on your post',
+        story_id: 'story1',
+        story_title: 'My Trip to Paris',
+        is_read: true,
+        created_at: new Date(Date.now() - 86400000).toISOString() // 1 day ago
+      },
+      {
+        id: '3',
+        user_id: userId,
+        actor_id: 'actor3',
+        actor_name: 'David Kim',
+        type: 'follow',
+        content: 'started following you',
+        is_read: false,
+        created_at: new Date(Date.now() - 172800000).toISOString() // 2 days ago
+      }
+    ];
+  };
+
+  return {
+    getUserNotifications: async (userId: string) => getMockNotifications(userId),
+    markAsRead: async () => true,
+    markAllAsRead: async () => true,
+    deleteNotification: async () => true,
+    getUnreadCount: async () => 2
+  };
+};
 
 const NotificationsSection: React.FC = () => {
   const { user } = useAuth();
@@ -25,10 +88,8 @@ const NotificationsSection: React.FC = () => {
 
     setLoading(true);
     try {
-      const [notifs, count] = await Promise.all([
-        getUserNotifications(user.id, 50),
-        getUnreadCount(user.id)
-      ]);
+      const notifs = await getUserNotifications(user.id);
+      const count = await getUnreadCount(user.id);
       
       setNotifications(notifs);
       setUnreadCount(count);
@@ -276,4 +337,4 @@ const NotificationsSection: React.FC = () => {
   );
 };
 
-export default NotificationsSection; 
+export default NotificationsSection;

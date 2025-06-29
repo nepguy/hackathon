@@ -2,9 +2,6 @@
 import Exa from 'exa-js';
 import type { NewsArticle, NewsApiResponse } from './newsApi';
 
-// Define API key from environment variables
-const EXA_API_KEY = import.meta.env.VITE_EXA_API_KEY;
-
 interface ExaResult {
   id: string;
   url: string;
@@ -20,32 +17,23 @@ class ExaNewsService {
   private exa: Exa;
   private cache = new Map<string, { data: NewsApiResponse; timestamp: number }>();
   private readonly CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache
-  private readonly API_KEY: string;
+  private API_KEY: string;
   private isApiAvailable = true;
-  private exa: any;
 
   constructor() {
-    this.API_KEY = EXA_API_KEY;
+    this.API_KEY = import.meta.env.VITE_EXA_API_KEY;
     if (!this.API_KEY || this.API_KEY === 'your_exa_api_key') {
       console.warn('⚠️ Exa API key not found in environment variables');
       console.info('Using fallback news data instead of Exa.ai');
+      this.isApiAvailable = false;
     } else {
       try {
         this.exa = new Exa(this.API_KEY);
         console.log('✅ Exa News Service initialized');
       } catch (error) {
         console.error('❌ Failed to initialize Exa client:', error);
-        console.info('Using fallback news data instead of Exa.ai');
-      }
-      console.log('🔄 Exa news service will use fallback data');
-    } else {
-      try {
-        this.exa = new Exa(this.API_KEY);
-        console.log('✅ Exa News Service initialized');
-      } catch (error) {
-        console.warn('⚠️ Failed to initialize Exa client:', error);
         this.isApiAvailable = false;
-        console.log('🔄 Exa news service will use fallback data due to initialization error');
+        console.info('Using fallback news data instead of Exa.ai');
       }
     }
   }
@@ -57,11 +45,6 @@ class ExaNewsService {
   ): Promise<T> {
     if (!this.isApiAvailable) {
       console.log(`🔄 Using fallback data for ${operationName} (API not available)`);
-      return fallbackData;
-    }
-    
-    if (!this.exa) {
-      console.log(`🔄 Using fallback data for ${operationName} (Exa client not initialized)`);
       return fallbackData;
     }
 
@@ -187,11 +170,6 @@ class ExaNewsService {
     return this.safeExaCall(
       async () => {
         // Check if Exa client is initialized
-        if (!this.exa) {
-          console.warn('⚠️ Exa client not initialized, using fallback data');
-          return this.getFallbackNews('travel', location);
-        }
-
         const searchQuery = location 
           ? `Current travel alerts and safety incidents affecting travelers in ${location}:`
           : 'Recent travel safety alerts and incidents affecting international travelers';
@@ -241,11 +219,6 @@ class ExaNewsService {
     return this.safeExaCall(
       async () => {
         // Check if Exa client is initialized
-        if (!this.exa) {
-          console.warn('⚠️ Exa client not initialized, using fallback data');
-          return this.getFallbackNews('safety', location);
-        }
-
         const searchQuery = location 
           ? `Safety warnings and security alerts for travelers visiting ${location}:`
           : 'Current safety warnings and security alerts for international travelers';
@@ -296,11 +269,6 @@ class ExaNewsService {
     return this.safeExaCall(
       async () => {
         // Check if Exa client is initialized
-        if (!this.exa) {
-          console.warn('⚠️ Exa client not initialized, using fallback data');
-          return this.getFallbackNews('weather', location);
-        }
-
         const searchQuery = location 
           ? `Weather alerts and travel disruptions affecting ${location}:`
           : 'Weather alerts and travel disruptions affecting international travel';
@@ -350,11 +318,6 @@ class ExaNewsService {
     return this.safeExaCall(
       async () => {
         // Check if Exa client is initialized
-        if (!this.exa) {
-          console.warn('⚠️ Exa client not initialized, using fallback data');
-          return this.getFallbackNews('general');
-        }
-
         const searchQuery = 'Breaking news affecting international travel and tourism:';
 
         console.log('⚡ Exa search for breaking news:', searchQuery);
@@ -402,11 +365,6 @@ class ExaNewsService {
     return this.safeExaCall(
       async () => {
         // Check if Exa client is initialized
-        if (!this.exa) {
-          console.warn('⚠️ Exa client not initialized, using fallback data');
-          return this.getFallbackNews('general', location);
-        }
-
         const searchQuery = location 
           ? `${query} ${location} travel news:`
           : `${query} travel news`;

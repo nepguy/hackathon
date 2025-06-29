@@ -118,27 +118,31 @@ const HomePage: React.FC = () => {
   const loadTravelNews = async () => {
     console.log('🔄 Loading travel news...');
     setIsLoadingNews(true);
-    
+
     try {
       // Use location if available, otherwise use a default
       const locationString = userLocation 
         ? `${userLocation.latitude.toFixed(4)},${userLocation.longitude.toFixed(4)}` 
         : 'Global Travel News';
-      
+
       console.log('🌍 Using location for news:', locationString);
-      
+
       // Use Exa.ai service for travel news
-      const newsData = await exaUnifiedService.getLocalNews(locationString);
-      
-      if (newsData && newsData.length > 0) {
-        // Limit to 3-5 most recent news items
-        setTravelNews(newsData.slice(0, 3));
-        console.log('✅ Travel news loaded successfully via Exa.ai:', newsData.length, 'items');
-      } else {
-        console.log('⚠️ No news data returned from Exa.ai service');
+      try {
+        const newsData = await exaUnifiedService.getLocalNews(locationString);
+        
+        if (newsData && newsData.length > 0) {
+          // Limit to 3-5 most recent news items
+          setTravelNews(newsData.slice(0, 3));
+          console.log('✅ Travel news loaded successfully via Exa.ai:', newsData.length, 'items');
+        } else {
+          console.log('⚠️ No news data returned from Exa.ai service');
+          setTravelNews([]);
+        }
+      } catch (exaError) {
+        console.error('❌ Failed to load travel news from Exa.ai:', exaError);
         setTravelNews([]);
       }
-      
     } catch (error: any) {
       console.error('❌ Failed to load travel news from Exa.ai:', error?.message || error);
       // Set empty array to avoid undefined errors

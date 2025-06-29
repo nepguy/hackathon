@@ -4,10 +4,8 @@ import { useLocation } from '../contexts/LocationContext';
 import { PageContainer } from '../components/layout/PageContainer';
 import { AlertTriangle, MapPin, Calendar, Bell, Newspaper, Globe, Navigation, Shield, Clock, ExternalLink, RefreshCw } from 'lucide-react';
 import { useRealTimeData } from '../hooks/useRealTimeData';
-
 import { useUserDestinations } from '../contexts/UserDestinationContext';
-import { eventsApiService } from '../lib/eventsApi';
-import type { LocalEvent } from '../lib/eventsApi';
+import { eventsApiService, type LocalEvent } from '../lib/eventsApi';
 import DestinationManager from '../components/destinations/DestinationManager';
 import NotificationsSection from '../components/alerts/NotificationsSection';
 
@@ -20,7 +18,7 @@ const AlertsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('news');
   const { currentDestination } = useUserDestinations();
   const { safetyAlerts, isLoading, refreshData } = useRealTimeData();
-
+  
   // Local data states
   const [localNews, setLocalNews] = useState<any[]>([]);
   const [scamAlerts, setScamAlerts] = useState<any[]>([]);
@@ -121,22 +119,27 @@ const AlertsPage: React.FC = () => {
   // Load local data using our own services
   const loadUnifiedData = useCallback(async () => {
     if (!userLocation) return;
-    
+
     const locationString = `${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}`;
-    
+
     setUnifiedLoading(true);
     try {
       console.log('🔄 Loading local data for:', locationString);
-      
+
       // Load events using our new events API
-      const events = await eventsApiService.getEventsForLocation(locationString, {
-        includeEventbrite: true,
-        includeLocal: true,
-        maxResults: 10
-      });
-      
-      setLocalEvents(events);
-      console.log('🎉 Loaded local events:', events.length);
+      try {
+        const events = await eventsApiService.getEventsForLocation(locationString, {
+          includeEventbrite: true,
+          includeLocal: true,
+          maxResults: 10
+        });
+        
+        setLocalEvents(events);
+        console.log('🎉 Loaded local events:', events.length);
+      } catch (eventsError) {
+        console.error('❌ Error loading events:', eventsError);
+        setLocalEvents([]);
+      }
 
       // Set fallback data for other sections
       setLocalNews([
