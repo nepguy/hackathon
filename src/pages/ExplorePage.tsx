@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PageContainer from '../components/layout/PageContainer';
 import { 
   Search, MapPin, Heart, MessageCircle, 
-  X, Users, Star, Globe, Plus, Send
+  X, Users, Star, Globe, Plus, Send, Edit3, Trash2, Check
 } from 'lucide-react';
 import { useTravelStories } from '../lib/travelStoriesService';
 import type { TravelStory } from '../lib/travelStoriesService';
@@ -23,7 +23,9 @@ const ExplorePage: React.FC = () => {
   } = useTravelStories();
   const { 
     getStoryComments, 
-    createComment 
+    createComment,
+    updateComment,
+    deleteComment 
   } = useStoryComments();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,6 +47,9 @@ const ExplorePage: React.FC = () => {
   const [newComment, setNewComment] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [editingComment, setEditingComment] = useState<string | null>(null);
+  const [editCommentContent, setEditCommentContent] = useState('');
+  const [deletingComment, setDeletingComment] = useState<string | null>(null);
 
   const categories = ['All', 'Solo Travel', 'Family', 'Adventure', 'Cultural', 'Budget', 'Luxury'];
 
@@ -248,6 +253,65 @@ const ExplorePage: React.FC = () => {
     setSelectedStoryForComment(null);
     setComments([]);
     setNewComment('');
+    setEditingComment(null);
+    setEditCommentContent('');
+    setDeletingComment(null);
+  };
+
+  const handleEditComment = (comment: StoryComment) => {
+    setEditingComment(comment.id);
+    setEditCommentContent(comment.content);
+  };
+
+  const handleSaveEditComment = async (commentId: string) => {
+    if (!selectedStoryForComment || !editCommentContent.trim()) return;
+
+    try {
+      const updatedComment = await updateComment(commentId, editCommentContent.trim(), selectedStoryForComment.id);
+      if (updatedComment) {
+        // Update the comments list
+        setComments(prev => prev.map(comment => 
+          comment.id === commentId ? { ...comment, content: editCommentContent.trim() } : comment
+        ));
+        setEditingComment(null);
+        setEditCommentContent('');
+      }
+    } catch (error) {
+      console.error('Error updating comment:', error);
+      alert('Failed to update comment. Please try again.');
+    }
+  };
+
+  const handleCancelEditComment = () => {
+    setEditingComment(null);
+    setEditCommentContent('');
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!selectedStoryForComment) return;
+
+    const confirmed = window.confirm('Are you sure you want to delete this comment?');
+    if (!confirmed) return;
+
+    try {
+      setDeletingComment(commentId);
+      const success = await deleteComment(commentId, selectedStoryForComment.id);
+      if (success) {
+        // Remove the comment from the list
+        setComments(prev => prev.filter(comment => comment.id !== commentId));
+        // Update the story's comment count
+        setTravelStories((prev: any) => prev.map((story: any) => 
+          story.id === selectedStoryForComment.id 
+            ? { ...story, comments_count: (story.comments_count || 1) - 1 }
+            : story
+        ));
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      alert('Failed to delete comment. Please try again.');
+    } finally {
+      setDeletingComment(null);
+    }
   };
   
   const handleSearch = (query: string) => {
@@ -401,6 +465,15 @@ const ExplorePage: React.FC = () => {
           onClose={handleCloseCommentModal}
           loading={loadingComments}
           submitting={submittingComment}
+          currentUserId={user?.id}
+          editingComment={editingComment}
+          editCommentContent={editCommentContent}
+          setEditCommentContent={setEditCommentContent}
+          onEditComment={handleEditComment}
+          onSaveEditComment={handleSaveEditComment}
+          onCancelEditComment={handleCancelEditComment}
+          onDeleteComment={handleDeleteComment}
+          deletingComment={deletingComment}
         />
       )}
     </PageContainer>
@@ -540,6 +613,15 @@ const CommentModal: React.FC<{
   onClose: () => void;
   loading: boolean;
   submitting: boolean;
+  currentUserId?: string;
+  editingComment: string | null;
+  editCommentContent: string;
+  setEditCommentContent: (content: string) => void;
+  onEditComment: (comment: StoryComment) => void;
+  onSaveEditComment: (commentId: string) => void;
+  onCancelEditComment: () => void;
+  onDeleteComment: (commentId: string) => void;
+  deletingComment: string | null;
 }> = ({
   story,
   comments,
@@ -548,7 +630,16 @@ const CommentModal: React.FC<{
   onSubmit,
   onClose,
   loading,
-  submitting
+  submitting,
+  currentUserId,
+  editingComment,
+  editCommentContent,
+  setEditCommentContent,
+  onEditComment,
+  onSaveEditComment,
+  onCancelEditComment,
+  onDeleteComment,
+  deletingComment
 }) => (
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end md:items-center justify-center z-50">
     <div className="bg-white w-full md:w-[500px] md:rounded-lg max-h-[90vh] flex flex-col">
@@ -571,11 +662,69 @@ const CommentModal: React.FC<{
             <div key={comment.id} className="bg-gray-50 rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium text-sm">{comment.author_name || 'Anonymous'}</span>
-                <span className="text-xs text-gray-500">
-                  {new Date(comment.created_at).toLocaleDateString()}
-                </span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-gray-500">
+                    {new Date(comment.created_at).toLocaleDateString()}
+                  </span>
+                  {currentUserId === comment.user_id && (
+                    <div className="flex items-center space-x-1">
+                      <button
+                        onClick={() => onEditComment(comment)}
+                        className="text-blue-500 hover:text-blue-700 p-1"
+                        title="Edit comment"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => onDeleteComment(comment.id)}
+                        disabled={deletingComment === comment.id}
+                        className="text-red-500 hover:text-red-700 p-1"
+                        title="Delete comment"
+                      >
+                        {deletingComment === comment.id ? (
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-500"></div>
+                        ) : (
+                          <Trash2 className="w-3 h-3" />
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-              <p className="text-sm text-gray-700">{comment.content}</p>
+              {editingComment === comment.id ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={editCommentContent}
+                    onChange={(e) => setEditCommentContent(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    rows={2}
+                    placeholder="Edit your comment..."
+                  />
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => onSaveEditComment(comment.id)}
+                      disabled={!editCommentContent.trim()}
+                      className={`flex items-center space-x-1 px-3 py-1 rounded text-sm ${
+                        !editCommentContent.trim()
+                          ? 'bg-gray-100 text-gray-400'
+                          : 'bg-blue-500 text-white hover:bg-blue-600'
+                      }`}
+                    >
+                      <Check className="w-3 h-3" />
+                      <span>Save</span>
+                    </button>
+                    <button
+                      onClick={onCancelEditComment}
+                      className="flex items-center space-x-1 px-3 py-1 rounded text-sm bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    >
+                      <X className="w-3 h-3" />
+                      <span>Cancel</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-700">{comment.content}</p>
+              )}
             </div>
           ))
         )}
