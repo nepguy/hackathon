@@ -1,6 +1,6 @@
 import { geminiAiService } from './geminiAi';
 import { locationSafetyService } from './locationSafetyService';
-import { newsService } from './newsApi';
+import { exaUnifiedService } from './exaUnifiedService';
 
 export interface AISafetyAlert {
   id: string;
@@ -119,9 +119,16 @@ class AISafetyService {
         }
       }
 
-      // Skip news gathering to avoid API query syntax errors
-      console.log('ℹ️ Skipping news gathering to avoid News API syntax errors');
-      data.recent_news = [];
+      // Get recent news using Exa.ai service
+      try {
+        console.log('🔍 Using Exa.ai service for news gathering');
+        const newsData = await exaUnifiedService.getLocalNews(context.destination);
+        data.recent_news = newsData.slice(0, 3) || [];
+        console.log('✅ Successfully fetched news via Exa.ai service');
+      } catch (error) {
+        console.warn('Could not fetch recent news via Exa.ai:', error);
+        data.recent_news = [];
+      }
 
       // Add travel dates context
       if (context.travel_dates) {
@@ -514,8 +521,13 @@ class AISafetyService {
       const weatherAlert = await this.generateWeatherAlert(context);
       if (weatherAlert) alerts.push(weatherAlert);
 
-      // Skip news-based alerts to avoid API query syntax errors
-      console.log('ℹ️ Skipping news-based alerts to avoid News API syntax errors');
+      // Exa.ai-based alerts
+      try {
+        const exaAlerts = await this.generateExaBasedAlerts(context);
+        alerts.push(...exaAlerts);
+      } catch (error) {
+        console.warn('Error fetching Exa.ai alerts:', error);
+      }
 
     } catch (error) {
       console.warn('Error fetching real-time alerts:', error);
@@ -547,45 +559,63 @@ class AISafetyService {
       ]
     };
   }
-
   /**
-   * Generate alerts based on recent news
+   * Generate alerts based on Exa.ai data
    */
-  private async generateNewsBasedAlerts(context: LocationContext): Promise<AISafetyAlert[]> {
+  private async generateExaBasedAlerts(context: LocationContext): Promise<AISafetyAlert[]> {
     const alerts: AISafetyAlert[] = [];
 
     try {
-      const newsData = await newsService.searchNews(context.destination);
-      
-      // Analyze news for safety-relevant information
-      for (const article of newsData.articles || []) {
-        if (this.isNewsSafetyRelevant(article)) {
-          alerts.push({
-            id: `news-${Date.now()}-${Math.random()}`,
-            type: 'security',
-            severity: this.assessNewsSeverity(article),
-            title: `Local News Alert: ${article.category || 'General'}`,
-            message: article.description || article.title,
-            location: context.destination,
-            source: 'news',
-            timestamp: new Date().toISOString(),
-            actionable_advice: [
-              'Stay informed about local developments',
-              'Avoid areas mentioned in safety concerns',
-              'Follow local authority guidance'
-            ],
-            relevant_links: [article.url].filter(Boolean)
-          });
-        }
+      // Get scam alerts from Exa.ai
+      const scamAlerts = await exaUnifiedService.getScamAlerts(context.destination);
+      for (const scam of scamAlerts.slice(0, 2)) {
+        alerts.push({
+          id: `exa-scam-${Date.now()}-${Math.random()}`,
+          type: 'security',
+          severity: 'high',
+          title: scam.title,
+          message: scam.description,
+          location: context.destination,
+          source: 'ai',
+          timestamp: new Date().toISOString(),
+          actionable_advice: [
+            'Stay vigilant about common scams',
+            'Verify information before taking action',
+            'Report suspicious activities to authorities'
+          ],
+          relevant_links: [scam.source.url].filter(Boolean)
+        });
+      }
+
+      // Get travel safety alerts from Exa.ai
+      const safetyAlerts = await exaUnifiedService.getTravelSafetyAlerts(context.destination);
+      for (const safety of safetyAlerts.slice(0, 2)) {
+        alerts.push({
+          id: `exa-safety-${Date.now()}-${Math.random()}`,
+          type: 'health',
+          severity: safety.severity === 'critical' ? 'high' : safety.severity === 'high' ? 'high' : 'medium',
+          title: safety.title,
+          message: safety.description,
+          location: context.destination,
+          source: 'ai',
+          timestamp: new Date().toISOString(),
+          actionable_advice: safety.recommendations || [
+            'Follow local health guidelines',
+            'Stay informed about current conditions',
+            'Take necessary precautions'
+          ],
+          relevant_links: [safety.source.url].filter(Boolean)
+        });
       }
     } catch (error) {
-      console.warn('Error generating news-based alerts:', error);
+      console.warn('Error generating Exa.ai-based alerts:', error);
     }
 
-    return alerts.slice(0, 2); // Limit to 2 news-based alerts
+    return alerts;
   }
 
-  /**
+  
+    /**
    * Check if news article is safety-relevant
    */
   private isNewsSafetyRelevant(article: any): boolean {

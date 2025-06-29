@@ -178,28 +178,6 @@ export const useLocationPermission = (): LocationPermissionState => {
   }, [setCachedPermissionStatus, setCachedPosition]);
 
   // Watch position changes (optional - for real-time tracking)
-  const watchPosition = useCallback((): number | null => {
-    if (!navigator.geolocation || !hasPermission) {
-      return null;
-    }
-
-    return navigator.geolocation.watchPosition(
-      (newPosition) => {
-        setPosition(newPosition);
-        setCachedPosition(newPosition);
-        setError(null);
-      },
-      (error) => {
-        console.warn('Position watch error:', error);
-        setError('Failed to track location changes');
-      },
-      {
-        enableHighAccuracy: false,
-        timeout: 30000,
-        maximumAge: 600000 // 10 minutes
-      }
-    );
-  }, [hasPermission, setCachedPosition]);
 
   // Initialize permission check on mount
   useEffect(() => {

@@ -200,6 +200,100 @@ const MapPage: React.FC = () => {
             </button>
         </div>
 
+        {/* Layer Content Panel */}
+        <div className="absolute bottom-20 sm:bottom-24 left-2 right-2 sm:left-4 sm:right-4 z-10 max-h-48 overflow-hidden">
+          <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl overflow-hidden">
+            <div className="p-4">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                {(() => {
+                  const activeLayerOption = layerOptions.find(l => l.id === activeLayer);
+                  const IconComponent = activeLayerOption?.icon || AlertTriangle;
+                  return (
+                    <>
+                      <IconComponent className="w-5 h-5 mr-2" />
+                      {activeLayerOption?.label || 'Information'}
+                    </>
+                  );
+                })()}
+              </h3>
+              <div className="space-y-2 max-h-32 overflow-y-auto">
+                {activeLayer === 'alerts' && (
+                  <div className="space-y-2">
+                    <div className="flex items-center p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                      <AlertTriangle className="w-4 h-4 text-red-600 mr-2" />
+                      <div>
+                        <p className="text-sm font-medium text-red-800 dark:text-red-200">High Crime Area</p>
+                        <p className="text-xs text-red-600 dark:text-red-300">Avoid walking alone after dark</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                      <AlertTriangle className="w-4 h-4 text-yellow-600 mr-2" />
+                      <div>
+                        <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Construction Zone</p>
+                        <p className="text-xs text-yellow-600 dark:text-yellow-300">Expect delays and detours</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {activeLayer === 'weather' && (
+                  <div className="space-y-2">
+                    <div className="flex items-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <Cloud className="w-4 h-4 text-blue-600 mr-2" />
+                      <div>
+                        <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Rain Expected</p>
+                        <p className="text-xs text-blue-600 dark:text-blue-300">Bring an umbrella</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {activeLayer === 'events' && (
+                  <div className="space-y-2">
+                    {events.slice(0, 3).map((event) => (
+                      <div key={event.id} className="flex items-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                        <Calendar className="w-4 h-4 text-purple-600 mr-2" />
+                        <div>
+                          <p className="text-sm font-medium text-purple-800 dark:text-purple-200">{event.title}</p>
+                                                     <p className="text-xs text-purple-600 dark:text-purple-300">
+                             {typeof event.location === 'string' ? event.location : event.location?.address || 'Location not specified'}
+                           </p>
+                        </div>
+                      </div>
+                    ))}
+                    {events.length === 0 && (
+                      <div className="text-center py-4 text-gray-500">
+                        <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No events found in this area</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {activeLayer === 'connectivity' && (
+                  <div className="space-y-2">
+                    <div className="flex items-center p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                      <Wifi className="w-4 h-4 text-green-600 mr-2" />
+                      <div>
+                        <p className="text-sm font-medium text-green-800 dark:text-green-200">Free WiFi Available</p>
+                        <p className="text-xs text-green-600 dark:text-green-300">Strong signal strength</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {activeLayer === 'temperature' && (
+                  <div className="space-y-2">
+                    <div className="flex items-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                      <Thermometer className="w-4 h-4 text-orange-600 mr-2" />
+                      <div>
+                        <p className="text-sm font-medium text-orange-800 dark:text-orange-200">Current Temperature</p>
+                        <p className="text-xs text-orange-600 dark:text-orange-300">22°C - Perfect for walking</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Bottom Layer Controls */}
         <div className="absolute bottom-0 left-0 right-0 z-10 p-2 sm:p-4">
           <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden">

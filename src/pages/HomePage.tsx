@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTrial } from '../contexts/TrialContext';
 import { useLocation } from '../contexts/LocationContext';
@@ -16,13 +17,14 @@ import { TrialBanner } from '../components/trial/TrialBanner';
 import { Shield, MapPin, Calendar, Plus, RefreshCw, Globe, Clock } from 'lucide-react';
 import { getUserStatistics } from '../lib/userStatisticsService';
 import { getAISafetyInsights } from '../lib/aiSafetyService';
-import { newsService } from '../lib/newsApi';
+import { exaUnifiedService } from '../lib/exaUnifiedService';
 import { TravelPlan, Activity, SafetyTip } from '../types';
 import { AISafetyAlert } from '../lib/aiSafetyService';
-import { NewsArticle } from '../lib/newsApi';
+import { LocalNews } from '../lib/exaUnifiedService';
 import { useUserDestinations } from '../contexts/UserDestinationContext';
 
 const HomePage: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { isTrialActive, isTrialExpired } = useTrial();
   const { userLocation } = useLocation();
@@ -41,7 +43,7 @@ const HomePage: React.FC = () => {
   const [travelPlans, setTravelPlans] = useState<TravelPlan[]>([]);
   const [aiSafetyInsights, setAiSafetyInsights] = useState<SafetyTip[]>([]);
   const [isLoadingAISafety, setIsLoadingAISafety] = useState(false);
-  const [travelNews, setTravelNews] = useState<NewsArticle[]>([]);
+  const [travelNews, setTravelNews] = useState<LocalNews[]>([]);
   const [isLoadingNews, setIsLoadingNews] = useState(false);
   const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);
   const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false);
@@ -114,8 +116,10 @@ const HomePage: React.FC = () => {
     setIsLoadingNews(true);
     try {
       console.log('📰 Loading travel news via Exa service');
-              const newsData = await newsService.getTravelNews();
-      setTravelNews(newsData.articles?.slice(0, 5) || []);
+      const newsData = await exaUnifiedService.getLocalNews(
+        userLocation ? `${userLocation.latitude},${userLocation.longitude}` : 'Global'
+      );
+      setTravelNews(newsData.slice(0, 5) || []);
       console.log('✅ Travel news loaded successfully via Exa');
     } catch (error) {
       console.error('❌ Error loading travel news:', error);
@@ -334,7 +338,7 @@ const HomePage: React.FC = () => {
                               href={article.url} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="text-xs text-blue-600 hover:text-blue-800"
+                              className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
                             >
                               Read more →
                             </a>
@@ -343,7 +347,10 @@ const HomePage: React.FC = () => {
                       </div>
                     </div>
                   ))}
-                  <button className="w-full text-center py-2 text-sm text-red-600 hover:text-red-700 font-medium">
+                  <button 
+                    onClick={() => navigate('/alerts')}
+                    className="w-full text-center py-2 text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
+                  >
                     View All Travel Alerts →
                   </button>
                 </div>
@@ -393,7 +400,10 @@ const HomePage: React.FC = () => {
                 {aiSafetyInsights.slice(0, 2).map((tip) => (
                   <SafetyTipCard key={tip.id} tip={tip} />
                 ))}
-                <button className="w-full text-center py-2 text-sm text-green-600 hover:text-green-700 font-medium">
+                <button 
+                  onClick={() => navigate('/alerts?tab=safety')}
+                  className="w-full text-center py-2 text-sm text-green-600 hover:text-green-700 font-medium transition-colors"
+                >
                   View All Insights →
                 </button>
               </div>
