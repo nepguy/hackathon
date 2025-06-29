@@ -189,7 +189,7 @@ const MapPage: React.FC = () => {
             onClick={handleGetLocation}
             className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full shadow-lg transition-all duration-300
               ${locationError ? 'bg-red-500 hover:bg-red-600' : (isTracking && userLocation) ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'}
-              text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-white`}
+              text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-white hover:scale-110`}
             aria-label="Get my location"
           >
             {isTracking && !userLocation && !locationError ? (
