@@ -72,7 +72,6 @@ export interface LocalNews {
   };
   category: 'breaking' | 'politics' | 'business' | 'crime' | 'weather' | 'traffic' | 'community' | 'sports';
   location: string;
-  relevanceScore: number;
 }
 
 class ExaUnifiedService {
@@ -87,16 +86,6 @@ class ExaUnifiedService {
     this.API_KEY = EXA_API_KEY;
     if (!this.API_KEY || this.API_KEY === 'your_exa_api_key') {
       console.warn('⚠️ Exa API key not found in environment variables');
-      console.info('Using fallback data instead of Exa.ai');
-    } else {
-      try {
-        this.exa = new Exa(this.API_KEY);
-        console.log('✅ Exa Unified Service initialized - replacing traditional APIs');
-      } catch (error) {
-        console.error('❌ Failed to initialize Exa client:', error);
-        console.info('Using fallback data instead of Exa.ai');
-      }
-      console.log('🔄 Exa service will use fallback data - add VITE_EXA_API_KEY to your .env file');
     }
   }
 

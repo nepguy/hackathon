@@ -599,10 +599,6 @@ class AISafetyService {
     } catch (error: any) {
       console.warn('❌ Error generating Exa-based alerts:', error?.message || error);
 
-    } catch (error) {
-      console.warn('Error fetching real-time alerts:', error);
-    }
-
     return alerts;
   }
 
@@ -899,4 +895,4 @@ export const getAISafetyInsights = async (_userId: string, destination: string) 
     country: destination?.split(',').pop()?.trim() || 'Unknown',
     city: destination?.split(',')[0]?.trim() || undefined
   });
-}; 
+};
