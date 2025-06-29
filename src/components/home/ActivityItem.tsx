@@ -49,18 +49,19 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ activity }) => {
   };
 
   return (
-    <div 
-      className="flex items-start py-3 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors duration-200 rounded-lg px-2"
+    <div
+      className="flex items-start py-3 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 transition-all duration-300 rounded-lg px-2 hover:shadow-md group"
       onClick={handleClick}
     >
-      <div className="mt-1 mr-3">
+      <div className="mt-1 mr-3 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
         {getIcon(activity.type)}
       </div>
       <div className="flex-grow">
-        <h4 className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors">{activity.title}</h4>
-        <p className="text-xs text-gray-600 mt-0.5">{activity.description}</p>
+        <h4 className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">{activity.title}</h4>
+        <p className="text-xs text-gray-600 mt-0.5 group-hover:text-gray-700 transition-colors">{activity.description}</p>
+        <div className="w-0 h-0.5 bg-blue-500/0 group-hover:bg-blue-500/100 group-hover:w-1/2 transition-all duration-500"></div>
       </div>
-      <div className="text-xs text-gray-500 ml-2">
+      <div className="text-xs text-gray-500 ml-2 transition-all duration-300 group-hover:text-blue-500">
         {formatTime(activity.timestamp)}
       </div>
     </div>

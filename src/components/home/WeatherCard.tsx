@@ -244,14 +244,14 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
 
   return (
     <>
-      <div className="kit-card p-4 sm:p-6">
+      <div className="kit-card p-4 sm:p-6 hover-lift card-gradient-blue animate-fade-in-up">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-            <Thermometer className="w-5 h-5 mr-2 text-blue-600" />
+            <Thermometer className="w-5 h-5 mr-2 text-blue-600 transition-transform duration-500 hover:rotate-12" />
             Weather
           </h3>
           <div className="flex items-center text-sm text-gray-500">
-            <MapPin className="w-4 h-4 mr-1" />
+            <MapPin className="w-4 h-4 mr-1 animate-pulse-slow" />
             <span className="truncate max-w-20 sm:max-w-32">{weatherData.location.name}</span>
           </div>
         </div>
@@ -259,14 +259,14 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
         {/* Current Weather */}
         <div className="flex flex-wrap sm:flex-nowrap items-center justify-between mb-4 sm:mb-6">
           <div className="flex items-center space-x-2 sm:space-x-4 w-full sm:w-auto">
-            <div className="text-3xl sm:text-4xl">
+            <div className="text-3xl sm:text-4xl transition-all duration-500 hover:scale-110 hover:rotate-6">
               {getWeatherIcon(currentWeather.condition.text, "w-12 h-12 sm:w-16 sm:h-16")}
             </div>
             <div>
-              <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+              <div className="text-2xl sm:text-3xl font-bold text-gray-900 transition-all duration-300 hover:text-blue-600">
                 {Math.round(currentWeather.temperature)}°C
               </div>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 transition-all duration-300 hover:text-gray-800">
                 {currentWeather.condition.text}
               </div>
               <div className="text-xs text-gray-500 hidden sm:block">
@@ -286,61 +286,61 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
         </div>
 
         {/* Weather Details */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-4 mt-3 pt-3 sm:mt-4 sm:pt-4 border-t border-gray-100">
-          <div className="kit-glass rounded-lg p-2 sm:p-3">
-            <div className="flex items-center space-x-2">
-              <Droplets className="w-4 h-4 text-blue-500" />
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 mt-3 pt-3 sm:mt-4 sm:pt-4 border-t border-gray-100 animate-fade-in-up stagger-2">
+          <div className="kit-glass rounded-lg p-2 sm:p-3 hover-scale group">
+            <div className="flex items-center space-x-2 group">
+              <Droplets className="w-4 h-4 text-blue-500 transition-transform duration-500 group-hover:scale-125 group-hover:rotate-12" />
               <span className="text-sm text-gray-600">Humidity</span>
             </div>
-            <div className="text-base sm:text-lg font-semibold text-gray-900 mt-1">
+            <div className="text-base sm:text-lg font-semibold text-gray-900 mt-1 transition-all duration-300 group-hover:text-blue-600">
               {currentWeather.humidity}%
             </div>
           </div>
           
-          <div className="kit-glass rounded-lg p-2 sm:p-3">
-            <div className="flex items-center space-x-2">
-              <Wind className="w-4 h-4 text-gray-500" />
+          <div className="kit-glass rounded-lg p-2 sm:p-3 hover-scale group">
+            <div className="flex items-center space-x-2 group">
+              <Wind className="w-4 h-4 text-gray-500 transition-transform duration-500 group-hover:scale-125 group-hover:rotate-12" />
               <span className="text-sm text-gray-600">Wind</span>
             </div>
-            <div className="text-base sm:text-lg font-semibold text-gray-900 mt-1">
+            <div className="text-base sm:text-lg font-semibold text-gray-900 mt-1 transition-all duration-300 group-hover:text-blue-600">
               {Math.round(currentWeather.windSpeed)} km/h
             </div>
           </div>
           
-          <div className="kit-glass rounded-lg p-2 sm:p-3">
-            <div className="flex items-center space-x-2">
-              <Eye className="w-4 h-4 text-purple-500" />
+          <div className="kit-glass rounded-lg p-2 sm:p-3 hover-scale group">
+            <div className="flex items-center space-x-2 group">
+              <Eye className="w-4 h-4 text-purple-500 transition-transform duration-500 group-hover:scale-125 group-hover:rotate-12" />
               <span className="text-sm text-gray-600">Visibility</span>
             </div>
-            <div className="text-base sm:text-lg font-semibold text-gray-900 mt-1">
+            <div className="text-base sm:text-lg font-semibold text-gray-900 mt-1 transition-all duration-300 group-hover:text-purple-600">
               {Math.round(currentWeather.visibility)} km
             </div>
           </div>
           
-          <div className="kit-glass rounded-lg p-2 sm:p-3">
-            <div className="flex items-center space-x-2">
-              <Thermometer className="w-4 h-4 text-orange-500" />
+          <div className="kit-glass rounded-lg p-2 sm:p-3 hover-scale group">
+            <div className="flex items-center space-x-2 group">
+              <Thermometer className="w-4 h-4 text-orange-500 transition-transform duration-500 group-hover:scale-125 group-hover:rotate-12" />
               <span className="text-sm text-gray-600">Pressure</span>
             </div>
-            <div className="text-base sm:text-lg font-semibold text-gray-900 mt-1">
+            <div className="text-base sm:text-lg font-semibold text-gray-900 mt-1 transition-all duration-300 group-hover:text-orange-600">
               {Math.round(currentWeather.pressure)} mb
             </div>
           </div>
         </div>
 
         {/* 3-Day Forecast */}
-        <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-100">
+        <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-100 animate-fade-in-up stagger-3">
           <h4 className="text-xs sm:text-sm font-semibold text-gray-900 mb-2 sm:mb-3">3-Day Forecast</h4>
           <div className="space-y-3">
             {forecast.slice(0, 3).map((day, index) => (
-              <div key={index} className="kit-glass rounded-lg p-2 sm:p-3">
+              <div key={index} className="kit-glass rounded-lg p-2 sm:p-3 hover-scale group">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="mr-2 sm:mr-3">
+                    <div className="mr-2 sm:mr-3 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
                       {getWeatherIcon(day.condition.text, "w-6 h-6 sm:w-8 sm:h-8")}
                     </div>
                     <div>
-                      <div className="text-xs sm:text-sm font-medium text-gray-900">
+                      <div className="text-xs sm:text-sm font-medium text-gray-900 transition-all duration-300 group-hover:text-blue-600">
                         {index === 0 ? 'Today' : 
                          index === 1 ? 'Tomorrow' : 
                          new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
@@ -351,7 +351,7 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ location, coordinates }) => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs sm:text-sm font-semibold text-gray-900">
+                    <div className="text-xs sm:text-sm font-semibold text-gray-900 transition-all duration-300 group-hover:text-blue-600">
                       {Math.round(day.maxTemp)}° / {Math.round(day.minTemp)}°
                     </div>
                     <div className="text-xs text-gray-500 hidden sm:block">

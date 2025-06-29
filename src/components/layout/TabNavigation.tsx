@@ -61,7 +61,7 @@ const TabNavigation: React.FC = () => {
               `}>
                 <tab.icon 
                   className={`
-                    w-5 h-5 transition-all duration-300
+                    w-5 h-5 transition-all duration-500
                     ${isActive ? 'text-blue-600' : 'text-slate-500 group-hover:text-blue-500'}
                   `} 
                 />
@@ -71,10 +71,11 @@ const TabNavigation: React.FC = () => {
                 ${isActive ? 'text-blue-600' : 'text-slate-500 group-hover:text-blue-500'}
               `}>
                 {tab.label}
+                <div className={`h-0.5 w-0 bg-blue-500 mx-auto transition-all duration-300 ${isActive ? 'w-full' : 'group-hover:w-1/2'}`}></div>
               </span>
 
               {isActive && (
-                <div className="absolute bottom-0 w-6 sm:w-8 h-1 bg-blue-600 rounded-t-full animate-scale-in"></div>
+                <div className="absolute bottom-0 w-6 sm:w-8 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-t-full animate-scale-in"></div>
               )}
             </button>
           );

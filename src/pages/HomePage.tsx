@@ -259,28 +259,31 @@ const HomePage: React.FC = () => {
 
           {/* Statistics Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="card p-6 text-center hover:shadow-lg transition-shadow duration-300">
-              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-full bg-blue-100">
-                <MapPin className="w-6 h-6 text-blue-600" />
+            <div className="card p-6 text-center hover-lift card-gradient-blue animate-fade-in-up stagger-1 group">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-full bg-blue-100 transition-all duration-300 group-hover:scale-110 group-hover:shadow-md">
+                <MapPin className="w-6 h-6 text-blue-600 transition-transform duration-500 group-hover:rotate-12" />
                   </div>
-              <h3 className="text-2xl font-bold text-slate-900">{userStats.travel_plans_count}</h3>
-              <p className="text-sm text-slate-600">Travel Plans</p>
+              <h3 className="text-2xl font-bold text-slate-900 transition-all duration-300 group-hover:scale-110 group-hover:text-blue-600">{userStats.travel_plans_count}</h3>
+              <p className="text-sm text-slate-600 transition-all duration-300 group-hover:text-slate-700">Travel Plans</p>
+              <div className="w-0 h-0.5 bg-blue-500/0 group-hover:bg-blue-500/100 group-hover:w-1/4 mx-auto transition-all duration-500 mt-2"></div>
                   </div>
             
-            <div className="card p-6 text-center hover:shadow-lg transition-shadow duration-300">
-              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-full bg-green-100">
-                <Shield className="w-6 h-6 text-green-600" />
+            <div className="card p-6 text-center hover-lift card-gradient-green animate-fade-in-up stagger-2 group">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-full bg-green-100 transition-all duration-300 group-hover:scale-110 group-hover:shadow-md">
+                <Shield className="w-6 h-6 text-green-600 transition-transform duration-500 group-hover:rotate-12" />
                 </div>
-              <h3 className="text-2xl font-bold text-slate-900">{userStats.safety_score}%</h3>
-              <p className="text-sm text-slate-600">Safety Score</p>
+              <h3 className="text-2xl font-bold text-slate-900 transition-all duration-300 group-hover:scale-110 group-hover:text-green-600">{userStats.safety_score}%</h3>
+              <p className="text-sm text-slate-600 transition-all duration-300 group-hover:text-slate-700">Safety Score</p>
+              <div className="w-0 h-0.5 bg-green-500/0 group-hover:bg-green-500/100 group-hover:w-1/4 mx-auto transition-all duration-500 mt-2"></div>
                 </div>
             
-            <div className="card p-6 text-center hover:shadow-lg transition-shadow duration-300">
-              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-full bg-purple-100">
-                <Calendar className="w-6 h-6 text-purple-600" />
+            <div className="card p-6 text-center hover-lift card-gradient-purple animate-fade-in-up stagger-3 group">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 rounded-full bg-purple-100 transition-all duration-300 group-hover:scale-110 group-hover:shadow-md">
+                <Calendar className="w-6 h-6 text-purple-600 transition-transform duration-500 group-hover:rotate-12" />
               </div>
-              <h3 className="text-2xl font-bold text-slate-900">{userStats.days_tracked}</h3>
-              <p className="text-sm text-slate-600">Days Tracked</p>
+              <h3 className="text-2xl font-bold text-slate-900 transition-all duration-300 group-hover:scale-110 group-hover:text-purple-600">{userStats.days_tracked}</h3>
+              <p className="text-sm text-slate-600 transition-all duration-300 group-hover:text-slate-700">Days Tracked</p>
+              <div className="w-0 h-0.5 bg-purple-500/0 group-hover:bg-purple-500/100 group-hover:w-1/4 mx-auto transition-all duration-500 mt-2"></div>
             </div>
           </div>
 
@@ -289,15 +292,15 @@ const HomePage: React.FC = () => {
           {/* Enhanced 2-Column Layout for Main Content */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {/* Travel Plans Section */}
-            <div className="card p-6 hover:shadow-lg transition-shadow duration-300">
+            <div className="card p-6 hover-lift card-gradient-blue animate-fade-in-left">
             <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold flex items-center">
-                  <MapPin className="w-5 h-5 mr-2 text-blue-600" />
+                  <MapPin className="w-5 h-5 mr-2 text-blue-600 transition-transform duration-500 hover:rotate-12" />
                   Travel Plans
                 </h2>
               <button 
                 onClick={() => setShowCreatePlanModal(true)}
-                className="btn btn-primary btn-sm"
+                className="btn btn-primary btn-sm btn-interactive"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 Add Plan
@@ -308,14 +311,14 @@ const HomePage: React.FC = () => {
                   travelPlans.map((plan) => (
                   <TravelPlanItem key={plan.id} plan={plan} />
                 ))
-              ) : (
-                  <div className="text-center py-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-dashed border-blue-200">
-                    <MapPin className="w-12 h-12 text-blue-400 mx-auto mb-3" />
-                    <h3 className="text-lg font-medium text-slate-700 mb-2">Ready for your next adventure?</h3>
-                    <p className="text-sm text-slate-500 mb-4">Create your first travel plan to get personalized safety insights</p>
+              ) : (                  
+                  <div className="text-center py-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-dashed border-blue-200 animate-fade-in-up hover-lift group">
+                    <MapPin className="w-12 h-12 text-blue-400 mx-auto mb-3 transition-all duration-500 group-hover:scale-125 group-hover:rotate-12 group-hover:text-blue-500" />
+                    <h3 className="text-lg font-medium text-slate-700 mb-2 transition-all duration-300 group-hover:text-blue-700">Ready for your next adventure?</h3>
+                    <p className="text-sm text-slate-500 mb-4 transition-all duration-300 group-hover:text-slate-600">Create your first travel plan to get personalized safety insights</p>
                     <button 
                       onClick={() => setShowCreatePlanModal(true)}
-                      className="btn btn-primary"
+                      className="btn btn-primary btn-interactive"
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Create Travel Plan
@@ -326,13 +329,16 @@ const HomePage: React.FC = () => {
             </div>
 
             {/* Travel News & Insights Section */}
-            <div className="card p-6 hover:shadow-lg transition-shadow duration-300">
+            <div className="card p-6 hover-lift card-gradient animate-fade-in-right">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold flex items-center">
-                  <Globe className="w-5 h-5 mr-2 text-red-600" />
+                  <Globe className="w-5 h-5 mr-2 text-red-600 transition-transform duration-500 hover:rotate-12 hover:scale-110" />
                   Travel Intelligence
                 </h2>
-                <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">Live</span>
+                <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full relative">
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+                  Live
+                </span>
               </div>
               
               {isLoadingNews ? (
@@ -343,14 +349,14 @@ const HomePage: React.FC = () => {
               ) : travelNews.length > 0 ? (
                 <div className="space-y-4">
                   {travelNews.map((article) => (
-                    <div key={article.url} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                    <div key={article.url} className={`bg-white rounded-lg border border-gray-200 p-4 hover-lift animate-fade-in-up stagger-${index + 1} group`}>
                       <div className="flex items-start space-x-3">
-                        <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0 transition-transform duration-300 group-hover:scale-150"></div>
                         <div className="flex-1">
-                          <h4 className="font-medium text-gray-900 line-clamp-2 mb-1">
+                          <h4 className="font-medium text-gray-900 line-clamp-2 mb-1 transition-colors duration-300 group-hover:text-red-600">
                             {article.title}
                           </h4>
-                          <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                          <p className="text-sm text-gray-600 line-clamp-2 mb-2 transition-colors duration-300 group-hover:text-gray-700">
                             {article.description}
                           </p>
                           <div className="flex items-center justify-between">
@@ -361,9 +367,9 @@ const HomePage: React.FC = () => {
                               href={article.url} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                              className="text-xs text-blue-600 hover:text-blue-800 transition-all duration-300 group-hover:translate-x-1 flex items-center"
                             >
-                              Read more →
+                              Read more <span className="ml-1 transition-transform duration-300 group-hover:translate-x-1">→</span>
                             </a>
                           </div>
                         </div>
@@ -372,31 +378,35 @@ const HomePage: React.FC = () => {
                   ))}
                   <button 
                     onClick={() => navigate('/alerts')}
-                    className="w-full text-center py-2 text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
+                    className="w-full text-center py-2 text-sm text-red-600 hover:text-red-700 font-medium transition-all duration-300 hover:bg-red-50 rounded-lg"
                   >
-                    View All Travel Alerts →
+                    <span className="relative inline-block">
+                      View All Travel Alerts 
+                      <span className="ml-1 transition-transform duration-300 group-hover:translate-x-1">→</span>
+                      <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-red-500 group-hover:w-full transition-all duration-300"></span>
+                    </span>
                   </button>
                 </div>
-              ) : (
-                <div className="text-center py-8 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border-2 border-dashed border-green-200">
-                  <Shield className="w-12 h-12 text-green-400 mx-auto mb-3" />
-                  <h3 className="text-lg font-medium text-slate-700 mb-2">All Clear!</h3>
-                  <p className="text-sm text-slate-500 mb-2">No critical travel alerts for your area at this time</p>
-                  <p className="text-xs text-slate-400">Guard Nomad will notify you of any important updates</p>
+              ) : (                
+                <div className="text-center py-8 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border-2 border-dashed border-green-200 animate-fade-in-up hover-lift group">
+                  <Shield className="w-12 h-12 text-green-400 mx-auto mb-3 transition-all duration-500 group-hover:scale-125 group-hover:rotate-12 group-hover:text-green-500" />
+                  <h3 className="text-lg font-medium text-slate-700 mb-2 transition-all duration-300 group-hover:text-green-700">All Clear!</h3>
+                  <p className="text-sm text-slate-500 mb-2 transition-all duration-300 group-hover:text-slate-600">No critical travel alerts for your area at this time</p>
+                  <p className="text-xs text-slate-400 transition-all duration-300 group-hover:text-slate-500">Guard Nomad will notify you of any important updates</p>
                 </div>
               )}
             </div>
           </div>
 
           {/* Recent Activity Section - Full Width */}
-          <div className="card p-6 hover:shadow-lg transition-shadow duration-300">
+          <div className="card p-6 hover-lift card-gradient animate-fade-in-up stagger-4">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <Clock className="w-5 h-5 mr-2 text-purple-600" />
+              <Clock className="w-5 h-5 mr-2 text-purple-600 transition-transform duration-500 hover:rotate-12" />
               Recent Activity
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {recentActivities.map((activity) => (
-                <div key={activity.id} className="p-4 rounded-lg border border-slate-200 hover:border-purple-300 hover:shadow-sm transition-all duration-300">
+                <div key={activity.id} className="p-4 rounded-lg border border-slate-200 hover:border-purple-300 hover:shadow-md transition-all duration-300 hover:-translate-y-1 group">
                   <ActivityItem activity={activity} />
                 </div>
               ))}

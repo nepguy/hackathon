@@ -245,10 +245,10 @@ const NotificationsSection: React.FC = () => {
       {/* Notifications List */}
       <div className="max-h-96 overflow-y-auto">
         {notifications.length === 0 ? (
-          <div className="p-6 text-center">
-            <Bell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">No notifications yet</p>
-            <p className="text-sm text-gray-400 mt-2">
+          <div className="p-6 text-center animate-fade-in-up">
+            <Bell className="w-12 h-12 text-gray-300 mx-auto mb-4 animate-pulse-slow" />
+            <p className="text-gray-500 animate-fade-in-up stagger-1">No notifications yet</p>
+            <p className="text-sm text-gray-400 mt-2 animate-fade-in-up stagger-2">
               You'll see likes, comments, and other interactions here
             </p>
           </div>
@@ -257,8 +257,8 @@ const NotificationsSection: React.FC = () => {
             {notifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`p-4 hover:bg-gray-50 transition-colors ${
-                  !notification.is_read ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                className={`p-4 hover:bg-gray-50 transition-all duration-300 hover:-translate-x-1 hover:shadow-md ${
+                  !notification.is_read ? 'bg-blue-50 border-l-4 border-l-blue-500 animate-fade-in-left' : 'animate-fade-in-right'
                 }`}
               >
                 <div className="flex space-x-3">
@@ -268,10 +268,10 @@ const NotificationsSection: React.FC = () => {
                       <img
                         src={notification.actor_avatar}
                         alt={notification.actor_name}
-                        className="w-10 h-10 rounded-full"
+                        className="w-10 h-10 rounded-full transition-transform duration-300 hover:scale-110"
                       />
                     ) : (
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 hover:bg-blue-200 hover:shadow-md">
                         <span className="text-sm font-medium text-blue-600">
                           {notification.actor_name.substring(0, 2).toUpperCase()}
                         </span>
@@ -283,13 +283,15 @@ const NotificationsSection: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-2">
-                        {getNotificationIcon(notification.type)}
-                        <p className="text-sm text-gray-900">
-                          <span className="font-medium">{notification.actor_name}</span>
+                        <div className="transition-transform duration-300 hover:scale-125 hover:rotate-12">
+                          {getNotificationIcon(notification.type)}
+                        </div>
+                        <p className="text-sm text-gray-900 group">
+                          <span className="font-medium transition-colors duration-300 hover:text-blue-600">{notification.actor_name}</span>
                           {' '}
                           <span className="text-gray-600">{notification.content}</span>
                           {notification.story_title && (
-                            <span className="font-medium text-gray-900">
+                            <span className="font-medium text-gray-900 transition-colors duration-300 hover:text-blue-600">
                               {' "'}
                               {notification.story_title.length > 30 
                                 ? `${notification.story_title.substring(0, 30)}...`
@@ -307,7 +309,7 @@ const NotificationsSection: React.FC = () => {
                           <button
                             onClick={() => handleMarkAsRead(notification.id)}
                             disabled={markingAsRead === notification.id}
-                            className="text-blue-600 hover:text-blue-700 p-1"
+                            className="text-blue-600 hover:text-blue-700 p-1 transition-transform duration-300 hover:scale-125"
                             title="Mark as read"
                           >
                             <Check className="w-4 h-4" />
@@ -315,7 +317,7 @@ const NotificationsSection: React.FC = () => {
                         )}
                         <button
                           onClick={() => handleDeleteNotification(notification.id)}
-                          className="text-gray-400 hover:text-red-500 p-1"
+                          className="text-gray-400 hover:text-red-500 p-1 transition-transform duration-300 hover:scale-125"
                           title="Delete notification"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -323,7 +325,7 @@ const NotificationsSection: React.FC = () => {
                       </div>
                     </div>
 
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 mt-1 transition-colors duration-300 hover:text-blue-500">
                       {formatTimeAgo(notification.created_at)}
                     </p>
                   </div>
