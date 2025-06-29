@@ -18,18 +18,45 @@ class ExaNewsService {
   private cache = new Map<string, { data: NewsApiResponse; timestamp: number }>();
   private readonly CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache
   private readonly API_KEY: string;
+  private isApiAvailable = true;
 
   constructor() {
     this.API_KEY = import.meta.env.VITE_EXA_API_KEY;
     if (!this.API_KEY) {
       console.warn('⚠️ Exa API key not found in environment variables');
-      throw new Error('Exa API key is required');
+      this.isApiAvailable = false;
+      console.log('🔄 Exa news service will use fallback data');
+    } else {
+      this.exa = new Exa(this.API_KEY);
+      console.log('✅ Exa News Service initialized');
     }
-    
-    this.exa = new Exa(this.API_KEY);
-    console.log('✅ Exa News Service initialized');
   }
 
+  private async safeExaCall<T>(
+    operation: () => Promise<T>,
+    fallbackData: T,
+    operationName: string
+  ): Promise<T> {
+    if (!this.isApiAvailable) {
+      console.log(`🔄 Using fallback data for ${operationName} (API not available)`);
+      return fallbackData;
+    }
+
+    try {
+      return await operation();
+    } catch (error) {
+      console.warn(`⚠️ Exa API call failed for ${operationName}, using fallback:`, error);
+      // Mark API as temporarily unavailable
+      this.isApiAvailable = false;
+      // Re-enable after 5 minutes
+      setTimeout(() => {
+        this.isApiAvailable = true;
+        console.log('🔄 Exa API re-enabled for retry');
+      }, 5 * 60 * 1000);
+      
+      return fallbackData;
+    }
+  }
   private getCacheKey(params: Record<string, any>): string {
     return JSON.stringify(params);
   }
@@ -131,7 +158,8 @@ class ExaNewsService {
     const cached = this.getCachedData(cacheKey);
     if (cached) return cached;
 
-    try {
+    return this.safeExaCall(
+      async () => {
       const searchQuery = location 
         ? `Current travel alerts and safety incidents affecting travelers in ${location}:`
         : 'Recent travel safety alerts and incidents affecting international travelers:';
@@ -161,10 +189,10 @@ class ExaNewsService {
       console.log(`✅ Found ${articles.length} travel news articles via Exa`);
       
       return result;
-    } catch (error) {
-      console.error('❌ Exa travel news search failed:', error);
-      return this.getFallbackNews('travel', location);
-    }
+      },
+      this.getFallbackNews('travel', location),
+      'travel news'
+    );
   }
 
   /**
@@ -175,7 +203,8 @@ class ExaNewsService {
     const cached = this.getCachedData(cacheKey);
     if (cached) return cached;
 
-    try {
+    return this.safeExaCall(
+      async () => {
       const searchQuery = location 
         ? `Safety warnings and security alerts for travelers visiting ${location}:`
         : 'Current safety warnings and security alerts for international travelers:';
@@ -206,10 +235,10 @@ class ExaNewsService {
       console.log(`🛡️ Found ${articles.length} safety alerts via Exa`);
       
       return result;
-    } catch (error) {
-      console.error('❌ Exa safety alerts search failed:', error);
-      return this.getFallbackNews('safety', location);
-    }
+      },
+      this.getFallbackNews('safety', location),
+      'safety alerts'
+    );
   }
 
   /**
@@ -220,7 +249,8 @@ class ExaNewsService {
     const cached = this.getCachedData(cacheKey);
     if (cached) return cached;
 
-    try {
+    return this.safeExaCall(
+      async () => {
       const searchQuery = location 
         ? `Weather alerts and travel disruptions affecting ${location}:`
         : 'Weather alerts and travel disruptions affecting international travel:';
@@ -250,10 +280,10 @@ class ExaNewsService {
       console.log(`⛈️ Found ${articles.length} weather alerts via Exa`);
       
       return result;
-    } catch (error) {
-      console.error('❌ Exa weather news search failed:', error);
-      return this.getFallbackNews('weather', location);
-    }
+      },
+      this.getFallbackNews('weather', location),
+      'weather news'
+    );
   }
 
   /**
@@ -264,7 +294,8 @@ class ExaNewsService {
     const cached = this.getCachedData(cacheKey);
     if (cached) return cached;
 
-    try {
+    return this.safeExaCall(
+      async () => {
       const searchQuery = 'Breaking news affecting international travel and tourism:';
 
       console.log('⚡ Exa search for breaking news:', searchQuery);
@@ -292,10 +323,10 @@ class ExaNewsService {
       console.log(`📰 Found ${articles.length} breaking news articles via Exa`);
       
       return result;
-    } catch (error) {
-      console.error('❌ Exa breaking news search failed:', error);
-      return this.getFallbackNews('general');
-    }
+      },
+      this.getFallbackNews('general'),
+      'breaking news'
+    );
   }
 
   /**
@@ -306,7 +337,8 @@ class ExaNewsService {
     const cached = this.getCachedData(cacheKey);
     if (cached) return cached;
 
-    try {
+    return this.safeExaCall(
+      async () => {
       const searchQuery = location 
         ? `${query} ${location} travel news:`
         : `${query} travel news:`;
@@ -336,10 +368,10 @@ class ExaNewsService {
       console.log(`🎯 Found ${articles.length} search results via Exa`);
       
       return result;
-    } catch (error) {
-      console.error('❌ Exa search failed:', error);
-      return this.getFallbackNews('general', location);
-    }
+      },
+      this.getFallbackNews('general', location),
+      'search news'
+    );
   }
 
   private getDateDaysAgo(days: number): string {

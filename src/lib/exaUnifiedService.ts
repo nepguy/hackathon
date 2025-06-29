@@ -77,18 +77,45 @@ class ExaUnifiedService {
   private cache = new Map<string, { data: unknown; timestamp: number }>();
   private readonly CACHE_DURATION = 15 * 60 * 1000; // 15 minutes cache
   private readonly API_KEY: string;
+  private isApiAvailable = true;
 
   constructor() {
     this.API_KEY = import.meta.env.VITE_EXA_API_KEY;
     if (!this.API_KEY) {
       console.warn('⚠️ Exa API key not found in environment variables');
-      throw new Error('Exa API key is required');
+      this.isApiAvailable = false;
+      console.log('🔄 Exa service will use fallback data');
+    } else {
+      this.exa = new Exa(this.API_KEY);
+      console.log('✅ Exa Unified Service initialized - replacing traditional APIs');
     }
-    
-    this.exa = new Exa(this.API_KEY);
-    console.log('✅ Exa Unified Service initialized - replacing traditional APIs');
   }
 
+  private async safeExaCall<T>(
+    operation: () => Promise<T>,
+    fallbackData: T,
+    operationName: string
+  ): Promise<T> {
+    if (!this.isApiAvailable) {
+      console.log(`🔄 Using fallback data for ${operationName} (API not available)`);
+      return fallbackData;
+    }
+
+    try {
+      return await operation();
+    } catch (error) {
+      console.warn(`⚠️ Exa API call failed for ${operationName}, using fallback:`, error);
+      // Mark API as temporarily unavailable
+      this.isApiAvailable = false;
+      // Re-enable after 5 minutes
+      setTimeout(() => {
+        this.isApiAvailable = true;
+        console.log('🔄 Exa API re-enabled for retry');
+      }, 5 * 60 * 1000);
+      
+      return fallbackData;
+    }
+  }
   private getCacheKey(type: string, params: Record<string, unknown>): string {
     return `${type}_${JSON.stringify(params)}`;
   }
@@ -134,7 +161,8 @@ class ExaUnifiedService {
     const cached = this.getCachedData(cacheKey) as LocalNews[] | null;
     if (cached) return cached;
 
-    try {
+    return this.safeExaCall(
+      async () => {
       const categoryFilter = category ? ` ${category}` : '';
       const searchQuery = `Local news and current events in ${location}${categoryFilter}:`;
 
@@ -174,10 +202,10 @@ class ExaUnifiedService {
       this.setCachedData(cacheKey, localNews);
       console.log(`✅ Found ${localNews.length} local news articles via Exa`);
       return localNews;
-    } catch (error) {
-      console.error('❌ Exa local news search failed:', error);
-      return this.getFallbackLocalNews(location);
-    }
+      },
+      this.getFallbackLocalNews(location),
+      'local news'
+    );
   }
 
   // 🚨 SCAM ALERTS - Replace ScamWatcher, government feeds
@@ -186,7 +214,8 @@ class ExaUnifiedService {
     const cached = this.getCachedData(cacheKey) as ScamAlert[] | null;
     if (cached) return cached;
 
-    try {
+    return this.safeExaCall(
+      async () => {
       const locationFilter = location ? ` affecting ${location}` : '';
       const searchQuery = `Recent scam alerts and fraud warnings${locationFilter}:`;
 
@@ -228,10 +257,10 @@ class ExaUnifiedService {
       this.setCachedData(cacheKey, scamAlerts);
       console.log(`🛡️ Found ${scamAlerts.length} scam alerts via Exa`);
       return scamAlerts;
-    } catch (error) {
-      console.error('❌ Exa scam alerts search failed:', error);
-      return this.getFallbackScamAlerts(location);
-    }
+      },
+      this.getFallbackScamAlerts(location),
+      'scam alerts'
+    );
   }
 
   // 🎉 LOCAL EVENTS - Replace Eventbrite, Meetup
@@ -240,7 +269,8 @@ class ExaUnifiedService {
     const cached = this.getCachedData(cacheKey) as LocalEvent[] | null;
     if (cached) return cached;
 
-    try {
+    return this.safeExaCall(
+      async () => {
       const categoryFilter = category ? ` ${category}` : '';
       const searchQuery = `Upcoming local events and activities in ${location}${categoryFilter}:`;
 
@@ -283,10 +313,10 @@ class ExaUnifiedService {
       this.setCachedData(cacheKey, localEvents);
       console.log(`🎊 Found ${localEvents.length} local events via Exa`);
       return localEvents;
-    } catch (error) {
-      console.error('❌ Exa local events search failed:', error);
-      return this.getFallbackLocalEvents(location);
-    }
+      },
+      this.getFallbackLocalEvents(location),
+      'local events'
+    );
   }
 
   // 🛡️ TRAVEL SAFETY - Replace Gov.travel, WHO, CDC
@@ -295,7 +325,8 @@ class ExaUnifiedService {
     const cached = this.getCachedData(cacheKey) as TravelSafetyAlert[] | null;
     if (cached) return cached;
 
-    try {
+    return this.safeExaCall(
+      async () => {
       const searchQuery = `Official travel safety alerts and advisories for ${location}:`;
 
       console.log('🛡️ Exa search for travel safety:', searchQuery);
@@ -336,10 +367,10 @@ class ExaUnifiedService {
       this.setCachedData(cacheKey, travelSafetyAlerts);
       console.log(`🛡️ Found ${travelSafetyAlerts.length} travel safety alerts via Exa`);
       return travelSafetyAlerts;
-    } catch (error) {
-      console.error('❌ Exa travel safety search failed:', error);
-      return this.getFallbackTravelSafety(location);
-    }
+      },
+      this.getFallbackTravelSafety(location),
+      'travel safety alerts'
+    );
   }
 
   // Helper methods for content analysis
