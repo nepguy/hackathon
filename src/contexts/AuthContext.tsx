@@ -140,7 +140,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       password,
       options: {
         data: metadata,
-        emailRedirectTo: 'https://guardnomad.com/auth'
+        emailRedirectTo: 'https://guardnomand.com/auth'
       },
     })
 
@@ -165,7 +165,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const resetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://guardnomad.com/password-reset'
+      redirectTo: 'https://guardnomand.com/password-reset'
     })
     return { error }
   }

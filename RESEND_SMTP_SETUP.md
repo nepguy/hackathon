@@ -24,8 +24,8 @@ SMTP Host: smtp.resend.com
 SMTP Port: 587 (or 465 for SSL)
 SMTP User: resend
 SMTP Password: [YOUR_RESEND_API_KEY]
-SMTP Sender Name: GuardNomad
-SMTP Sender Email: noreply@yourdomain.com
+SMTP Sender Name: Guard Nomand
+SMTP Sender Email: noreply@guardnomand.com
 ```
 
 ### **1.3 Enable SMTP**
@@ -59,56 +59,170 @@ SMTP_FROM_NAME=GuardNomad
 In Supabase Dashboard → Authentication → Email Templates → Confirm signup:
 
 ```html
-<h2>Welcome to GuardNomad!</h2>
-<p>Hi there,</p>
-<p>Welcome to GuardNomad - your trusted companion for safe travels worldwide!</p>
-<p>Please click the link below to confirm your email address and activate your account:</p>
-<p><a href="{{ .ConfirmationURL }}" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">Confirm Email Address</a></p>
-<p>This link will expire in 24 hours for security reasons.</p>
-<p>If you didn't create an account with GuardNomad, you can safely ignore this email.</p>
-<br>
-<p>Safe travels,<br>The GuardNomad Team</p>
-<hr>
-<p style="font-size: 12px; color: #666;">
-This email was sent to {{ .Email }}. If you have any questions, contact us at support@guardnomad.com
-</p>
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+  <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); padding: 40px 20px; text-align: center;">
+    <div style="background-color: rgba(255,255,255,0.1); padding: 16px; border-radius: 16px; display: inline-block; margin-bottom: 20px;">
+      <span style="font-size: 48px;">🛡️</span>
+    </div>
+    <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">Welcome to Guard Nomand!</h1>
+    <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 18px;">Your trusted companion for safe travels</p>
+  </div>
+  
+  <div style="padding: 40px 20px;">
+    <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+      Hi there! 👋
+    </p>
+    
+    <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+      Welcome to Guard Nomand - your trusted companion for safe travels worldwide! We're excited to have you join our community of smart travelers.
+    </p>
+    
+    <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 32px 0;">
+      Please click the button below to confirm your email address and activate your account:
+    </p>
+    
+    <div style="text-align: center; margin: 32px 0;">
+      <a href="{{ .ConfirmationURL }}" 
+         style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
+        ✅ Confirm Email Address
+      </a>
+    </div>
+    
+    <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 24px 0; border-radius: 8px;">
+      <p style="color: #92400e; margin: 0; font-size: 14px;">
+        ⏰ <strong>Important:</strong> This link will expire in 24 hours for security reasons.
+      </p>
+    </div>
+    
+    <p style="color: #6b7280; font-size: 14px; line-height: 1.5; margin: 24px 0 0 0;">
+      If you didn't create an account with Guard Nomand, you can safely ignore this email.
+    </p>
+  </div>
+  
+  <div style="background-color: #f8fafc; padding: 24px 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+    <p style="color: #4b5563; margin: 0 0 8px 0;">Safe travels,</p>
+    <p style="color: #1f2937; font-weight: bold; margin: 0;">The Guard Nomand Team</p>
+  </div>
+  
+  <div style="padding: 16px 20px; text-align: center; background-color: #1f2937;">
+    <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+      This email was sent to {{ .Email }}. If you have any questions, contact us at 
+      <a href="mailto:support@guardnomand.com" style="color: #60a5fa;">support@guardnomand.com</a>
+    </p>
+  </div>
+</div>
 ```
 
 ### **3.2 Password Reset Email Template**
 In Supabase Dashboard → Authentication → Email Templates → Reset password:
 
 ```html
-<h2>Reset Your GuardNomad Password</h2>
-<p>Hi there,</p>
-<p>We received a request to reset the password for your GuardNomad account.</p>
-<p>Click the button below to create a new password:</p>
-<p><a href="{{ .ConfirmationURL }}" style="background-color: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">Reset Password</a></p>
-<p>This link will expire in 1 hour for security reasons.</p>
-<p>If you didn't request a password reset, you can safely ignore this email. Your password will not be changed.</p>
-<br>
-<p>Safe travels,<br>The GuardNomad Team</p>
-<hr>
-<p style="font-size: 12px; color: #666;">
-This email was sent to {{ .Email }}. If you need help, contact us at support@guardnomad.com
-</p>
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+  <div style="background: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%); padding: 32px 20px; text-align: center;">
+    <div style="font-size: 48px; margin-bottom: 16px;">🔐</div>
+    <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">Reset Your Guard Nomand Password</h1>
+    <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0 0;">Security</p>
+  </div>
+  
+  <div style="padding: 32px 20px;">
+    <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+      Hi there,
+    </p>
+    
+    <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+      We received a request to reset the password for your Guard Nomand account.
+    </p>
+    
+    <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 28px 0;">
+      Click the button below to create a new password:
+    </p>
+    
+    <div style="text-align: center; margin: 28px 0;">
+      <a href="{{ .ConfirmationURL }}" 
+         style="background: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">
+        🔑 Reset Password
+      </a>
+    </div>
+    
+    <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 16px; margin: 24px 0; border-radius: 8px;">
+      <p style="color: #991b1b; margin: 0; font-size: 14px;">
+        ⏰ <strong>Security Notice:</strong> This link will expire in 1 hour for your protection.
+      </p>
+    </div>
+    
+    <p style="color: #6b7280; font-size: 14px; line-height: 1.5; margin: 20px 0 0 0;">
+      If you didn't request a password reset, you can safely ignore this email. Your password will not be changed.
+    </p>
+  </div>
+  
+  <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+    <p style="color: #4b5563; margin: 0;">
+      Safe travels,<br>
+      <strong>The Guard Nomand Team</strong>
+    </p>
+  </div>
+  
+  <div style="padding: 16px 20px; text-align: center; background-color: #1f2937;">
+    <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+      This email was sent to {{ .Email }}. For support, contact us at 
+      <a href="mailto:support@guardnomand.com" style="color: #60a5fa;">support@guardnomand.com</a>
+    </p>
+  </div>
+</div>
 ```
 
 ### **3.3 Magic Link Email Template**
 In Supabase Dashboard → Authentication → Email Templates → Magic Link:
 
 ```html
-<h2>Sign in to GuardNomad</h2>
-<p>Hi there,</p>
-<p>Click the link below to sign in to your GuardNomad account:</p>
-<p><a href="{{ .ConfirmationURL }}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">Sign In to GuardNomad</a></p>
-<p>This link will expire in 1 hour for security reasons.</p>
-<p>If you didn't request this sign-in link, you can safely ignore this email.</p>
-<br>
-<p>Safe travels,<br>The GuardNomad Team</p>
-<hr>
-<p style="font-size: 12px; color: #666;">
-This email was sent to {{ .Email }}. For support, contact us at support@guardnomad.com
-</p>
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+  <div style="background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); padding: 32px 20px; text-align: center;">
+    <div style="font-size: 48px; margin-bottom: 16px;">✨</div>
+    <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">Sign in to Guard Nomand</h1>
+    <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0 0;">Magic Link Authentication</p>
+  </div>
+  
+  <div style="padding: 32px 20px;">
+    <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+      Hi there! 👋
+    </p>
+    
+    <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 28px 0;">
+      Click the link below to sign in to your Guard Nomand account:
+    </p>
+    
+    <div style="text-align: center; margin: 32px 0;">
+      <a href="{{ .ConfirmationURL }}" 
+         style="background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+        🔐 Sign In to Guard Nomand
+      </a>
+    </div>
+    
+    <div style="background-color: #ecfdf5; border-left: 4px solid #10b981; padding: 16px; margin: 24px 0; border-radius: 8px;">
+      <p style="color: #065f46; margin: 0; font-size: 14px;">
+        ⏰ <strong>Quick Access:</strong> This link will expire in 1 hour for security reasons.
+      </p>
+    </div>
+    
+    <p style="color: #6b7280; font-size: 14px; line-height: 1.5; margin: 20px 0 0 0;">
+      If you didn't request this sign-in link, you can safely ignore this email.
+    </p>
+  </div>
+  
+  <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+    <p style="color: #4b5563; margin: 0;">
+      Safe travels,<br>
+      <strong>The Guard Nomand Team</strong>
+    </p>
+  </div>
+  
+  <div style="padding: 16px 20px; text-align: center; background-color: #1f2937;">
+    <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+      This email was sent to {{ .Email }}. For support, contact us at 
+      <a href="mailto:support@guardnomand.com" style="color: #60a5fa;">support@guardnomand.com</a>
+    </p>
+  </div>
+</div>
 ```
 
 ## 🛠 **Step 4: Resend Service Integration (Optional)**
@@ -273,16 +387,26 @@ if (data.user && !error) {
 ### **7.1 Site URL**
 In Supabase Dashboard → Authentication → URL Configuration:
 ```
-Site URL: https://yourdomain.com
+Site URL: https://guardnomand.com
 ```
 
 ### **7.2 Redirect URLs**
 Add these redirect URLs:
 ```
-https://yourdomain.com/auth
-https://yourdomain.com/password-reset
-http://localhost:5173/auth (for development)
-http://localhost:5173/password-reset (for development)
+https://guardnomand.com/*
+https://*.guardnomand.com/*
+http://localhost:5177/*
+http://localhost:5176/*
+http://localhost:5175/*
+http://localhost:5174/*
+http://localhost:5173/*
+http://localhost:3000/*
+
+# Specific URLs (if wildcards don't work)
+https://guardnomand.com/auth
+https://guardnomand.com/password-reset
+http://localhost:5177/auth
+http://localhost:5177/password-reset
 ```
 
 ## 🧪 **Step 8: Testing**
@@ -407,4 +531,16 @@ curl -X POST https://api.resend.com/emails \
    - Monitor conversion rates
    - A/B test email templates
 
-Your SMTP setup with Resend.com is now complete! Users will receive professional, branded emails for all authentication flows. 
+## 🔧 **Environment Configuration**
+
+Add to your `.env` file:
+```env
+# Resend Configuration
+VITE_RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Update these with your actual domain
+VITE_APP_URL=https://guardnomand.com
+VITE_SUPPORT_EMAIL=support@guardnomand.com
+```
+
+Your SMTP setup with Resend.com is now complete! Users will receive professional, branded emails for all authentication flows.

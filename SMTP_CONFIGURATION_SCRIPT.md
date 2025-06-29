@@ -23,8 +23,8 @@ Follow these exact steps to configure SMTP for your GuardNomad application:
    SMTP Port: 587
    SMTP User: resend
    SMTP Password: [YOUR_RESEND_API_KEY]
-   SMTP Sender Name: GuardNomad
-   SMTP Sender Email: noreply@guardnomad.com
+   SMTP Sender Name: Guard Nomand
+   SMTP Sender Email: noreply@guardnomand.com
    ```
 
 4. **Click Save** to apply changes
@@ -35,7 +35,7 @@ Still in **Settings** → **Authentication**:
 
 1. **Site URL Configuration**:
    ```
-   Site URL: https://guardnomad.com
+   Site URL: https://guardnomand.com
    ```
    
    For development:
@@ -45,8 +45,8 @@ Still in **Settings** → **Authentication**:
 
 2. **Redirect URLs** (add all of these with wildcards):
    ```
-   https://guardnomad.com/*
-   https://*.guardnomad.com/*
+   https://guardnomand.com/*
+   https://*.guardnomand.com/*
    http://localhost:5177/*
    http://localhost:5176/*
    http://localhost:5175/*
@@ -54,8 +54,8 @@ Still in **Settings** → **Authentication**:
    http://localhost:5173/*
    
    # Specific URLs (if wildcards don't work)
-   https://guardnomad.com/auth
-   https://guardnomad.com/password-reset
+   https://guardnomand.com/auth
+   https://guardnomand.com/password-reset
    http://localhost:5177/auth
    http://localhost:5177/password-reset
    ```
@@ -71,7 +71,7 @@ In **Settings** → **Authentication** → **Email Templates**:
     <div style="background-color: rgba(255,255,255,0.1); padding: 16px; border-radius: 16px; display: inline-block; margin-bottom: 20px;">
       <span style="font-size: 48px;">🛡️</span>
     </div>
-    <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">Welcome to GuardNomad!</h1>
+    <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">Welcome to Guard Nomand!</h1>
     <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 18px;">Your trusted companion for safe travels</p>
   </div>
   
@@ -95,13 +95,13 @@ In **Settings** → **Authentication** → **Email Templates**:
   
   <div style="background-color: #f8fafc; padding: 24px 20px; text-align: center; border-top: 1px solid #e5e7eb;">
     <p style="color: #4b5563; margin: 0 0 8px 0;">Safe travels,</p>
-    <p style="color: #1f2937; font-weight: bold; margin: 0;">The GuardNomad Team</p>
+    <p style="color: #1f2937; font-weight: bold; margin: 0;">The Guard Nomand Team</p>
   </div>
   
   <div style="padding: 16px 20px; text-align: center; background-color: #1f2937;">
     <p style="color: #9ca3af; font-size: 12px; margin: 0;">
       This email was sent to {{ .Email }}. If you have any questions, contact us at 
-      <a href="mailto:support@guardnomad.com" style="color: #60a5fa;">support@guardnomad.com</a>
+      <a href="mailto:support@guardnomand.com" style="color: #60a5fa;">support@guardnomand.com</a>
     </p>
   </div>
 </div>
@@ -139,14 +139,14 @@ In **Settings** → **Authentication** → **Email Templates**:
   <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
     <p style="color: #4b5563; margin: 0;">
       Safe travels,<br>
-      <strong>The GuardNomad Team</strong>
+      <strong>The Guard Nomand Team</strong>
     </p>
   </div>
   
   <div style="padding: 16px 20px; text-align: center; background-color: #1f2937;">
     <p style="color: #9ca3af; font-size: 12px; margin: 0;">
       This email was sent to {{ .Email }}. For support, contact us at 
-      <a href="mailto:support@guardnomad.com" style="color: #60a5fa;">support@guardnomad.com</a>
+      <a href="mailto:support@guardnomand.com" style="color: #60a5fa;">support@guardnomand.com</a>
     </p>
   </div>
 </div>
@@ -157,7 +157,7 @@ In **Settings** → **Authentication** → **Email Templates**:
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
   <div style="background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); padding: 32px 20px; text-align: center;">
     <div style="font-size: 48px; margin-bottom: 16px;">✨</div>
-    <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">Sign in to GuardNomad</h1>
+    <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">Sign in to Guard Nomand</h1>
     <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0 0;">Magic Link Authentication</p>
   </div>
   
@@ -170,7 +170,7 @@ In **Settings** → **Authentication** → **Email Templates**:
     <div style="text-align: center; margin: 32px 0;">
       <a href="{{ .ConfirmationURL }}" 
          style="background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
-        🔐 Sign In to GuardNomad
+        🔐 Sign In to Guard Nomand
       </a>
     </div>
     
@@ -182,14 +182,14 @@ In **Settings** → **Authentication** → **Email Templates**:
   <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
     <p style="color: #4b5563; margin: 0;">
       Safe travels,<br>
-      <strong>The GuardNomad Team</strong>
+      <strong>The Guard Nomand Team</strong>
     </p>
   </div>
   
   <div style="padding: 16px 20px; text-align: center; background-color: #1f2937;">
     <p style="color: #9ca3af; font-size: 12px; margin: 0;">
       This email was sent to {{ .Email }}. For support, contact us at 
-      <a href="mailto:support@guardnomad.com" style="color: #60a5fa;">support@guardnomad.com</a>
+      <a href="mailto:support@guardnomand.com" style="color: #60a5fa;">support@guardnomand.com</a>
     </p>
   </div>
 </div>
@@ -301,4 +301,4 @@ When everything is working correctly, you should see:
 5. ✅ No SMTP errors in Supabase logs
 6. ✅ Good delivery rates in Resend dashboard
 
-Your SMTP setup is now complete! Users will receive professional, branded emails for all authentication flows. 
+Your SMTP setup is now complete! Users will receive professional, branded emails for all authentication flows.
