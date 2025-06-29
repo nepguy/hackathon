@@ -97,15 +97,6 @@ class ExaUnifiedService {
         console.info('Using fallback data instead of Exa.ai');
       }
       console.log('🔄 Exa service will use fallback data - add VITE_EXA_API_KEY to your .env file');
-    } else {
-      try {
-        this.exa = new Exa(this.API_KEY);
-        console.log('✅ Exa Unified Service initialized - replacing traditional APIs');
-      } catch (error) {
-        console.warn('⚠️ Failed to initialize Exa client:', error);
-        this.isApiAvailable = false;
-        console.log('🔄 Exa service will use fallback data due to initialization error');
-      }
     }
   }
 
@@ -134,8 +125,11 @@ class ExaUnifiedService {
       setTimeout(() => {
         this.isApiAvailable = true;
         console.log('🔄 Exa API re-enabled for retry');
+      }, 5 * 60 * 1000);
+      return fallbackData;
     }
   }
+
   private getCacheKey(type: string, params: Record<string, unknown>): string {
     return `${type}_${JSON.stringify(params)}`;
   }
@@ -186,51 +180,51 @@ class ExaUnifiedService {
 
     return this.safeExaCall(
       async () => {
-      const categoryFilter = category ? ` ${category}` : '';
-      const searchQuery = `Local news and current events in ${location}${categoryFilter}:`;
-      
-      if (!this.exa) {
-        return this.getFallbackLocalNews(location);
-      }
+        const categoryFilter = category ? ` ${category}` : '';
+        const searchQuery = `Local news and current events in ${location}${categoryFilter}:`;
+        
+        if (!this.exa) {
+          return this.getFallbackLocalNews(location);
+        }
 
-      console.log('📰 Exa search for local news:', searchQuery);
+        console.log('📰 Exa search for local news:', searchQuery);
 
-      const response = await this.exa.searchAndContents(searchQuery, {
-        type: 'neural',
-        useAutoprompt: true,
-        numResults: 12,
-        text: true,
-        highlights: {
-          numSentences: 3,
-          highlightsPerUrl: 1
-        },
-        includeDomains: ['patch.com', 'nextdoor.com', 'local.news', 'abc7.com', 'nbc.com', 'cbs.com'],
-        startPublishedDate: this.getDateDaysAgo(7) // Last week
-      });
+        const response = await this.exa.searchAndContents(searchQuery, {
+          type: 'neural',
+          useAutoprompt: true,
+          numResults: 12,
+          text: true,
+          highlights: {
+            numSentences: 3,
+            highlightsPerUrl: 1
+          },
+          includeDomains: ['patch.com', 'nextdoor.com', 'local.news', 'abc7.com', 'nbc.com', 'cbs.com'],
+          startPublishedDate: this.getDateDaysAgo(7) // Last week
+        });
 
-      const localNews: LocalNews[] = (response.results || []).map((result: any) => ({
-        id: this.generateId(result.url),
-        title: result.title || 'Local News Update',
-        description: result.highlights?.[0] || result.text?.substring(0, 200) + '...' || 'No description available',
-        content: result.text || 'Content not available',
-        url: result.url,
-        imageUrl: `https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400`,
-        publishedAt: result.publishedDate || new Date().toISOString(),
-        source: {
-          name: this.extractSourceName(result.url),
+        const localNews: LocalNews[] = (response.results || []).map((result: any) => ({
+          id: this.generateId(result.url),
+          title: result.title || 'Local News Update',
+          description: result.highlights?.[0] || result.text?.substring(0, 200) + '...' || 'No description available',
+          content: result.text || 'Content not available',
           url: result.url,
-          type: 'local' as const
-        },
-        category: this.categorizeNews(result.title || '', result.text || ''),
-        location,
-        relevanceScore: result.score || 0.8
-      }));
+          imageUrl: `https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400`,
+          publishedAt: result.publishedDate || new Date().toISOString(),
+          source: {
+            name: this.extractSourceName(result.url),
+            url: result.url,
+            type: 'local' as const
+          },
+          category: this.categorizeNews(result.title || '', result.text || ''),
+          location,
+          relevanceScore: result.score || 0.8
+        }));
 
-      this.setCachedData(cacheKey, localNews);
-      console.log(`✅ Found ${localNews.length} local news articles via Exa`);
-      return localNews;
-    } catch (error: any) {
-      console.error('❌ Exa local news search failed:', error?.message || error);
+        this.setCachedData(cacheKey, localNews);
+        console.log(`✅ Found ${localNews.length} local news articles via Exa`);
+        return localNews;
+      },
+      this.getFallbackLocalNews(location),
       'local news'
     );
   }
@@ -246,53 +240,53 @@ class ExaUnifiedService {
 
     return this.safeExaCall(
       async () => {
-      const locationFilter = location ? ` affecting ${location}` : '';
-      const searchQuery = `Recent scam alerts and fraud warnings${locationFilter}:`;
-      
-      if (!this.exa) {
-        return this.getFallbackScamAlerts(location);
-      }
+        const locationFilter = location ? ` affecting ${location}` : '';
+        const searchQuery = `Recent scam alerts and fraud warnings${locationFilter}:`;
+        
+        if (!this.exa) {
+          return this.getFallbackScamAlerts(location);
+        }
 
-      console.log('🚨 Exa search for scam alerts:', searchQuery);
+        console.log('🚨 Exa search for scam alerts:', searchQuery);
 
-      const response = await this.exa.searchAndContents(searchQuery, {
-        type: 'neural',
-        useAutoprompt: true,
-        numResults: 8,
-        text: true,
-        highlights: {
-          numSentences: 2,
-          highlightsPerUrl: 1
-        },
-        includeDomains: [
-          'ftc.gov', 'fbi.gov', 'ic3.gov', 'scamwatch.gov.au', 
-          'actionfraud.police.uk', 'consumer.ftc.gov', 'bbb.org'
-        ],
-        startPublishedDate: this.getDateDaysAgo(30) // Last month
-      });
+        const response = await this.exa.searchAndContents(searchQuery, {
+          type: 'neural',
+          useAutoprompt: true,
+          numResults: 8,
+          text: true,
+          highlights: {
+            numSentences: 2,
+            highlightsPerUrl: 1
+          },
+          includeDomains: [
+            'ftc.gov', 'fbi.gov', 'ic3.gov', 'scamwatch.gov.au', 
+            'actionfraud.police.uk', 'consumer.ftc.gov', 'bbb.org'
+          ],
+          startPublishedDate: this.getDateDaysAgo(30) // Last month
+        });
 
-      const scamAlerts: ScamAlert[] = (response.results || []).map((result: any) => ({
-        id: this.generateId(result.url),
-        title: result.title || 'Scam Alert',
-        description: result.highlights?.[0] || result.text?.substring(0, 200) + '...' || 'Scam warning',
-        severity: this.determineScamSeverity(result.title || '', result.text || ''),
-        location: location || this.extractLocation(result.title || '', result.text || ''),
-        scamType: this.categorizeScam(result.title || '', result.text || ''),
-        source: {
-          name: this.extractSourceName(result.url),
-          url: result.url,
-          credibility: this.determineCredibility(result.url)
-        },
-        reportedDate: result.publishedDate || new Date().toISOString(),
-        affectedAreas: location ? [location] : this.extractAffectedAreas(result.text || ''),
-        warningLevel: this.determineWarningLevel(result.title || '', result.text || '')
-      }));
+        const scamAlerts: ScamAlert[] = (response.results || []).map((result: any) => ({
+          id: this.generateId(result.url),
+          title: result.title || 'Scam Alert',
+          description: result.highlights?.[0] || result.text?.substring(0, 200) + '...' || 'Scam warning',
+          severity: this.determineScamSeverity(result.title || '', result.text || ''),
+          location: location || this.extractLocation(result.title || '', result.text || ''),
+          scamType: this.categorizeScam(result.title || '', result.text || ''),
+          source: {
+            name: this.extractSourceName(result.url),
+            url: result.url,
+            credibility: this.determineCredibility(result.url)
+          },
+          reportedDate: result.publishedDate || new Date().toISOString(),
+          affectedAreas: location ? [location] : this.extractAffectedAreas(result.text || ''),
+          warningLevel: this.determineWarningLevel(result.title || '', result.text || '')
+        }));
 
-      this.setCachedData(cacheKey, scamAlerts);
-      console.log(`🛡️ Found ${scamAlerts.length} scam alerts via Exa`);
-      return scamAlerts;
-    } catch (error: any) {
-      console.error('❌ Exa scam alerts search failed:', error?.message || error);
+        this.setCachedData(cacheKey, scamAlerts);
+        console.log(`🛡️ Found ${scamAlerts.length} scam alerts via Exa`);
+        return scamAlerts;
+      },
+      this.getFallbackScamAlerts(location),
       'scam alerts'
     );
   }
@@ -308,54 +302,54 @@ class ExaUnifiedService {
 
     return this.safeExaCall(
       async () => {
-      const categoryFilter = category ? ` ${category}` : '';
-      const searchQuery = `Upcoming local events and activities in ${location}${categoryFilter}:`;
-      
-      if (!this.exa) {
-        return this.getFallbackLocalEvents(location);
-      }
-
-      console.log('🎉 Exa search for local events:', searchQuery);
-
-      const response = await this.exa.searchAndContents(searchQuery, {
-        type: 'neural',
-        useAutoprompt: true,
-        numResults: 10,
-        text: true,
-        highlights: {
-          numSentences: 2,
-          highlightsPerUrl: 1
-        },
-        includeDomains: [
-          'eventbrite.com', 'meetup.com', 'facebook.com/events', 
-          'patch.com', 'timeout.com', 'allevents.in'
-        ],
-        startPublishedDate: this.getDateDaysAgo(14) // Last 2 weeks
-      });
-
-      const localEvents: LocalEvent[] = (response.results || []).map((result: any) => ({
-        id: this.generateId(result.url),
-        title: result.title || 'Local Event',
-        description: result.highlights?.[0] || result.text?.substring(0, 200) + '...' || 'Event details',
-        startDate: this.extractEventDate(result.text || '') || new Date().toISOString(),
-        location: {
-          name: this.extractVenueName(result.text || '') || location,
-          address: this.extractAddress(result.text || '') || location
-        },
-        category: this.categorizeEvent(result.title || '', result.text || ''),
-        isFree: this.isEventFree(result.text || ''),
-        eventUrl: result.url,
-        source: {
-          name: this.extractSourceName(result.url),
-          url: result.url
+        const categoryFilter = category ? ` ${category}` : '';
+        const searchQuery = `Upcoming local events and activities in ${location}${categoryFilter}:`;
+        
+        if (!this.exa) {
+          return this.getFallbackLocalEvents(location);
         }
-      }));
 
-      this.setCachedData(cacheKey, localEvents);
-      console.log(`🎊 Found ${localEvents.length} local events via Exa`);
-      return localEvents;
-    } catch (error: any) {
-      console.error('❌ Exa local events search failed:', error?.message || error);
+        console.log('🎉 Exa search for local events:', searchQuery);
+
+        const response = await this.exa.searchAndContents(searchQuery, {
+          type: 'neural',
+          useAutoprompt: true,
+          numResults: 10,
+          text: true,
+          highlights: {
+            numSentences: 2,
+            highlightsPerUrl: 1
+          },
+          includeDomains: [
+            'eventbrite.com', 'meetup.com', 'facebook.com/events', 
+            'patch.com', 'timeout.com', 'allevents.in'
+          ],
+          startPublishedDate: this.getDateDaysAgo(14) // Last 2 weeks
+        });
+
+        const localEvents: LocalEvent[] = (response.results || []).map((result: any) => ({
+          id: this.generateId(result.url),
+          title: result.title || 'Local Event',
+          description: result.highlights?.[0] || result.text?.substring(0, 200) + '...' || 'Event details',
+          startDate: this.extractEventDate(result.text || '') || new Date().toISOString(),
+          location: {
+            name: this.extractVenueName(result.text || '') || location,
+            address: this.extractAddress(result.text || '') || location
+          },
+          category: this.categorizeEvent(result.title || '', result.text || ''),
+          isFree: this.isEventFree(result.text || ''),
+          eventUrl: result.url,
+          source: {
+            name: this.extractSourceName(result.url),
+            url: result.url
+          }
+        }));
+
+        this.setCachedData(cacheKey, localEvents);
+        console.log(`🎊 Found ${localEvents.length} local events via Exa`);
+        return localEvents;
+      },
+      this.getFallbackLocalEvents(location),
       'local events'
     );
   }
@@ -371,52 +365,52 @@ class ExaUnifiedService {
 
     return this.safeExaCall(
       async () => {
-      const searchQuery = `Official travel safety alerts and advisories for ${location}:`;
+        const searchQuery = `Official travel safety alerts and advisories for ${location}:`;
 
-      if (!this.exa) {
-        return this.getFallbackTravelSafety(location);
-      }
+        if (!this.exa) {
+          return this.getFallbackTravelSafety(location);
+        }
 
-      console.log('🛡️ Exa search for travel safety:', searchQuery);
+        console.log('🛡️ Exa search for travel safety:', searchQuery);
 
-      const response = await this.exa.searchAndContents(searchQuery, {
-        type: 'neural',
-        useAutoprompt: true,
-        numResults: 6,
-        text: true,
-        highlights: {
-          numSentences: 3,
-          highlightsPerUrl: 1
-        },
-        includeDomains: [
-          'state.gov', 'gov.uk', 'smartraveller.gov.au', 'travel.gc.ca',
-          'who.int', 'cdc.gov', 'auswaertiges-amt.de', 'diplomatie.gouv.fr'
-        ],
-        startPublishedDate: this.getDateDaysAgo(60) // Last 2 months
-      });
+        const response = await this.exa.searchAndContents(searchQuery, {
+          type: 'neural',
+          useAutoprompt: true,
+          numResults: 6,
+          text: true,
+          highlights: {
+            numSentences: 3,
+            highlightsPerUrl: 1
+          },
+          includeDomains: [
+            'state.gov', 'gov.uk', 'smartraveller.gov.au', 'travel.gc.ca',
+            'who.int', 'cdc.gov', 'auswaertiges-amt.de', 'diplomatie.gouv.fr'
+          ],
+          startPublishedDate: this.getDateDaysAgo(60) // Last 2 months
+        });
 
-      const travelSafetyAlerts: TravelSafetyAlert[] = (response.results || []).map((result: any) => ({
-        id: this.generateId(result.url),
-        title: result.title || 'Travel Safety Alert',
-        description: result.highlights?.[0] || result.text?.substring(0, 300) + '...' || 'Safety advisory',
-        severity: this.determineTravelSafetySeverity(result.title || '', result.text || ''),
-        alertType: this.categorizeTravelAlert(result.title || '', result.text || ''),
-        location,
-        source: {
-          name: this.extractSourceName(result.url),
-          url: result.url,
-          authority: this.determineAuthority(result.url)
-        },
-        issuedDate: result.publishedDate || new Date().toISOString(),
-        affectedRegions: this.extractAffectedRegions(result.text || '', location),
-        recommendations: this.extractRecommendations(result.text || '')
-      }));
+        const travelSafetyAlerts: TravelSafetyAlert[] = (response.results || []).map((result: any) => ({
+          id: this.generateId(result.url),
+          title: result.title || 'Travel Safety Alert',
+          description: result.highlights?.[0] || result.text?.substring(0, 300) + '...' || 'Safety advisory',
+          severity: this.determineTravelSafetySeverity(result.title || '', result.text || ''),
+          alertType: this.categorizeTravelAlert(result.title || '', result.text || ''),
+          location,
+          source: {
+            name: this.extractSourceName(result.url),
+            url: result.url,
+            authority: this.determineAuthority(result.url)
+          },
+          issuedDate: result.publishedDate || new Date().toISOString(),
+          affectedRegions: this.extractAffectedRegions(result.text || '', location),
+          recommendations: this.extractRecommendations(result.text || '')
+        }));
 
-      this.setCachedData(cacheKey, travelSafetyAlerts);
-      console.log(`🛡️ Found ${travelSafetyAlerts.length} travel safety alerts via Exa`);
-      return travelSafetyAlerts;
-    } catch (error: any) {
-      console.error('❌ Exa travel safety search failed:', error?.message || error);
+        this.setCachedData(cacheKey, travelSafetyAlerts);
+        console.log(`🛡️ Found ${travelSafetyAlerts.length} travel safety alerts via Exa`);
+        return travelSafetyAlerts;
+      },
+      this.getFallbackTravelSafety(location),
       'travel safety alerts'
     );
   }
@@ -424,30 +418,6 @@ class ExaUnifiedService {
   // Helper methods for content analysis
   private extractSourceName(url: string): string {
     try {
-      // Check if Exa client is initialized
-      if (!this.exa) {
-        console.warn('⚠️ Exa client not initialized, using fallback data');
-        return this.getFallbackTravelSafety(location);
-      }
-
-      // Check if Exa client is initialized
-      if (!this.exa) {
-        console.warn('⚠️ Exa client not initialized, using fallback data');
-        return this.getFallbackLocalEvents(location);
-      }
-
-      // Check if Exa client is initialized
-      if (!this.exa) {
-        console.warn('⚠️ Exa client not initialized, using fallback data');
-        return this.getFallbackScamAlerts(location);
-      }
-
-      // Check if Exa client is initialized
-      if (!this.exa) {
-        console.warn('⚠️ Exa client not initialized, using fallback data');
-        return this.getFallbackLocalNews(location);
-      }
-
       const domain = new URL(url).hostname;
       return domain.replace('www.', '').split('.')[0].toUpperCase();
     } catch {
