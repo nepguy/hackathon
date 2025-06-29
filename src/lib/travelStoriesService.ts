@@ -293,6 +293,13 @@ class TravelStoriesService {
    */
   async toggleLike(storyId: string, userId: string, isCurrentlyLiked: boolean): Promise<{ success: boolean; newLikesCount?: number; isLiked?: boolean }> {
     try {
+      // Get story owner info for notifications
+      const { data: story } = await supabase
+        .from('travel_stories')
+        .select('user_id')
+        .eq('id', storyId)
+        .single();
+
       // Use the existing functions that match your current database
       const functionName = isCurrentlyLiked ? 'unlike_story' : 'like_story';
       
@@ -311,10 +318,21 @@ class TravelStoriesService {
         return { success: false };
       }
 
+      // Create notification for like (if liking, not unliking, and not own story)
+      const newIsLiked = data.action === 'liked';
+      if (newIsLiked && story?.user_id && story.user_id !== userId) {
+        try {
+          const { notificationsService } = await import('./notificationsService');
+          await notificationsService.createLikeNotification(storyId, story.user_id, userId);
+        } catch (notifError) {
+          console.warn('Failed to create like notification:', notifError);
+          // Don't fail the like operation if notification fails
+        }
+      }
+
       // Clear cache to ensure fresh data on next fetch
       this.requestCache.clear();
       
-      const newIsLiked = data.action === 'liked';
       console.log(`✅ ${data.action} story ${storyId}. New count: ${data.new_likes_count}`);
       
       return { 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTrial } from '../contexts/TrialContext';
 import { useLocation } from '../contexts/LocationContext';
@@ -15,18 +15,18 @@ import { TrialExpiredModal } from '../components/trial/TrialExpiredModal';
 import { TrialBanner } from '../components/trial/TrialBanner';
 import { Shield, MapPin, Calendar, Plus, RefreshCw, Globe, Clock } from 'lucide-react';
 import { getUserStatistics } from '../lib/userStatisticsService';
-import { getTravelPlans } from '../lib/travelPlansService';
 import { getAISafetyInsights } from '../lib/aiSafetyService';
-import { exaNewsService } from '../lib/exaNewsService';
+import { newsService } from '../lib/newsApi';
 import { TravelPlan, Activity, SafetyTip } from '../types';
 import { AISafetyAlert } from '../lib/aiSafetyService';
 import { NewsArticle } from '../lib/newsApi';
-
+import { useUserDestinations } from '../contexts/UserDestinationContext';
 
 const HomePage: React.FC = () => {
   const { user } = useAuth();
   const { isTrialActive, isTrialExpired } = useTrial();
   const { userLocation } = useLocation();
+  const { addDestination, destinations } = useUserDestinations();
   const { 
     isLoading, 
     refreshData 
@@ -56,24 +56,27 @@ const HomePage: React.FC = () => {
     loadUserData();
   }, [user]);
 
+  // Update travel plans when destinations change
+  useEffect(() => {
+    if (destinations.length >= 0) {
+      const formattedPlans = destinations.map(dest => ({
+        id: dest.id,
+        destination: dest.destination,
+        startDate: dest.startDate,
+        endDate: dest.endDate,
+        imageUrl: `https://source.unsplash.com/800x600/?${encodeURIComponent(dest.destination)}`,
+        safetyScore: 85
+      }));
+      setTravelPlans(formattedPlans);
+    }
+  }, [destinations]);
+
   const loadUserData = async () => {
     if (!user) return;
 
     try {
-      const [stats, plans] = await Promise.all([
-        getUserStatistics(user.id),
-        getTravelPlans(user.id)
-      ]);
-
+      const stats = await getUserStatistics(user.id);
       setUserStats(stats || { travel_plans_count: 0, safety_score: 95, days_tracked: 0 });
-      setTravelPlans(plans.map(plan => ({
-        id: plan.id,
-        destination: plan.destination,
-        startDate: plan.start_date,
-        endDate: plan.end_date,
-        imageUrl: `https://source.unsplash.com/800x600/?${encodeURIComponent(plan.destination)}`,
-        safetyScore: 85
-      })));
     } catch (error) {
       console.error('Error loading user data:', error);
     }
@@ -105,27 +108,30 @@ const HomePage: React.FC = () => {
     }
   };
 
-  const loadTravelNews = useCallback(async () => {
+  const loadTravelNews = async () => {
     if (!userLocation) return;
     
     setIsLoadingNews(true);
     try {
-      const locationString = `${userLocation.latitude}, ${userLocation.longitude}`;
-      const response = await exaNewsService.getTravelNews(locationString);
-      setTravelNews(response.articles.slice(0, 3)); // Show only 3 latest news items
+      console.log('📰 Loading travel news via Exa service');
+              const newsData = await newsService.getTravelNews();
+      setTravelNews(newsData.articles?.slice(0, 5) || []);
+      console.log('✅ Travel news loaded successfully via Exa');
     } catch (error) {
-      console.error('Failed to load travel news:', error);
+      console.error('❌ Error loading travel news:', error);
+      setTravelNews([]);
     } finally {
       setIsLoadingNews(false);
     }
-  }, [userLocation]);
+  };
 
   useEffect(() => {
-    if (userLocation && user) {
+    if (user) {
+      loadUserData();
       loadAISafetyInsights();
       loadTravelNews();
     }
-  }, [userLocation, user]);
+  }, [user, userLocation]);
 
   const handleRefreshData = async () => {
     await Promise.all([
@@ -159,6 +165,43 @@ const HomePage: React.FC = () => {
       timestamp: new Date(Date.now() - 172800000).toISOString()
     }
   ];
+
+  const handleCreatePlan = async (planData: {
+    destination: string;
+    startDate: string;
+    endDate: string;
+    notes?: string;
+  }) => {
+    if (!user) {
+      console.error('User must be logged in to create travel plans');
+      return;
+    }
+
+    try {
+      console.log('🛫 Creating travel plan:', planData);
+      
+      // Create the destination using the UserDestinationContext
+      await addDestination({
+        destination: planData.destination,
+        startDate: planData.startDate,
+        endDate: planData.endDate,
+        status: 'planned',
+        alertsEnabled: true
+      });
+
+      console.log('✅ Travel plan created successfully');
+      
+      // Refresh user data to show the new plan
+      await loadUserData();
+      
+      // Close the modal
+      setShowCreatePlanModal(false);
+      
+    } catch (error) {
+      console.error('❌ Error creating travel plan:', error);
+      // You might want to show an error message to the user here
+    }
+  };
 
   return (
     <PageContainer>
@@ -368,7 +411,7 @@ const HomePage: React.FC = () => {
       <CreatePlanModal
         isOpen={showCreatePlanModal}
         onClose={() => setShowCreatePlanModal(false)}
-        onSubmit={loadUserData}
+        onSubmit={handleCreatePlan}
       />
 
       <TrialExpiredModal

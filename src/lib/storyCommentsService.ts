@@ -94,13 +94,25 @@ class StoryCommentsService {
    */
   async createComment(userId: string, commentData: CreateCommentData): Promise<StoryComment | null> {
     try {
+      // Get story owner info for notifications
+      const { data: story } = await supabase
+        .from('travel_stories')
+        .select('user_id')
+        .eq('id', commentData.story_id)
+        .single();
+
+      // Get user name for better comment display
+      const { userDataService } = await import('./userDataService');
+      const userInfo = await userDataService.getUserDisplayInfo(userId);
+      const authorName = userInfo?.name || `Traveler ${userId.substring(0, 8)}`;
+
       // Use the new database function to add comment
       const { data, error } = await supabase
         .rpc('add_story_comment', {
           story_id_param: commentData.story_id,
           user_id_param: userId,
           content_param: commentData.content,
-          author_name_param: `Traveler ${userId.substring(0, 8)}`
+          author_name_param: authorName
         });
 
       if (error) {
@@ -113,14 +125,25 @@ class StoryCommentsService {
         throw error;
       }
 
+      // Create notification for comment (if not commenting on own story)
+      if (story?.user_id && story.user_id !== userId) {
+        try {
+          const { notificationsService } = await import('./notificationsService');
+          await notificationsService.createCommentNotification(commentData.story_id, story.user_id, userId);
+        } catch (notifError) {
+          console.warn('Failed to create comment notification:', notifError);
+          // Don't fail the comment operation if notification fails
+        }
+      }
+
       console.log('✅ Comment created successfully:', data);
       
       // Return with author data
       return {
         ...data,
         author: {
-          name: data.author_name || `Traveler ${data.user_id.substring(0, 8)}`,
-          avatar: data.user_id.substring(0, 2).toUpperCase()
+          name: authorName,
+          avatar: userInfo?.initials || userId.substring(0, 2).toUpperCase()
         }
       };
     } catch (error) {

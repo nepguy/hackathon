@@ -119,12 +119,16 @@ class AISafetyService {
         }
       }
 
-      // Get recent news for the destination
+      // Get recent news for the destination using Exa service instead of GNews
       try {
-        const newsData = await newsService.searchNews(context.destination);
+        console.log('🔍 Using Exa service for news instead of GNews API');
+        const newsData = await newsService.getTravelNews(context.destination);
         data.recent_news = newsData.articles?.slice(0, 3) || [];
+        console.log('✅ Successfully fetched news via Exa service');
       } catch (error) {
-        console.warn('Could not fetch recent news:', error);
+        console.warn('Could not fetch recent news via Exa:', error);
+        // Fallback to empty array instead of failing
+        data.recent_news = [];
       }
 
       // Add travel dates context

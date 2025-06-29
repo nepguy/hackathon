@@ -8,18 +8,26 @@ import { useState, useEffect } from 'react';
 
 export interface UserProfile {
   id: string;
-  user_id: string;
-  full_name: string;
   email: string;
+  full_name: string;
   avatar_url?: string;
+  phone?: string;
+  address?: string;
+  date_of_birth?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  passport_number?: string;
+  nationality?: string;
   created_at: string;
   updated_at: string;
-  total_destinations: number;
-  total_trips: number;
-  total_days_traveled: number;
-  safety_score: number;
-  preferred_language: string;
-  last_active: string;
+}
+
+export interface UserDisplayInfo {
+  id: string;
+  name: string;
+  email: string;
+  initials: string;
+  avatar_url?: string;
 }
 
 export interface UserActivity {
@@ -81,14 +89,99 @@ interface StatisticsUpdate {
 
 class UserDataService {
   /**
-   * Get comprehensive user profile with calculated statistics
+   * Get user display information by user ID
+   */
+  async getUserDisplayInfo(userId: string): Promise<UserDisplayInfo | null> {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('id, full_name, email, avatar_url')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user display info:', error);
+        return null;
+      }
+
+      if (!data) return null;
+
+      const name = data.full_name || data.email?.split('@')[0] || 'Anonymous User';
+      const initials = this.generateInitials(name);
+
+      return {
+        id: data.id,
+        name,
+        email: data.email,
+        initials,
+        avatar_url: data.avatar_url
+      };
+    } catch (error) {
+      console.error('Error in getUserDisplayInfo:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get multiple users display information
+   */
+  async getMultipleUsersDisplayInfo(userIds: string[]): Promise<Record<string, UserDisplayInfo>> {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('id, full_name, email, avatar_url')
+        .in('id', userIds);
+
+      if (error) {
+        console.error('Error fetching multiple users display info:', error);
+        return {};
+      }
+
+      const result: Record<string, UserDisplayInfo> = {};
+      
+      data?.forEach((user: any) => {
+        const name = user.full_name || user.email?.split('@')[0] || 'Anonymous User';
+        const initials = this.generateInitials(name);
+        
+        result[user.id] = {
+          id: user.id,
+          name,
+          email: user.email,
+          initials,
+          avatar_url: user.avatar_url
+        };
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Error in getMultipleUsersDisplayInfo:', error);
+      return {};
+    }
+  }
+
+  /**
+   * Generate initials from a name
+   */
+  private generateInitials(name: string): string {
+    if (!name) return 'AU';
+    
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  }
+
+  /**
+   * Get user profile by ID
    */
   async getUserProfile(userId: string): Promise<UserProfile | null> {
     try {
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('user_id', userId)
+        .eq('id', userId)
         .single();
 
       if (error) {
@@ -96,16 +189,7 @@ class UserDataService {
         return null;
       }
 
-      // Calculate real-time statistics
-      const stats = await this.calculateUserStats(userId);
-      
-      return {
-        ...data,
-        total_destinations: stats.destinationsVisited,
-        total_trips: stats.totalTrips,
-        total_days_traveled: stats.daysTracked,
-        safety_score: stats.safetyScore
-      };
+      return data;
     } catch (error) {
       console.error('Error in getUserProfile:', error);
       return null;
@@ -113,7 +197,7 @@ class UserDataService {
   }
 
   /**
-   * Update user profile information
+   * Update user profile
    */
   async updateUserProfile(userId: string, updates: Partial<UserProfile>): Promise<boolean> {
     try {
@@ -123,19 +207,56 @@ class UserDataService {
           ...updates,
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', userId);
+        .eq('id', userId);
 
       if (error) {
         console.error('Error updating user profile:', error);
         return false;
       }
 
-      // Track profile update activity
-      await this.trackActivity(userId, 'profile_updated', { action: 'profile_updated' });
-      
       return true;
     } catch (error) {
       console.error('Error in updateUserProfile:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Create user profile if it doesn't exist
+   */
+  async ensureUserProfile(userId: string, email: string, fullName?: string): Promise<boolean> {
+    try {
+      // Check if profile exists
+      const { data: existingProfile } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('id', userId)
+        .single();
+
+      if (existingProfile) {
+        return true; // Profile already exists
+      }
+
+      // Create new profile
+      const { error } = await supabase
+        .from('user_profiles')
+        .insert({
+          id: userId,
+          email,
+          full_name: fullName || email.split('@')[0],
+          terms_accepted_at: new Date().toISOString(),
+          privacy_accepted_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error('Error creating user profile:', error);
+        return false;
+      }
+
+      console.log('✅ User profile created successfully');
+      return true;
+    } catch (error) {
+      console.error('Error in ensureUserProfile:', error);
       return false;
     }
   }
@@ -404,27 +525,7 @@ class UserDataService {
     }
   }
 
-  /**
-   * Update user's preferred language
-   */
-  async updatePreferredLanguage(userId: string, languageCode: string): Promise<boolean> {
-    try {
-      const success = await this.updateUserProfile(userId, {
-        preferred_language: languageCode
-      });
 
-      if (success) {
-        await this.trackActivity(userId, 'language_changed', {
-          new_language: languageCode
-        });
-      }
-
-      return success;
-    } catch (error) {
-      console.error('Error updating preferred language:', error);
-      return false;
-    }
-  }
 }
 
 // Export singleton instance

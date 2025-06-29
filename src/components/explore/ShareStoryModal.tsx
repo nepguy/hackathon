@@ -131,7 +131,7 @@ const ShareStoryModal: React.FC<ShareStoryModalProps> = ({ isOpen, onClose, onSu
 
   return (
     <div 
-      className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 z-[9999] animate-fadeIn"
+      className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 z-[99999] animate-fadeIn"
       onClick={onClose}
     >
       <div 

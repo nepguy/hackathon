@@ -1,3 +1,5 @@
+
+
 export interface EventbriteEvent {
   id: string;
   name: {
@@ -79,519 +81,507 @@ export interface EventsApiResponse {
   };
 }
 
-class EventsService {
-  private apiKey: string;
-  private baseUrl = 'https://www.eventbriteapi.com/v3';
+// Legacy interface for backward compatibility
+export interface TravelEvent {
+  id: string;
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  location: {
+    name: string;
+    address: string;
+    coordinates: {
+      lat: number;
+      lng: number;
+    };
+  };
+  category: string;
+  isFree: boolean;
+  price?: string;
+  imageUrl?: string;
+  eventUrl: string;
+  source: 'eventbrite';
+}
 
-  constructor() {
-    // Note: Eventbrite deprecated public search API in 2020, using fallback events
-    this.apiKey = import.meta.env.VITE_EVENTBRITE_PRIVATE_TOKEN || 'MZCEHLD5PGN2HAKXCLCO';
-    console.log('🎯 Eventbrite integration configured (using fallback events due to API deprecation)');
+export interface LocalEvent {
+  id: string;
+  title: string;
+  description: string;
+  startDate: string;
+  endDate?: string;
+  location: {
+    name: string;
+    address: string;
+    latitude?: number;
+    longitude?: number;
+  };
+  category: string;
+  price?: {
+    min: number;
+    max: number;
+    currency: string;
+    isFree: boolean;
+  };
+  organizer: {
+    name: string;
+    url?: string;
+  };
+  ticketUrl?: string;
+  imageUrl?: string;
+  source: 'eventbrite' | 'local' | 'fallback';
+  tags: string[];
+  attendeeCount?: number;
+  rating?: number;
+}
+
+class EventsApiService {
+  private requestCache = new Map<string, { data: LocalEvent[]; timestamp: number }>();
+  private readonly CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache
+  private readonly REQUEST_LIMIT = 10; // requests per minute
+  private requestCount = 0;
+  private requestResetTime = Date.now() + 60000; // 1 minute from now
+
+  // Rate limiting check
+  private checkRateLimit(): boolean {
+    const now = Date.now();
+    
+    if (now > this.requestResetTime) {
+      this.requestCount = 0;
+      this.requestResetTime = now + 60000;
+    }
+    
+    if (this.requestCount >= this.REQUEST_LIMIT) {
+      console.warn('⚠️ Events API rate limit reached. Using cached data.');
+      return false;
+    }
+    
+    this.requestCount++;
+    return true;
   }
 
-  private async fetchEvents(endpoint: string, params: Record<string, string> = {}): Promise<any> {
-    // Eventbrite deprecated public search API in February 2020
-    // Using fallback events instead of making API calls
-    console.log(`🎯 Using fallback events (Eventbrite search API deprecated since 2020)`);
-    console.log(`📍 Would have called: ${this.baseUrl}${endpoint} with params:`, params);
-    console.log(`🔑 API Key configured: ${this.apiKey ? 'Yes' : 'No'}`);
-    
-    // In a future implementation, you could uncomment the following to make real API calls:
-    /*
-    const queryString = new URLSearchParams(params).toString();
-    const response = await fetch(`${this.baseUrl}${endpoint}?${queryString}`, {
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    return response.json();
-    */
-    
-    throw new Error('FALLBACK_MODE');
-  }
-
-  private transformEvent(event: EventbriteEvent): TravelEvent {
-    return {
-      id: event.id,
-      title: event.name?.text || 'Untitled Event',
-      description: event.description?.text || '',
-      startDate: event.start?.local || new Date().toISOString(),
-      endDate: event.end?.local || new Date().toISOString(),
-      location: {
-        name: event.venue?.name || 'TBD',
-        address: event.venue ? 
-          `${event.venue.address.address_1}, ${event.venue.address.city}, ${event.venue.address.region}` : 
-          'Location TBD',
-        coordinates: {
-          lat: parseFloat(event.venue?.latitude || '0'),
-          lng: parseFloat(event.venue?.longitude || '0')
+  /**
+   * Get events from Eventbrite API (simulated for demo)
+   */
+  private async getEventbriteEvents(_location: string, _radius: number = 25): Promise<LocalEvent[]> {
+    try {
+      // Note: In production, you would need to set up a backend proxy for Eventbrite API
+      // as it requires OAuth and doesn't support CORS for client-side requests
+      
+      console.log('🎪 Simulating Eventbrite API call for:', location);
+      
+      // Simulate realistic Eventbrite events
+      const simulatedEvents: LocalEvent[] = [
+        {
+          id: 'eb-1',
+          title: 'Tech Meetup: AI & Travel Innovation',
+          description: 'Join fellow travelers and tech enthusiasts to discuss how AI is revolutionizing the travel industry.',
+          startDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+          endDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000).toISOString(),
+          location: {
+            name: 'Innovation Hub',
+            address: 'Downtown Tech Center',
+            latitude: 40.7128,
+            longitude: -74.0060
+          },
+          category: 'Technology',
+          price: {
+            min: 0,
+            max: 0,
+            currency: 'USD',
+            isFree: true
+          },
+          organizer: {
+            name: 'Travel Tech Community',
+            url: 'https://example.com'
+          },
+          ticketUrl: 'https://eventbrite.com/example',
+          imageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400',
+          source: 'eventbrite',
+          tags: ['tech', 'ai', 'travel', 'networking'],
+          attendeeCount: 45,
+          rating: 4.7
+        },
+        {
+          id: 'eb-2',
+          title: 'Cultural Food Festival',
+          description: 'Experience authentic cuisines from around the world in this vibrant food festival.',
+          startDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+          endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          location: {
+            name: 'Central Park',
+            address: 'Main Park Area',
+            latitude: 40.7829,
+            longitude: -73.9654
+          },
+          category: 'Food & Drink',
+          price: {
+            min: 15,
+            max: 25,
+            currency: 'USD',
+            isFree: false
+          },
+          organizer: {
+            name: 'Cultural Events Co.',
+            url: 'https://example.com'
+          },
+          ticketUrl: 'https://eventbrite.com/example',
+          imageUrl: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400',
+          source: 'eventbrite',
+          tags: ['food', 'culture', 'festival', 'family'],
+          attendeeCount: 230,
+          rating: 4.9
+        },
+        {
+          id: 'eb-3',
+          title: 'Photography Workshop: Travel Stories',
+          description: 'Learn to capture stunning travel photos and tell compelling stories through your lens.',
+          startDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+          endDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
+          location: {
+            name: 'Photography Studio',
+            address: 'Arts District',
+            latitude: 40.7505,
+            longitude: -73.9934
+          },
+          category: 'Arts & Culture',
+          price: {
+            min: 75,
+            max: 75,
+            currency: 'USD',
+            isFree: false
+          },
+          organizer: {
+            name: 'Visual Arts Academy',
+            url: 'https://example.com'
+          },
+          ticketUrl: 'https://eventbrite.com/example',
+          imageUrl: 'https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=400',
+          source: 'eventbrite',
+          tags: ['photography', 'workshop', 'travel', 'arts'],
+          attendeeCount: 12,
+          rating: 4.8
         }
+      ];
+
+      return simulatedEvents;
+    } catch (error) {
+      console.error('Error fetching Eventbrite events:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get local events from various sources
+   */
+  private async getLocalEvents(_location: string): Promise<LocalEvent[]> {
+    try {
+      // Simulate local events data
+      const localEvents: LocalEvent[] = [
+        {
+          id: 'local-1',
+          title: 'Weekly Farmers Market',
+          description: 'Fresh local produce, artisanal goods, and community gathering every Saturday morning.',
+          startDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+          endDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000).toISOString(),
+          location: {
+            name: 'Town Square',
+            address: 'Main Street Plaza',
+            latitude: 40.7589,
+            longitude: -73.9851
+          },
+          category: 'Community',
+          price: {
+            min: 0,
+            max: 0,
+            currency: 'USD',
+            isFree: true
+          },
+          organizer: {
+            name: 'Local Community Board',
+            url: 'https://example.com'
+          },
+          imageUrl: 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=400',
+          source: 'local',
+          tags: ['market', 'local', 'community', 'food'],
+          attendeeCount: 150,
+          rating: 4.5
+        },
+        {
+          id: 'local-2',
+          title: 'Live Jazz Night',
+          description: 'Enjoy smooth jazz performances by local artists in an intimate venue setting.',
+          startDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
+          endDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000).toISOString(),
+          location: {
+            name: 'Blue Note Café',
+            address: 'Music District',
+            latitude: 40.7282,
+            longitude: -74.0776
+          },
+          category: 'Music',
+          price: {
+            min: 20,
+            max: 35,
+            currency: 'USD',
+            isFree: false
+          },
+          organizer: {
+            name: 'Blue Note Entertainment',
+            url: 'https://example.com'
+          },
+          imageUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400',
+          source: 'local',
+          tags: ['music', 'jazz', 'nightlife', 'entertainment'],
+          attendeeCount: 80,
+          rating: 4.6
+        }
+      ];
+
+      return localEvents;
+    } catch (error) {
+      console.error('Error fetching local events:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get fallback events when APIs are unavailable
+   */
+  private getFallbackEvents(_location: string): LocalEvent[] {
+    return [
+      {
+        id: 'fallback-1',
+        title: 'Community Walking Tour',
+        description: 'Explore local history and hidden gems with experienced guides.',
+        startDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+        location: {
+          name: 'Tourist Information Center',
+          address: 'City Center',
+        },
+        category: 'Tours & Activities',
+        price: {
+          min: 0,
+          max: 0,
+          currency: 'USD',
+          isFree: true
+        },
+        organizer: {
+          name: 'Local Tourism Board'
+        },
+        source: 'fallback',
+        tags: ['tour', 'walking', 'history', 'local'],
+        rating: 4.3
       },
-      category: event.category?.name || 'Other',
-      isFree: event.is_free,
-      price: event.ticket_availability?.minimum_ticket_price?.display,
-      imageUrl: event.logo?.url,
-      eventUrl: event.url,
-      source: 'eventbrite'
-    };
-  }
-
-  // Public API methods
-  async searchEvents(
-    query: string, 
-    location?: string, 
-    categoryId?: string
-  ): Promise<EventsApiResponse> {
-    const params: Record<string, string> = {
-      q: query,
-      'sort_by': 'date',
-      expand: 'venue,ticket_availability,category'
-    };
-
-    if (location) {
-      params['location.address'] = location;
-      params['location.within'] = '50km';
-    }
-
-    if (categoryId) {
-      params['categories'] = categoryId;
-    }
-
-    try {
-      const data = await this.fetchEvents('/events/search', params);
-      
-      return {
-        events: (data.events || []).map((event: EventbriteEvent) => this.transformEvent(event)),
-        pagination: data.pagination
-      };
-    } catch {
-      // Eventbrite search API deprecated - using smart fallback events
-      return this.getFallbackEvents(location, query);
-    }
-  }
-
-  private isRemoteLocation(location?: string): boolean {
-    if (!location) return false;
-    
-    // Simple heuristic to detect remote locations
-    const locationLower = location.toLowerCase();
-    const remoteIndicators = [
-      'rural', 'remote', 'wilderness', 'mountain', 'desert', 'forest', 
-      'village', 'countryside', 'farm', 'ranch', 'national park',
-      'state park', 'hiking', 'camping', 'cabin'
+      {
+        id: 'fallback-2',
+        title: 'Art Gallery Opening',
+        description: 'Discover new works by emerging local artists in this monthly showcase.',
+        startDate: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
+        location: {
+          name: 'Contemporary Art Gallery',
+          address: 'Arts Quarter',
+        },
+        category: 'Arts & Culture',
+        price: {
+          min: 0,
+          max: 0,
+          currency: 'USD',
+          isFree: true
+        },
+        organizer: {
+          name: 'Local Arts Council'
+        },
+        source: 'fallback',
+        tags: ['art', 'gallery', 'culture', 'exhibition'],
+        rating: 4.4
+      }
     ];
-    
-    // Check if coordinates suggest a very rural area (simplified check)
-    const coordMatch = location.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
-    if (coordMatch) {
-      const lat = parseFloat(coordMatch[1]);
-      const lng = parseFloat(coordMatch[2]);
-      
-      // Very basic check for remote coordinates (away from major population centers)
-      // This is a simplified approach - in production you'd use a proper geocoding service
-      const isInMiddleOfNowhere = (
-        Math.abs(lat) > 60 || // Very far north/south
-        (Math.abs(lat) < 10 && Math.abs(lng) > 100) // Remote tropical areas
-      );
-      
-      if (isInMiddleOfNowhere) return true;
-    }
-    
-    return remoteIndicators.some(indicator => locationLower.includes(indicator));
   }
 
-  private getFallbackEvents(location?: string, query?: string): EventsApiResponse {
-    // Get real location name from the location string
-    const locationName = location ? location.split(',')[0].trim() : 'your area';
-    const isBusinessQuery = query?.toLowerCase().includes('business') || query?.toLowerCase().includes('networking');
-    const isFoodQuery = query?.toLowerCase().includes('food') || query?.toLowerCase().includes('culinary');
-    const isCultureQuery = query?.toLowerCase().includes('culture') || query?.toLowerCase().includes('art');
-    const isNearbyQuery = query?.toLowerCase().includes('nearby');
-    
-    // Check if this is a remote/rural location that might not have events
-    const isRemoteLocation = this.isRemoteLocation(location);
-    
-    if (isRemoteLocation && isNearbyQuery) {
-      console.log(`🏔️ Remote location detected: ${locationName} - returning empty events`);
-      return {
-        events: [],
-        pagination: {
-          page_number: 1,
-          page_size: 0,
-          total_items: 0
-        }
-      };
-    }
-    
-    // Generate date-aware events
-    const today = new Date();
-    const tomorrow = new Date(today.getTime() + 86400000);
-    const nextWeek = new Date(today.getTime() + 86400000 * 7);
-    const weekend = new Date(today.getTime() + 86400000 * (6 - today.getDay()));
-    
-    let fallbackEvents: TravelEvent[] = [];
-    
-    if (isBusinessQuery) {
-      fallbackEvents = [
-        {
-          id: `fallback-business-${Date.now()}`,
-          title: `Professional Networking in ${locationName}`,
-          description: `Connect with local professionals and expand your network in ${locationName}. Perfect for business travelers looking to make meaningful connections.`,
-          startDate: new Date(tomorrow.getTime() + 32400000).toISOString(), // 9 AM tomorrow
-          endDate: new Date(tomorrow.getTime() + 39600000).toISOString(), // 11 AM tomorrow
-          location: {
-            name: `Business Center - ${locationName}`,
-            address: `Downtown Business District, ${location || locationName}`,
-            coordinates: { lat: 40.7128, lng: -74.0060 }
-          },
-          category: 'Business & Professional',
-          isFree: false,
-          price: '$35.00',
-          eventUrl: '#business-networking',
-          source: 'eventbrite'
-        },
-        {
-          id: `fallback-business-${Date.now() + 1}`,
-          title: `Startup Pitch Night - ${locationName}`,
-          description: `Watch innovative startups pitch their ideas to investors. Great networking opportunity for entrepreneurs and business professionals.`,
-          startDate: new Date(nextWeek.getTime() + 64800000).toISOString(), // 6 PM next week
-          endDate: new Date(nextWeek.getTime() + 75600000).toISOString(), // 9 PM next week
-          location: {
-            name: `Innovation Hub - ${locationName}`,
-            address: `Tech District, ${location || locationName}`,
-            coordinates: { lat: 40.7589, lng: -73.9851 }
-          },
-          category: 'Business & Professional',
-          isFree: true,
-          eventUrl: '#startup-pitch',
-          source: 'eventbrite'
-        }
-      ];
-    } else if (isFoodQuery) {
-      fallbackEvents = [
-        {
-          id: `fallback-food-${Date.now()}`,
-          title: `Local Food Tour - ${locationName}`,
-          description: `Discover authentic local cuisine and hidden culinary gems in ${locationName}. Led by local food experts.`,
-          startDate: new Date(weekend.getTime() + 36000000).toISOString(), // 10 AM weekend
-          endDate: new Date(weekend.getTime() + 46800000).toISOString(), // 1 PM weekend
-          location: {
-            name: `Food Market - ${locationName}`,
-            address: `Local Food District, ${location || locationName}`,
-            coordinates: { lat: 40.7505, lng: -73.9934 }
-          },
-          category: 'Food & Drink',
-          isFree: false,
-          price: '$55.00',
-          eventUrl: '#food-tour',
-          source: 'eventbrite'
-        },
-        {
-          id: `fallback-food-${Date.now() + 1}`,
-          title: `Wine Tasting Evening - ${locationName}`,
-          description: `Sample local wines and learn about regional wine-making traditions in ${locationName}.`,
-          startDate: new Date(tomorrow.getTime() + 68400000).toISOString(), // 7 PM tomorrow
-          endDate: new Date(tomorrow.getTime() + 79200000).toISOString(), // 10 PM tomorrow
-          location: {
-            name: `Wine Bar - ${locationName}`,
-            address: `Entertainment District, ${location || locationName}`,
-            coordinates: { lat: 40.7282, lng: -73.9942 }
-          },
-          category: 'Food & Drink',
-          isFree: false,
-          price: '$45.00',
-          eventUrl: '#wine-tasting',
-          source: 'eventbrite'
-        }
-      ];
-    } else if (isCultureQuery) {
-      fallbackEvents = [
-        {
-          id: `fallback-culture-${Date.now()}`,
-          title: `Cultural Heritage Walk - ${locationName}`,
-          description: `Explore the rich cultural heritage and historical landmarks of ${locationName} with expert local guides.`,
-          startDate: new Date(weekend.getTime() + 32400000).toISOString(), // 9 AM weekend
-          endDate: new Date(weekend.getTime() + 39600000).toISOString(), // 11 AM weekend
-          location: {
-            name: `Cultural Center - ${locationName}`,
-            address: `Historic District, ${location || locationName}`,
-            coordinates: { lat: 40.7614, lng: -73.9776 }
-          },
-          category: 'Culture & Arts',
-          isFree: true,
-          eventUrl: '#heritage-walk',
-          source: 'eventbrite'
-        },
-        {
-          id: `fallback-culture-${Date.now() + 1}`,
-          title: `Local Art Gallery Opening - ${locationName}`,
-          description: `Meet local artists and view contemporary works at this exclusive gallery opening in ${locationName}.`,
-          startDate: new Date(tomorrow.getTime() + 61200000).toISOString(), // 5 PM tomorrow
-          endDate: new Date(tomorrow.getTime() + 72000000).toISOString(), // 8 PM tomorrow
-          location: {
-            name: `Art Gallery - ${locationName}`,
-            address: `Arts District, ${location || locationName}`,
-            coordinates: { lat: 40.7505, lng: -73.9934 }
-          },
-          category: 'Culture & Arts',
-          isFree: true,
-          eventUrl: '#art-opening',
-          source: 'eventbrite'
-        }
-      ];
-    } else {
-      // Default travel events with real dates and locations
-      fallbackEvents = [
-        {
-          id: `fallback-travel-${Date.now()}`,
-          title: `Local Cultural Festival - ${locationName}`,
-          description: `Experience local culture and traditions in a vibrant festival setting in ${locationName}. Music, dance, food, and crafts.`,
-          startDate: new Date(weekend.getTime() + 39600000).toISOString(), // 11 AM weekend
-          endDate: new Date(weekend.getTime() + 68400000).toISOString(), // 7 PM weekend
-          location: {
-            name: `Festival Grounds - ${locationName}`,
-            address: `City Center, ${location || locationName}`,
-            coordinates: { lat: 40.7580, lng: -73.9855 }
-          },
-          category: 'Culture & Arts',
-          isFree: false,
-          price: '$25.00',
-          eventUrl: '#cultural-festival',
-          source: 'eventbrite'
-        },
-        {
-          id: `fallback-travel-${Date.now() + 1}`,
-          title: `Free Walking Tour - ${locationName}`,
-          description: `Explore ${locationName} with a knowledgeable local guide. Perfect for first-time visitors and curious travelers.`,
-          startDate: new Date(tomorrow.getTime() + 36000000).toISOString(), // 10 AM tomorrow
-          endDate: new Date(tomorrow.getTime() + 43200000).toISOString(), // 12 PM tomorrow
-          location: {
-            name: `Tourist Information Center - ${locationName}`,
-            address: `Main Square, ${location || locationName}`,
-            coordinates: { lat: 40.7505, lng: -73.9934 }
-          },
-          category: 'Tours & Travel',
-          isFree: true,
-          eventUrl: '#walking-tour',
-          source: 'eventbrite'
-        },
-        {
-          id: `fallback-travel-${Date.now() + 2}`,
-          title: `Night Photography Workshop - ${locationName}`,
-          description: `Learn to capture the beauty of ${locationName} at night. All skill levels welcome. Equipment provided.`,
-          startDate: new Date(nextWeek.getTime() + 72000000).toISOString(), // 8 PM next week
-          endDate: new Date(nextWeek.getTime() + 82800000).toISOString(), // 11 PM next week
-          location: {
-            name: `Photography Studio - ${locationName}`,
-            address: `Creative District, ${location || locationName}`,
-            coordinates: { lat: 40.7282, lng: -73.9942 }
-          },
-          category: 'Education & Learning',
-          isFree: false,
-          price: '$65.00',
-          eventUrl: '#photography-workshop',
-          source: 'eventbrite'
-        }
-      ];
+  /**
+   * Get comprehensive events from multiple sources
+   */
+  async getEventsForLocation(location: string, options: {
+    includeEventbrite?: boolean;
+    includeLocal?: boolean;
+    radius?: number;
+    maxResults?: number;
+  } = {}): Promise<LocalEvent[]> {
+    const {
+      includeEventbrite = true,
+      includeLocal = true,
+      radius = 25,
+      maxResults = 20
+    } = options;
+
+    // Check cache first
+    const cacheKey = `events-${location}-${JSON.stringify(options)}`;
+    const cached = this.requestCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+      console.log('💾 Using cached events data for:', location);
+      return cached.data;
     }
 
-    console.log(`🎯 Generated ${fallbackEvents.length} smart events for ${locationName}`);
-    
-    return {
-      events: fallbackEvents,
-      pagination: {
-        page_number: 1,
-        page_size: fallbackEvents.length,
-        total_items: fallbackEvents.length
+    // Check rate limit
+    if (!this.checkRateLimit()) {
+      // Return cached data if available, otherwise fallback
+      if (cached) {
+        return cached.data;
       }
-    };
-  }
-
-  async getTravelEvents(location?: string): Promise<EventsApiResponse> {
-    // Using smart fallback events since Eventbrite search API is deprecated
-    return this.searchEvents(
-      'travel OR tourism OR culture OR festival OR museum OR exhibition', 
-      location,
-      '113' // Travel & Outdoor category ID
-    );
-  }
-
-  async getFoodEvents(location?: string): Promise<EventsApiResponse> {
-    return this.searchEvents(
-      'food OR restaurant OR culinary OR wine OR tasting', 
-      location,
-      '110' // Food & Drink category ID
-    );
-  }
-
-  async getCulturalEvents(location?: string): Promise<EventsApiResponse> {
-    return this.searchEvents(
-      'culture OR art OR music OR theater OR history', 
-      location,
-      '105' // Performing & Visual Arts category ID
-    );
-  }
-
-  async getBusinessEvents(location?: string): Promise<EventsApiResponse> {
-    return this.searchEvents(
-      'business OR networking OR conference OR workshop', 
-      location,
-      '101' // Business & Professional category ID
-    );
-  }
-
-  async getEventsNearLocation(
-    latitude: number, 
-    longitude: number, 
-    radiusKm: number = 25
-  ): Promise<EventsApiResponse> {
-    console.log(`🎯 Getting events near location: ${latitude}, ${longitude} (radius: ${radiusKm}km)`);
-    
-    // Try to determine the city/region from coordinates
-    let locationName = `${latitude}, ${longitude}`;
-    
-    try {
-      // In a real implementation, you'd use reverse geocoding here
-      // For now, we'll use approximate location mapping
-      const approximateLocation = this.getApproximateLocationName(latitude, longitude);
-      if (approximateLocation) {
-        locationName = approximateLocation;
-        console.log(`📍 Approximate location determined: ${locationName}`);
-      }
-    } catch (err) {
-      console.warn('Could not determine location name from coordinates:', err);
-    }
-
-    // Use location-aware fallback events
-    const fallbackEvents = this.getFallbackEvents(locationName, 'local events');
-    
-    // Filter events by approximate distance (simplified calculation)
-    const filteredEvents = fallbackEvents.events.filter(event => {
-      if (!event.location.coordinates.lat || !event.location.coordinates.lng) {
-        return true; // Include events without coordinates
-      }
-      
-      const distance = this.calculateDistance(
-        latitude, longitude,
-        event.location.coordinates.lat, event.location.coordinates.lng
-      );
-      
-      const isWithinRadius = distance <= radiusKm;
-      console.log(`📏 Event "${event.title}" distance: ${distance.toFixed(1)}km (${isWithinRadius ? 'included' : 'excluded'})`);
-      return isWithinRadius;
-    });
-
-    console.log(`✅ Found ${filteredEvents.length} events within ${radiusKm}km of location`);
-    
-    return {
-      events: filteredEvents,
-      pagination: fallbackEvents.pagination
-    };
-  }
-
-  private getApproximateLocationName(lat: number, lng: number): string | null {
-    // Simple coordinate-to-city mapping for major cities
-    // In production, use a proper reverse geocoding service
-    const majorCities = [
-      { name: 'New York, NY', lat: 40.7128, lng: -74.0060, radius: 50 },
-      { name: 'Los Angeles, CA', lat: 34.0522, lng: -118.2437, radius: 50 },
-      { name: 'London, UK', lat: 51.5074, lng: -0.1278, radius: 50 },
-      { name: 'Paris, France', lat: 48.8566, lng: 2.3522, radius: 50 },
-      { name: 'Tokyo, Japan', lat: 35.6762, lng: 139.6503, radius: 50 },
-      { name: 'Sydney, Australia', lat: -33.8688, lng: 151.2093, radius: 50 },
-      { name: 'Berlin, Germany', lat: 52.5200, lng: 13.4050, radius: 50 },
-      { name: 'Amsterdam, Netherlands', lat: 52.3676, lng: 4.9041, radius: 50 },
-      { name: 'Barcelona, Spain', lat: 41.3851, lng: 2.1734, radius: 50 },
-      { name: 'Rome, Italy', lat: 41.9028, lng: 12.4964, radius: 50 },
-      { name: 'Istanbul, Turkey', lat: 41.0082, lng: 28.9784, radius: 50 },
-      { name: 'Dubai, UAE', lat: 25.2048, lng: 55.2708, radius: 50 },
-      { name: 'Singapore', lat: 1.3521, lng: 103.8198, radius: 50 },
-      { name: 'Bangkok, Thailand', lat: 13.7563, lng: 100.5018, radius: 50 },
-      { name: 'Mumbai, India', lat: 19.0760, lng: 72.8777, radius: 50 }
-    ];
-
-    for (const city of majorCities) {
-      const distance = this.calculateDistance(lat, lng, city.lat, city.lng);
-      if (distance <= city.radius) {
-        console.log(`🏙️ Location matches ${city.name} (${distance.toFixed(1)}km away)`);
-        return city.name;
-      }
-    }
-
-    return null;
-  }
-
-  private calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-    // Haversine formula for calculating distance between two points on Earth
-    const R = 6371; // Earth's radius in kilometers
-    const dLat = this.toRadians(lat2 - lat1);
-    const dLng = this.toRadians(lng2 - lng1);
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) *
-              Math.sin(dLng / 2) * Math.sin(dLng / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
-
-  private toRadians(degrees: number): number {
-    return degrees * (Math.PI / 180);
-  }
-
-  async getFreeEvents(location?: string): Promise<EventsApiResponse> {
-    const params: Record<string, string> = {
-      'price': 'free',
-      'sort_by': 'date',
-      expand: 'venue,ticket_availability,category'
-    };
-
-    if (location) {
-      params['location.address'] = location;
-      params['location.within'] = '50km';
+      return this.getFallbackEvents(location);
     }
 
     try {
-      const data = await this.fetchEvents('/events/search/', params);
+      console.log('🎪 Fetching events for location:', location);
       
-      return {
-        events: (data.events || []).map((event: EventbriteEvent) => this.transformEvent(event)),
-        pagination: data.pagination
-      };
-    } catch {
-      // Using fallback events for free events
-      return this.getFallbackEvents(location, 'free events');
+      const eventPromises: Promise<LocalEvent[]>[] = [];
+      
+      if (includeEventbrite) {
+        eventPromises.push(this.getEventbriteEvents(location, radius));
+      }
+      
+      if (includeLocal) {
+        eventPromises.push(this.getLocalEvents(location));
+      }
+
+      const results = await Promise.allSettled(eventPromises);
+      
+      // Combine all successful results
+      let allEvents: LocalEvent[] = [];
+      results.forEach(result => {
+        if (result.status === 'fulfilled') {
+          allEvents = allEvents.concat(result.value);
+        }
+      });
+
+      // Add fallback events if we don't have enough
+      if (allEvents.length < 3) {
+        allEvents = allEvents.concat(this.getFallbackEvents(location));
+      }
+
+      // Sort by date and rating
+      allEvents.sort((a, b) => {
+        const dateA = new Date(a.startDate).getTime();
+        const dateB = new Date(b.startDate).getTime();
+        
+        // Prioritize upcoming events
+        if (Math.abs(dateA - dateB) < 24 * 60 * 60 * 1000) { // Within 1 day
+          return (b.rating || 0) - (a.rating || 0); // Sort by rating
+        }
+        return dateA - dateB; // Sort by date
+      });
+
+      // Limit results
+      const limitedEvents = allEvents.slice(0, maxResults);
+
+      // Cache the results
+      this.requestCache.set(cacheKey, {
+        data: limitedEvents,
+        timestamp: Date.now()
+      });
+
+      console.log(`✅ Loaded ${limitedEvents.length} events for ${location}`);
+      return limitedEvents;
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      
+      // Return cached data if available, otherwise fallback
+      if (cached) {
+        console.log('📦 Using stale cached events due to error');
+        return cached.data;
+      }
+      
+      console.log('🔄 Using fallback events due to error');
+      return this.getFallbackEvents(location);
     }
   }
 
-  async getEventsByDateRange(
-    startDate: string, 
-    endDate: string, 
-    location?: string
-  ): Promise<EventsApiResponse> {
-    const params: Record<string, string> = {
-      'start_date.range_start': startDate,
-      'start_date.range_end': endDate,
-      'sort_by': 'date',
-      expand: 'venue,ticket_availability,category'
-    };
+  /**
+   * Search events by category or keyword
+   */
+  async searchEvents(query: string, location?: string): Promise<LocalEvent[]> {
+    const events = await this.getEventsForLocation(location || 'current location');
+    
+    const searchTerm = query.toLowerCase();
+    return events.filter(event => 
+      event.title.toLowerCase().includes(searchTerm) ||
+      event.description.toLowerCase().includes(searchTerm) ||
+      event.category.toLowerCase().includes(searchTerm) ||
+      event.tags.some(tag => tag.toLowerCase().includes(searchTerm))
+    );
+  }
 
-    if (location) {
-      params['location.address'] = location;
-      params['location.within'] = '50km';
-    }
-
-    try {
-      const data = await this.fetchEvents('/events/search/', params);
-      
-      return {
-        events: (data.events || []).map((event: EventbriteEvent) => this.transformEvent(event)),
-        pagination: data.pagination
-      };
-    } catch {
-      // Using fallback events for date range
-      return this.getFallbackEvents(location, `events from ${startDate} to ${endDate}`);
-    }
+  /**
+   * Clear cache (useful for refresh functionality)
+   */
+  clearCache(): void {
+    this.requestCache.clear();
+    console.log('🗑️ Events cache cleared');
   }
 }
 
-export const eventsService = new EventsService(); 
+// Helper function to convert LocalEvent to TravelEvent for backward compatibility
+function convertToTravelEvent(localEvent: LocalEvent): TravelEvent {
+  return {
+    id: localEvent.id,
+    title: localEvent.title,
+    description: localEvent.description,
+    startDate: localEvent.startDate,
+    endDate: localEvent.endDate || localEvent.startDate,
+    location: {
+      name: localEvent.location.name,
+      address: localEvent.location.address,
+      coordinates: {
+        lat: localEvent.location.latitude || 0,
+        lng: localEvent.location.longitude || 0
+      }
+    },
+    category: localEvent.category,
+    isFree: localEvent.price?.isFree || false,
+    price: localEvent.price?.isFree ? 'Free' : `$${localEvent.price?.min || 0}`,
+    imageUrl: localEvent.imageUrl,
+    eventUrl: localEvent.ticketUrl || '#',
+    source: 'eventbrite'
+  };
+}
+
+// Legacy service wrapper for backward compatibility
+class LegacyEventsService {
+  private apiService = new EventsApiService();
+
+  async searchEvents(query: string, location?: string): Promise<{ events: TravelEvent[] }> {
+    const localEvents = await this.apiService.searchEvents(query, location);
+    return {
+      events: localEvents.map(convertToTravelEvent)
+    };
+  }
+
+  async getTravelEvents(location?: string): Promise<{ events: TravelEvent[] }> {
+    const localEvents = await this.apiService.getEventsForLocation(location || 'current location');
+    return {
+      events: localEvents.map(convertToTravelEvent)
+    };
+  }
+
+  async getEventsNearLocation(lat: number, lng: number, radius: number = 25): Promise<{ events: TravelEvent[] }> {
+    const location = `${lat},${lng}`;
+    const localEvents = await this.apiService.getEventsForLocation(location, { radius });
+    return {
+      events: localEvents.map(convertToTravelEvent)
+    };
+  }
+}
+
+// Create and export singleton instances
+export const eventsApiService = new EventsApiService();
+export const eventsService = new LegacyEventsService(); // Legacy export
+
+// React hook for components
+export const useEventsApi = () => {
+  return {
+    getEventsForLocation: eventsApiService.getEventsForLocation.bind(eventsApiService),
+    searchEvents: eventsApiService.searchEvents.bind(eventsApiService),
+    clearCache: eventsApiService.clearCache.bind(eventsApiService),
+  };
+}; 

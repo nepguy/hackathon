@@ -6,11 +6,12 @@ import { AlertTriangle, MapPin, Calendar, Bell, Newspaper, Globe, Navigation, Sh
 import { useRealTimeData } from '../hooks/useRealTimeData';
 
 import { useUserDestinations } from '../contexts/UserDestinationContext';
-import { exaUnifiedService } from '../lib/exaUnifiedService';
-import type { LocalNews, ScamAlert, LocalEvent, TravelSafetyAlert } from '../lib/exaUnifiedService';
+import { eventsApiService } from '../lib/eventsApi';
+import type { LocalEvent } from '../lib/eventsApi';
 import DestinationManager from '../components/destinations/DestinationManager';
+import NotificationsSection from '../components/alerts/NotificationsSection';
 
-type TabType = 'news' | 'scams' | 'events' | 'safety' | 'destinations' | 'local';
+type TabType = 'news' | 'scams' | 'events' | 'safety' | 'destinations' | 'local' | 'notifications';
 
 const AlertsPage: React.FC = () => {
   const routerLocation = useRouterLocation();
@@ -18,13 +19,13 @@ const AlertsPage: React.FC = () => {
   const [activeFilters] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('news');
   const { currentDestination } = useUserDestinations();
-  const { safetyAlerts, isLoading, error, refreshData } = useRealTimeData();
+  const { safetyAlerts, isLoading, refreshData } = useRealTimeData();
 
-  // Exa unified data states
-  const [localNews, setLocalNews] = useState<LocalNews[]>([]);
-  const [scamAlerts, setScamAlerts] = useState<ScamAlert[]>([]);
+  // Local data states
+  const [localNews, setLocalNews] = useState<any[]>([]);
+  const [scamAlerts, setScamAlerts] = useState<any[]>([]);
   const [localEvents, setLocalEvents] = useState<LocalEvent[]>([]);
-  const [travelSafety, setTravelSafety] = useState<TravelSafetyAlert[]>([]);
+  const [travelSafety, setTravelSafety] = useState<any[]>([]);
   const [, setUnifiedLoading] = useState(false);
 
   // Handle navigation state for events focus
@@ -39,7 +40,7 @@ const AlertsPage: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(routerLocation.search);
     const tab = params.get('tab') as TabType;
-    if (tab && ['news', 'scams', 'events', 'safety'].includes(tab)) {
+    if (tab && ['news', 'scams', 'events', 'safety', 'notifications'].includes(tab)) {
       setActiveTab(tab);
     }
   }, [routerLocation]);
@@ -117,7 +118,7 @@ const AlertsPage: React.FC = () => {
   const sortedAlerts = getPersonalizedAlerts();
   const unreadCount = sortedAlerts.filter(alert => !alert.read).length;
 
-  // Load unified data using Exa
+  // Load local data using our own services
   const loadUnifiedData = useCallback(async () => {
     if (!userLocation) return;
     
@@ -125,37 +126,54 @@ const AlertsPage: React.FC = () => {
     
     setUnifiedLoading(true);
     try {
-      console.log('🔄 Loading unified data via Exa for:', locationString);
+      console.log('🔄 Loading local data for:', locationString);
       
-      const [news, scams, events, safety] = await Promise.allSettled([
-        exaUnifiedService.getLocalNews(locationString),
-        exaUnifiedService.getScamAlerts(locationString),
-        exaUnifiedService.getLocalEvents(locationString),
-        exaUnifiedService.getTravelSafetyAlerts(locationString)
+      // Load events using our new events API
+      const events = await eventsApiService.getEventsForLocation(locationString, {
+        includeEventbrite: true,
+        includeLocal: true,
+        maxResults: 10
+      });
+      
+      setLocalEvents(events);
+      console.log('🎉 Loaded local events:', events.length);
+
+      // Set fallback data for other sections
+      setLocalNews([
+        {
+          id: 'news-1',
+          title: 'Local Travel Update',
+          summary: 'Current travel conditions and updates for your area.',
+          category: 'travel',
+          publishedAt: new Date().toISOString(),
+          source: { name: 'Local News', url: '#' }
+        }
+      ]);
+      
+      setScamAlerts([
+        {
+          id: 'scam-1',
+          title: 'General Travel Safety',
+          description: 'Stay alert and verify information from official sources.',
+          severity: 'medium',
+          location: locationString,
+          reportedAt: new Date().toISOString()
+        }
+      ]);
+      
+      setTravelSafety([
+        {
+          id: 'safety-1',
+          title: 'Travel Safety Guidelines',
+          description: 'Follow local guidelines and stay informed about current conditions.',
+          severity: 'info',
+          issuedDate: new Date().toISOString(),
+          source: { name: 'Travel Authority', url: '#' }
+        }
       ]);
 
-      if (news.status === 'fulfilled') {
-        setLocalNews(news.value);
-        console.log('📰 Loaded local news via Exa:', news.value.length);
-      }
-
-      if (scams.status === 'fulfilled') {
-        setScamAlerts(scams.value);
-        console.log('🚨 Loaded scam alerts via Exa:', scams.value.length);
-      }
-
-      if (events.status === 'fulfilled') {
-        setLocalEvents(events.value);
-        console.log('🎉 Loaded local events via Exa:', events.value.length);
-      }
-
-      if (safety.status === 'fulfilled') {
-        setTravelSafety(safety.value);
-        console.log('🛡️ Loaded travel safety via Exa:', safety.value.length);
-      }
-
     } catch (error) {
-      console.error('❌ Failed to load unified data:', error);
+      console.error('❌ Failed to load local data:', error);
     } finally {
       setUnifiedLoading(false);
     }
@@ -184,7 +202,7 @@ const AlertsPage: React.FC = () => {
                 <Globe className="w-5 h-5 mr-2 text-blue-600" />
                 Local News ({localNews.length})
               </h3>
-              <span className="text-sm text-gray-500">Powered by Exa.ai</span>
+              <span className="text-sm text-gray-500">Travel Updates</span>
             </div>
             
             {localNews.length === 0 ? (
@@ -312,7 +330,7 @@ const AlertsPage: React.FC = () => {
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-medium text-gray-900 flex-1">{event.title}</h4>
                     <div className="flex space-x-2">
-                      {event.isFree && (
+                      {event.price?.isFree && (
                         <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
                           Free
                         </span>
@@ -334,11 +352,11 @@ const AlertsPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex justify-between items-center text-xs text-gray-500">
-                    <span>{event.source.name}</span>
+                    <span className="capitalize">{event.source}</span>
                   </div>
-                  {event.eventUrl !== '#' && (
+                  {event.ticketUrl && event.ticketUrl !== '#' && (
                     <a
-                      href={event.eventUrl}
+                      href={event.ticketUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center text-green-600 hover:text-green-800 text-sm mt-2"
@@ -393,7 +411,7 @@ const AlertsPage: React.FC = () => {
                     <div className="mb-3">
                       <h5 className="text-sm font-medium text-gray-900 mb-1">Recommendations:</h5>
                       <ul className="text-sm text-gray-600 space-y-1">
-                        {alert.recommendations.slice(0, 3).map((rec, index) => (
+                        {alert.recommendations.slice(0, 3).map((rec: any, index: number) => (
                           <li key={index} className="flex items-start">
                             <span className="w-1 h-1 bg-gray-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
                             {rec}
@@ -434,6 +452,13 @@ const AlertsPage: React.FC = () => {
         return (
           <div className="space-y-4">
             <DestinationManager />
+          </div>
+        );
+
+      case 'notifications':
+        return (
+          <div className="space-y-4">
+            <NotificationsSection />
           </div>
         );
 
@@ -488,42 +513,7 @@ const AlertsPage: React.FC = () => {
     }
   };
 
-  const tabs = [
-    { 
-      id: 'local', 
-      label: 'My Alerts', 
-      icon: Bell, 
-      count: unreadCount,
-      description: `Personalized alerts for ${locationStatus.location || 'your destinations'}`
-    },
-    { 
-      id: 'events', 
-      label: 'Local Events', 
-      icon: Calendar, 
-      count: localEvents.length,
-      description: `Events and activities in ${locationStatus.location || 'your area'}`
-    },
-    { 
-      id: 'news', 
-      label: 'Live News', 
-      icon: Newspaper, 
-      count: localNews.length,
-      description: `Real-time news for ${locationStatus.location || 'your location'}`
-    },
-    { 
-      id: 'destinations', 
-      label: 'Destinations', 
-      icon: MapPin, 
-      description: 'Manage your travel destinations'
-    },
-    { 
-      id: 'agent', 
-      label: 'AI Insights', 
-      icon: Globe, 
-      count: 0,
-      description: `AI-powered intelligence for ${locationStatus.location || 'your location'}`
-    }
-  ];
+
 
   if (isLoading) {
     return (
@@ -542,99 +532,112 @@ const AlertsPage: React.FC = () => {
   }
 
   return (
-    <PageContainer 
-      title="Safety Alerts"
-      subtitle="Stay informed about safety conditions worldwide"
-    >
-      <div className="space-y-4 sm:space-y-6">
-        {/* Enhanced Location Status with Filter Context */}
-        {locationStatus.hasLocation && (
-          <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Navigation className="w-5 h-5 text-blue-500 mr-2" />
-                <div>
-                  <span className="font-medium text-blue-900 text-sm sm:text-base">
-                    {locationStatus.source === 'GPS' ? 'Current Location' : 'Monitoring Location'}
-                  </span>
-                  <p className="text-xs sm:text-sm text-blue-700">{locationStatus.location}</p>
-                  {activeFilters.length > 0 && (
-                    <p className="text-xs text-blue-600">
-                      Filtering by: {activeFilters.join(', ')}
-                    </p>
-                  )}
-                  {locationStatus.accuracy && (
-                    <p className="text-xs text-blue-600">
-                      Accuracy: ±{Math.round(locationStatus.accuracy)}m
-                    </p>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={refreshData}
-                className="p-1.5 sm:p-2 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors duration-200"
-                title="Refresh location-specific data"
-              >
-                <RefreshCw className="w-4 h-4 text-blue-600" />
-              </button>
-            </div>
-          </div>
-        )}
+    <PageContainer>
+      <div className="flex flex-col space-y-4 p-4 md:p-6">
+        {/* Header */}
+        <div className="flex flex-col space-y-2">
+          <h1 className="text-2xl font-bold text-gray-900">Safety Alerts</h1>
+          <p className="text-gray-600 text-sm md:text-base">
+            Stay informed about safety conditions worldwide
+          </p>
+        </div>
 
-        {/* Error State */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
-            <div className="flex items-center">
-              <AlertTriangle className="w-5 h-5 text-red-500 mr-2" />
-              <span className="text-red-800 text-sm">
-                Error loading alerts: {error}
+        {/* Location Status */}
+        <div className="bg-blue-50 rounded-lg p-4 mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <MapPin className="w-5 h-5 text-blue-600" />
+              <span className="text-sm text-blue-800">
+                {locationStatus.hasLocation 
+                  ? `Monitoring: ${locationStatus.location}`
+                  : 'No location selected'}
               </span>
             </div>
-          </div>
-        )}
-
-        {/* Enhanced Tab Navigation with Descriptions */}
-        <div className="border-b border-gray-200 pb-1">
-          <nav className="-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto pb-1">
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`py-1.5 sm:py-2 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap flex items-center gap-1 sm:gap-2 ${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-                title={tab.description}
-              >
-                <tab.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                {tab.label}
-                {tab.count !== undefined && (
-                  <span className={`ml-1 px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs rounded-full ${
-                    activeTab === tab.id ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </nav>
-          
-          {/* Tab Description */}
-          <div className="mt-1 sm:mt-2 mb-3 sm:mb-4">
-            <p className="text-xs sm:text-sm text-gray-600">
-              {tabs.find(tab => tab.id === activeTab)?.description}
-            </p>
+            {locationStatus.hasLocation && (
+              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                via {locationStatus.source}
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Enhanced Tab Content */}
-        <div className="min-h-[300px] sm:min-h-[400px]">
-          {renderContent()}
+        {/* Tabs Navigation - Mobile Optimized */}
+        <div className="overflow-x-auto -mx-4 px-4 pb-2">
+          <div className="flex space-x-2 min-w-max">
+            <TabButton
+              active={activeTab === 'news'}
+              onClick={() => setActiveTab('news')}
+              icon={<Newspaper className="w-4 h-4" />}
+              label="Live News"
+            />
+            <TabButton
+              active={activeTab === 'events'}
+              onClick={() => setActiveTab('events')}
+              icon={<Calendar className="w-4 h-4" />}
+              label="Local Events"
+            />
+            <TabButton
+              active={activeTab === 'safety'}
+              onClick={() => setActiveTab('safety')}
+              icon={<Shield className="w-4 h-4" />}
+              label="Safety"
+            />
+            <TabButton
+              active={activeTab === 'destinations'}
+              onClick={() => setActiveTab('destinations')}
+              icon={<Navigation className="w-4 h-4" />}
+              label="Destinations"
+            />
+            <TabButton
+              active={activeTab === 'notifications'}
+              onClick={() => setActiveTab('notifications')}
+              icon={<Bell className="w-4 h-4" />}
+              label="Notifications"
+            />
+          </div>
         </div>
+
+        {/* Content Area */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-4">
+            {renderContent()}
+          </div>
+        </div>
+
+        {/* Refresh Button */}
+        <button
+          onClick={refreshData}
+          className="fixed bottom-20 right-4 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
+          aria-label="Refresh data"
+        >
+          <RefreshCw className="w-5 h-5" />
+        </button>
       </div>
     </PageContainer>
   );
 };
+
+// Tab Button Component
+const TabButton: React.FC<{
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}> = ({ active, onClick, icon, label }) => (
+  <button
+    onClick={onClick}
+    className={`
+      flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium
+      transition-colors whitespace-nowrap
+      ${active 
+        ? 'bg-blue-600 text-white' 
+        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+      }
+    `}
+  >
+    {icon}
+    <span>{label}</span>
+  </button>
+);
 
 export default AlertsPage;
