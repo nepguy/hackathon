@@ -1,71 +1,17 @@
 import React, { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Check, Crown, Shield, Zap, ArrowRight, Receipt, Download, Mail } from 'lucide-react';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import PageContainer from '../components/layout/PageContainer';
 
-interface InvoiceData {
-  transactionId: string;
-  planName: string;
-  amount: string;
-  currency: string;
-  billingPeriod: string;
-  purchaseDate: Date;
-  nextBillingDate: Date;
-  paymentMethod: string;
-}
-
-
-
 const PaymentSuccessPage: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { refreshSubscriptionStatus } = useSubscription();
+  const { refreshSubscription } = useSubscription();
   
-  // Get invoice data from navigation state
-  const invoiceData = location.state?.invoiceData as InvoiceData | undefined;
-
   useEffect(() => {
-    // In a real implementation, you would:
-    // 1. Verify the payment with your backend
-    // 2. Update user subscription status in database
-    // 3. Send confirmation email
-    console.log('Payment successful - updating user subscription status');
-    
-    // Update trial status to premium
-    refreshSubscriptionStatus();
-  }, []);
-
-  const handleDownloadInvoice = () => {
-    if (!invoiceData) return;
-    
-    // In a real implementation, this would generate a PDF invoice
-    const invoiceText = `
-GUARDNOMAD INVOICE
-==================
-
-Transaction ID: ${invoiceData.transactionId}
-Date: ${invoiceData.purchaseDate.toLocaleDateString()}
-
-Plan: ${invoiceData.planName}
-Amount: ${invoiceData.currency === 'USD' ? '$' : '€'}${invoiceData.amount}
-Billing Period: Per ${invoiceData.billingPeriod}
-Next Billing Date: ${invoiceData.nextBillingDate.toLocaleDateString()}
-Payment Method: ${invoiceData.paymentMethod}
-
-Thank you for your subscription to GuardNomad Premium!
-    `;
-    
-    const blob = new Blob([invoiceText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `GuardNomad_Invoice_${invoiceData.transactionId}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+    // Refresh subscription status to reflect the new purchase
+    refreshSubscription();
+  }, [refreshSubscription]);
 
   return (
     <PageContainer>
@@ -89,95 +35,6 @@ Thank you for your subscription to GuardNomad Premium!
             Your subscription is now active. Enjoy advanced travel safety features and AI-powered insights.
           </p>
         </div>
-
-        {/* Invoice Section */}
-        {invoiceData && (
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Receipt className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">Payment Receipt</h3>
-                  <p className="text-sm text-gray-600">Transaction #{invoiceData.transactionId}</p>
-                </div>
-              </div>
-              <button
-                onClick={handleDownloadInvoice}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download</span>
-              </button>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Payment Details */}
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-4">Payment Details</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Plan</span>
-                    <span className="font-medium text-gray-900">{invoiceData.planName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Amount Paid</span>
-                    <span className="font-bold text-green-600">
-                      {invoiceData.currency === 'USD' ? '$' : '€'}{invoiceData.amount}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Billing Cycle</span>
-                    <span className="font-medium text-gray-900">Per {invoiceData.billingPeriod}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Payment Method</span>
-                    <span className="font-medium text-gray-900">{invoiceData.paymentMethod}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Billing Information */}
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-4">Billing Information</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Purchase Date</span>
-                    <span className="font-medium text-gray-900">
-                      {invoiceData.purchaseDate.toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Next Billing Date</span>
-                    <span className="font-medium text-gray-900">
-                      {invoiceData.nextBillingDate.toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Status</span>
-                    <span className="inline-flex px-2 py-1 bg-green-100 text-green-800 text-sm font-medium rounded">
-                      Active
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Confirmation Notice */}
-            <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start space-x-3">
-                <Mail className="w-5 h-5 text-blue-600 mt-0.5" />
-                <div>
-                  <h5 className="font-medium text-blue-900">Confirmation Email Sent</h5>
-                  <p className="text-blue-700 text-sm mt-1">
-                    A detailed receipt and subscription information has been sent to your email address.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Premium Features Unlocked */}
         <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8 mb-8">
@@ -221,6 +78,33 @@ Thank you for your subscription to GuardNomad Premium!
               <div className="text-left">
                 <h4 className="font-semibold text-gray-900">Unlimited Access</h4>
                 <p className="text-sm text-gray-600">All premium features and future updates included</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Confirmation Notice */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Receipt className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Payment Confirmation</h3>
+                <p className="text-sm text-gray-600">Your payment has been processed successfully</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start space-x-3">
+              <Mail className="w-5 h-5 text-blue-600 mt-0.5" />
+              <div>
+                <h5 className="font-medium text-blue-900">Confirmation Email Sent</h5>
+                <p className="text-blue-700 text-sm mt-1">
+                  A detailed receipt and subscription information has been sent to your email address.
+                </p>
               </div>
             </div>
           </div>

@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { useAuth } from '../contexts/AuthContext';
 import PageContainer from '../components/layout/PageContainer';
-import PricingPlans from '../components/payment/PricingPlans';
-import RevenueCatPayment from '../components/payment/RevenueCatPayment';
+import StripeCheckout from '../components/payment/StripeCheckout';
 import { Check, Star, Zap, Shield, Globe, Crown } from 'lucide-react';
 import { useStatistics } from '../lib/userDataService';
+import { STRIPE_CONFIG } from '../config/stripe';
 
 const PricingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -14,32 +14,15 @@ const PricingPage: React.FC = () => {
   const { isSubscribed } = useSubscription();
   const { stats } = useStatistics();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
 
-  const planDetails = {
-    premium_monthly: {
-      name: 'Premium Monthly',
-      price: 10.99,
-      currency: 'EUR'
-    },
-    premium_yearly: {
-      name: 'Premium Yearly',
-      price: 99.99,
-      currency: 'EUR'
-    }
+  const handleSelectPlan = (priceId: string) => {
+    setSelectedPlan(priceId);
+    setShowCheckout(true);
   };
 
-  const handleSelectPlan = (planId: string) => {
-    setSelectedPlan(planId);
-    setShowPaymentForm(true);
-  };
-
-  const handlePaymentSuccess = () => {
-    navigate('/payment-success');
-  };
-
-  const handlePaymentCancel = () => {
-    setShowPaymentForm(false);
+  const handleCancelCheckout = () => {
+    setShowCheckout(false);
     setSelectedPlan(null);
   };
   
@@ -92,41 +75,22 @@ const PricingPage: React.FC = () => {
     );
   }
 
-  if (showPaymentForm && selectedPlan) {
-    const plan = planDetails[selectedPlan as keyof typeof planDetails];
+  if (showCheckout && selectedPlan) {
+    const product = STRIPE_CONFIG.PRODUCTS.PREMIUM_MONTHLY;
     
     return (
       <PageContainer
         title="Complete Purchase"
-        subtitle={`Complete your ${plan.name} subscription`}
+        subtitle={`Complete your ${product.name} subscription`}
       >
         <div className="max-w-2xl mx-auto">
-          {/* Plan Summary */}
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-6 mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                  {plan.name}
-                </h3>
-                <p className="text-gray-600">
-                  You're subscribing to premium features
-                </p>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-gray-900">
-                  €{plan.price}
-                </div>
-                <div className="text-sm text-gray-500">
-                  {selectedPlan.includes('yearly') ? 'per year' : 'per month'}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <RevenueCatPayment
-            planId={selectedPlan}
-            onSuccess={handlePaymentSuccess}
-            onCancel={handlePaymentCancel}
+          <StripeCheckout
+            priceId={product.priceId}
+            productName={product.name}
+            description={product.description}
+            price="€9.99/month"
+            mode="subscription"
+            onCancel={handleCancelCheckout}
           />
         </div>
       </PageContainer>
@@ -174,7 +138,115 @@ const PricingPage: React.FC = () => {
           </div>
         </div>
 
-        <PricingPlans onSelectPlan={handleSelectPlan} />
+        {/* Pricing Plan */}
+        <div className="py-12">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Choose Your <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Premium Plan</span>
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Unlock advanced travel safety features and AI-powered insights to make your journeys safer and more informed.
+            </p>
+          </div>
+
+          <div className="max-w-md mx-auto">
+            <div className="relative bg-white rounded-2xl shadow-xl border-2 border-blue-500 overflow-hidden">
+              {/* Popular Badge */}
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full text-sm font-semibold flex items-center space-x-2">
+                  <Zap className="w-4 h-4" />
+                  <span>Most Popular</span>
+                </div>
+              </div>
+
+              <div className="p-8">
+                {/* Plan Header */}
+                <div className="text-center mb-8">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Crown className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Guard Nomand Premium</h3>
+                  <div className="flex items-baseline justify-center space-x-2">
+                    <span className="text-4xl font-bold text-gray-900">
+                      €9.99
+                    </span>
+                    <span className="text-gray-600">/month</span>
+                  </div>
+                </div>
+
+                {/* Features List */}
+                <div className="space-y-4 mb-8">
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 w-5 h-5 bg-green-100 rounded-full flex items-center justify-center mt-0.5">
+                      <Check className="w-3 h-3 text-green-600" />
+                    </div>
+                    <span className="text-gray-700 text-sm leading-relaxed">Real-time safety alerts for your destinations</span>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 w-5 h-5 bg-green-100 rounded-full flex items-center justify-center mt-0.5">
+                      <Check className="w-3 h-3 text-green-600" />
+                    </div>
+                    <span className="text-gray-700 text-sm leading-relaxed">AI-powered travel insights</span>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 w-5 h-5 bg-green-100 rounded-full flex items-center justify-center mt-0.5">
+                      <Check className="w-3 h-3 text-green-600" />
+                    </div>
+                    <span className="text-gray-700 text-sm leading-relaxed">Premium weather forecasts</span>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 w-5 h-5 bg-green-100 rounded-full flex items-center justify-center mt-0.5">
+                      <Check className="w-3 h-3 text-green-600" />
+                    </div>
+                    <span className="text-gray-700 text-sm leading-relaxed">Priority customer support</span>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 w-5 h-5 bg-green-100 rounded-full flex items-center justify-center mt-0.5">
+                      <Check className="w-3 h-3 text-green-600" />
+                    </div>
+                    <span className="text-gray-700 text-sm leading-relaxed">Unlimited destinations</span>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 w-5 h-5 bg-green-100 rounded-full flex items-center justify-center mt-0.5">
+                      <Check className="w-3 h-3 text-green-600" />
+                    </div>
+                    <span className="text-gray-700 text-sm leading-relaxed">Advanced map features</span>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 w-5 h-5 bg-green-100 rounded-full flex items-center justify-center mt-0.5">
+                      <Check className="w-3 h-3 text-green-600" />
+                    </div>
+                    <span className="text-gray-700 text-sm leading-relaxed">Offline access</span>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 w-5 h-5 bg-green-100 rounded-full flex items-center justify-center mt-0.5">
+                      <Check className="w-3 h-3 text-green-600" />
+                    </div>
+                    <span className="text-gray-700 text-sm leading-relaxed">Custom alert preferences</span>
+                  </div>
+                </div>
+
+                {/* CTA Button */}
+                <button
+                  onClick={() => handleSelectPlan(STRIPE_CONFIG.PRODUCTS.PREMIUM_MONTHLY.priceId)}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-8 rounded-xl font-semibold text-lg hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2 group"
+                >
+                  <CreditCard className="w-5 h-5" />
+                  <span>Subscribe Now</span>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </button>
+
+                {/* Security Note */}
+                <div className="mt-4 text-center">
+                  <p className="text-xs text-gray-500 flex items-center justify-center space-x-1">
+                    <Shield className="w-3 h-3" />
+                    <span>Secure payment • Cancel anytime</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         
         {/* Trust Indicators */}
         <div className="mt-16 text-center">

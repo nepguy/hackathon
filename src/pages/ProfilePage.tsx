@@ -4,11 +4,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUserStatistics } from '../lib/userStatisticsService';
 import { databaseService } from '../lib/database';
 import PageContainer from '../components/layout/PageContainer';
+import SubscriptionStatus from '../components/profile/SubscriptionStatus';
 import { 
   User, Settings, Shield, HelpCircle, LogOut,
   Camera, ChevronRight, TrendingUp, MapPin,
   Calendar, Award, Clock, Globe, Bell,
-  Lock, Smartphone, CreditCard, Star
+  Lock, Smartphone
 } from 'lucide-react';
 
 const ProfilePage: React.FC = () => {
@@ -97,14 +98,6 @@ const ProfilePage: React.FC = () => {
       action: () => navigate('/profile-settings'),
       color: 'bg-gray-50 text-gray-600 border-gray-200',
       iconBg: 'bg-gray-100'
-    },
-    {
-      icon: CreditCard,
-      title: 'Subscription',
-      description: 'Manage your GuardNomad subscription and billing',
-      action: () => navigate('/pricing'),
-      color: 'bg-green-50 text-green-600 border-green-200',
-      iconBg: 'bg-green-100'
     },
     {
       icon: HelpCircle,
@@ -238,10 +231,6 @@ const ProfilePage: React.FC = () => {
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     <span>Active Traveler</span>
                   </div>
-                  <div className="flex items-center space-x-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                    <Star className="w-3 h-3" />
-                    <span>Premium Member</span>
-                  </div>
                 </div>
               </div>
             </div>
@@ -262,8 +251,11 @@ const ProfilePage: React.FC = () => {
           </div>
         </div>
 
+        {/* Subscription Status */}
+        <SubscriptionStatus />
+
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {quickActions.map((action, index) => (
             <button
               key={index}
