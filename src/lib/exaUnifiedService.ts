@@ -334,20 +334,27 @@ class ExaUnifiedService {
     return this.safeExaCall(
       async () => {
         const categoryFilter = category ? ` ${category}` : '';
-        const searchQuery = `Local news and current events in ${location}${categoryFilter}:`;
-
+        
+        // Enhanced location-specific search query
+        const searchQuery = `${location} local news current events today ${categoryFilter}`;
+        
+        // Get location-specific domains and filters
+        const { includeDomains, excludeDomains } = this.getLocationSpecificDomains(location);
+        
         console.log('📰 Exa search for local news:', searchQuery);
+        console.log('🌍 Using domains for', location, ':', includeDomains.slice(0, 5));
 
         const response = await this.exa.searchAndContents(searchQuery, {
           type: 'neural',
           useAutoprompt: true,
-          numResults: 12,
+          numResults: 15,
           text: true,
           highlights: {
             numSentences: 3,
             highlightsPerUrl: 1
           },
-          includeDomains: ['patch.com', 'nextdoor.com', 'local.news', 'abc7.com', 'nbc.com', 'cbs.com'],
+          includeDomains: includeDomains,
+          excludeDomains: excludeDomains,
           startPublishedDate: this.getDateDaysAgo(7) // Last week
         });
 
@@ -388,24 +395,26 @@ class ExaUnifiedService {
 
     return this.safeExaCall(
       async () => {
-        const locationFilter = location ? ` affecting ${location}` : '';
-        const searchQuery = `Recent scam alerts and fraud warnings${locationFilter}:`;
+        const searchQuery = location 
+          ? `${location} scam alerts fraud warnings security threats`
+          : 'Recent scam alerts and fraud warnings';
+
+        // Get location-specific security/government domains
+        const securityDomains = this.getSecurityDomains(location);
 
         console.log('🚨 Exa search for scam alerts:', searchQuery);
+        console.log('🛡️ Using security domains for', location || 'global', ':', securityDomains.slice(0, 3));
 
         const response = await this.exa.searchAndContents(searchQuery, {
           type: 'neural',
           useAutoprompt: true,
-          numResults: 8,
+          numResults: 10,
           text: true,
           highlights: {
             numSentences: 2,
             highlightsPerUrl: 1
           },
-          includeDomains: [
-            'ftc.gov', 'fbi.gov', 'ic3.gov', 'scamwatch.gov.au', 
-            'actionfraud.police.uk', 'consumer.ftc.gov', 'bbb.org'
-          ],
+          includeDomains: securityDomains,
           startPublishedDate: this.getDateDaysAgo(30) // Last month
         });
 
@@ -447,23 +456,24 @@ class ExaUnifiedService {
     return this.safeExaCall(
       async () => {
         const categoryFilter = category ? ` ${category}` : '';
-        const searchQuery = `Upcoming local events and activities in ${location}${categoryFilter}:`;
+        const searchQuery = `${location} upcoming events activities ${categoryFilter} 2024 2025`;
+
+        // Get location-specific event domains
+        const eventDomains = this.getEventDomains(location);
 
         console.log('🎉 Exa search for local events:', searchQuery);
+        console.log('🎪 Using event domains for', location, ':', eventDomains.slice(0, 3));
 
         const response = await this.exa.searchAndContents(searchQuery, {
           type: 'neural',
           useAutoprompt: true,
-          numResults: 10,
+          numResults: 12,
           text: true,
           highlights: {
             numSentences: 2,
             highlightsPerUrl: 1
           },
-          includeDomains: [
-            'eventbrite.com', 'meetup.com', 'facebook.com/events', 
-            'patch.com', 'timeout.com', 'allevents.in'
-          ],
+          includeDomains: eventDomains,
           startPublishedDate: this.getDateDaysAgo(14) // Last 2 weeks
         });
 
@@ -1052,6 +1062,224 @@ class ExaUnifiedService {
     };
     
     return imageMap[type] || imageMap.news;
+  }
+
+  /**
+   * Get location-specific event platforms for better regional event results
+   */
+  private getEventDomains(location: string): string[] {
+    const locationLower = location.toLowerCase();
+    
+    // German event platforms
+    if (locationLower.includes('germany') || locationLower.includes('magdeburg')) {
+      return [
+        'eventbrite.de', 'xing.com', 'meetup.com', 'facebook.com/events',
+        'veranstaltungen.meinestadt.de', 'events.at', 'berlin.de/events',
+        'muenchen.de', 'hamburg.de/events', 'magdeburg.de', 'sachsen-anhalt.de',
+        'timeout.com', 'allevents.in', 'unternehmen-heute.de'
+      ];
+    }
+    
+    // UK event platforms
+    if (locationLower.includes('uk') || locationLower.includes('england')) {
+      return [
+        'eventbrite.co.uk', 'meetup.com', 'facebook.com/events', 
+        'timeout.com/london', 'visitlondon.com', 'whatson.co.uk',
+        'ticketmaster.co.uk', 'seetickets.com', 'designmynight.com'
+      ];
+    }
+    
+    // European event platforms
+    if (locationLower.includes('europe') || locationLower.includes('eu')) {
+      return [
+        'eventbrite.com', 'meetup.com', 'facebook.com/events',
+        'timeout.com', 'allevents.in', 'events.at', 'ticketmaster.com',
+        'viagogo.com', 'stubhub.com', 'songkick.com'
+      ];
+    }
+    
+    // US event platforms
+    if (locationLower.includes('us') || locationLower.includes('america')) {
+      return [
+        'eventbrite.com', 'meetup.com', 'facebook.com/events',
+        'patch.com', 'timeout.com', 'allevents.in', 'ticketmaster.com',
+        'stubhub.com', 'bandsintown.com', 'songkick.com'
+      ];
+    }
+    
+    // Default international
+    return [
+      'eventbrite.com', 'meetup.com', 'facebook.com/events',
+      'timeout.com', 'allevents.in', 'ticketmaster.com', 'songkick.com'
+    ];
+  }
+
+  /**
+   * Get location-specific security/government domains for scam alerts
+   */
+  private getSecurityDomains(location?: string): string[] {
+    if (!location) {
+      return [
+        'interpol.int', 'europol.europa.eu', 'consumer.ftc.gov', 'ic3.gov',
+        'scamwatch.gov.au', 'actionfraud.police.uk', 'bbb.org'
+      ];
+    }
+
+    const locationLower = location.toLowerCase();
+    
+    // German security domains
+    if (locationLower.includes('germany') || locationLower.includes('magdeburg')) {
+      return [
+        'bka.de', 'bsi.bund.de', 'polizei.de', 'verbraucherzentrale.de',
+        'bundesnetzagentur.de', 'europol.europa.eu', 'bbb.org',
+        'scamadviser.com', 'trustpilot.com'
+      ];
+    }
+    
+    // UK security domains
+    if (locationLower.includes('uk') || locationLower.includes('england')) {
+      return [
+        'actionfraud.police.uk', 'ncsc.gov.uk', 'citizensadvice.org.uk',
+        'which.co.uk', 'ico.org.uk', 'fca.org.uk', 'europol.europa.eu'
+      ];
+    }
+    
+    // European security domains
+    if (locationLower.includes('europe') || locationLower.includes('eu')) {
+      return [
+        'europol.europa.eu', 'europarl.europa.eu', 'ecdl.org',
+        'bsi.bund.de', 'ncsc.gov.uk', 'actionfraud.police.uk'
+      ];
+    }
+    
+    // US security domains
+    if (locationLower.includes('us') || locationLower.includes('america')) {
+      return [
+        'ftc.gov', 'fbi.gov', 'ic3.gov', 'consumer.ftc.gov', 
+        'bbb.org', 'fraud.org', 'aarp.org'
+      ];
+    }
+    
+    // Default international
+    return [
+      'interpol.int', 'europol.europa.eu', 'consumer.ftc.gov', 
+      'scamwatch.gov.au', 'actionfraud.police.uk', 'bbb.org'
+    ];
+  }
+
+  /**
+   * Get location-specific domains for better regional news results
+   */
+  private getLocationSpecificDomains(location: string): { includeDomains: string[]; excludeDomains: string[] } {
+    const locationLower = location.toLowerCase();
+    
+    // European/German domains
+    if (locationLower.includes('germany') || locationLower.includes('deutschland') || 
+        locationLower.includes('berlin') || locationLower.includes('munich') || 
+        locationLower.includes('hamburg') || locationLower.includes('magdeburg')) {
+      return {
+        includeDomains: [
+          'spiegel.de', 'bild.de', 'zeit.de', 'sueddeutsche.de', 'faz.net',
+          'welt.de', 'focus.de', 'stern.de', 'tagesschau.de', 'zdf.de',
+          'dw.com', 'deutsche-welle.de', 'mdr.de', 'ndr.de', 'br.de',
+          'lokalkompass.de', 'news.de', 'gmx.net', 'web.de',
+          // English sources covering Germany
+          'thelocal.de', 'reuters.com', 'bbc.com', 'euronews.com'
+        ],
+        excludeDomains: [
+          'patch.com', 'abc7.com', 'nbc.com', 'cbs.com', 'fox.com',
+          'cnn.com', 'usatoday.com', 'washingtonpost.com', 'nytimes.com'
+        ]
+      };
+    }
+    
+    // UK domains
+    if (locationLower.includes('uk') || locationLower.includes('england') || 
+        locationLower.includes('london') || locationLower.includes('britain')) {
+      return {
+        includeDomains: [
+          'bbc.co.uk', 'guardian.co.uk', 'telegraph.co.uk', 'independent.co.uk',
+          'dailymail.co.uk', 'mirror.co.uk', 'express.co.uk', 'metro.co.uk',
+          'standard.co.uk', 'manchestereveningnews.co.uk', 'birminghammail.co.uk'
+        ],
+        excludeDomains: ['patch.com', 'abc7.com', 'nbc.com', 'cbs.com']
+      };
+    }
+    
+    // France domains
+    if (locationLower.includes('france') || locationLower.includes('paris') || locationLower.includes('lyon')) {
+      return {
+        includeDomains: [
+          'lemonde.fr', 'figaro.fr', 'liberation.fr', 'franceinfo.fr',
+          'bfmtv.com', 'leparisien.fr', 'ouest-france.fr', 'france24.com'
+        ],
+        excludeDomains: ['patch.com', 'abc7.com', 'nbc.com', 'cbs.com']
+      };
+    }
+    
+    // Spain domains
+    if (locationLower.includes('spain') || locationLower.includes('madrid') || locationLower.includes('barcelona')) {
+      return {
+        includeDomains: [
+          'elpais.com', 'elmundo.es', 'abc.es', 'lavanguardia.com',
+          'elperiodico.com', 'publico.es', 'rtve.es'
+        ],
+        excludeDomains: ['patch.com', 'abc7.com', 'nbc.com', 'cbs.com']
+      };
+    }
+    
+    // Italy domains
+    if (locationLower.includes('italy') || locationLower.includes('rome') || locationLower.includes('milan')) {
+      return {
+        includeDomains: [
+          'corriere.it', 'repubblica.it', 'lastampa.it', 'gazzetta.it',
+          'ansa.it', 'ilgiornale.it', 'ilmessaggero.it'
+        ],
+        excludeDomains: ['patch.com', 'abc7.com', 'nbc.com', 'cbs.com']
+      };
+    }
+    
+    // Netherlands domains
+    if (locationLower.includes('netherlands') || locationLower.includes('amsterdam') || locationLower.includes('holland')) {
+      return {
+        includeDomains: [
+          'nu.nl', 'nos.nl', 'telegraaf.nl', 'volkskrant.nl', 'nrc.nl',
+          'rtl.nl', 'ad.nl', 'dutchnews.nl'
+        ],
+        excludeDomains: ['patch.com', 'abc7.com', 'nbc.com', 'cbs.com']
+      };
+    }
+    
+    // General European domains
+    if (locationLower.includes('europe') || locationLower.includes('eu')) {
+      return {
+        includeDomains: [
+          'euronews.com', 'politico.eu', 'reuters.com', 'bbc.com',
+          'dw.com', 'france24.com', 'rt.com', 'euractiv.com'
+        ],
+        excludeDomains: ['patch.com', 'abc7.com', 'nbc.com', 'cbs.com']
+      };
+    }
+    
+    // US domains (fallback)
+    if (locationLower.includes('us') || locationLower.includes('america') || locationLower.includes('usa')) {
+      return {
+        includeDomains: [
+          'patch.com', 'nextdoor.com', 'local.news', 'abc7.com', 'nbc.com', 'cbs.com',
+          'npr.org', 'pbs.org', 'usatoday.com', 'apnews.com'
+        ],
+        excludeDomains: []
+      };
+    }
+    
+    // Global/International domains (default)
+    return {
+      includeDomains: [
+        'reuters.com', 'bbc.com', 'apnews.com', 'euronews.com', 
+        'dw.com', 'france24.com', 'aljazeera.com', 'cnn.com'
+      ],
+      excludeDomains: ['patch.com', 'abc7.com', 'nextdoor.com'] // Exclude US-specific
+    };
   }
 
   /**
