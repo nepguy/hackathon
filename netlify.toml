@@ -17,6 +17,13 @@
 
 # Redirects and rewrites
 [[redirects]]
+  # API proxy to GuardNomad backend
+  from = "/api/*"
+  to = "https://api.guardnomand.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   # SPA fallback - redirect all routes to index.html for client-side routing
   from = "/*"
   to = "/index.html"
@@ -39,7 +46,7 @@
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com;
       img-src 'self' data: https: blob:;
-      connect-src 'self' https://api.openweathermap.org https://newsapi.org https://api.exa.ai https://*.supabase.co wss://*.supabase.co;
+      connect-src 'self' https://api.guardnomand.com https://api.openweathermap.org https://newsapi.org https://api.exa.ai https://*.supabase.co wss://*.supabase.co;
       frame-src 'self' https://maps.googleapis.com;
     '''
 

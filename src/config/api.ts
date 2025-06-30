@@ -1,7 +1,7 @@
 // API Configuration
 export const API_CONFIG = {
-  // Backend API URL - change this for production
-  BASE_URL: import.meta.env.VITE_API_URL || 'https://guardnomad-api.onrender.com',
+  // Backend API URL - GuardNomad production backend
+  BASE_URL: import.meta.env.VITE_API_URL || 'https://api.guardnomand.com',
   
   // API endpoints
   ENDPOINTS: {
