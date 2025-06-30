@@ -353,11 +353,11 @@ class ExaUnifiedService {
 
         const localNews: LocalNews[] = (response.results || []).map((result: any) => ({
           id: this.generateId(result.url),
-          title: result.title || 'Local News Update',
-          description: result.highlights?.[0] || result.text?.substring(0, 200) + '...' || 'No description available',
-          content: result.text || 'Content not available',
+          title: this.sanitizeText(result.title) || 'Local News Update',
+          description: this.sanitizeDescription(result.highlights?.[0] || result.text || ''),
+          content: this.sanitizeText(result.text) || 'Content not available',
           url: result.url,
-          imageUrl: `https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400`,
+          imageUrl: this.getReliableImageUrl('news'),
           publishedAt: result.publishedDate || new Date().toISOString(),
           source: {
             name: this.extractSourceName(result.url),
@@ -411,8 +411,8 @@ class ExaUnifiedService {
 
         const scamAlerts: ScamAlert[] = (response.results || []).map((result: any) => ({
           id: this.generateId(result.url),
-          title: result.title || 'Scam Alert',
-          description: result.highlights?.[0] || result.text?.substring(0, 200) + '...' || 'Scam warning',
+          title: this.sanitizeText(result.title) || 'Scam Alert',
+          description: this.sanitizeDescription(result.highlights?.[0] || result.text || ''),
           severity: this.determineScamSeverity(result.title || '', result.text || ''),
           location: location || this.extractLocation(result.title || '', result.text || ''),
           scamType: this.categorizeScam(result.title || '', result.text || ''),
@@ -469,8 +469,8 @@ class ExaUnifiedService {
 
         const localEvents: LocalEvent[] = (response.results || []).map((result: any) => ({
           id: this.generateId(result.url),
-          title: result.title || 'Local Event',
-          description: result.highlights?.[0] || result.text?.substring(0, 200) + '...' || 'Event details',
+          title: this.sanitizeText(result.title) || 'Local Event',
+          description: this.sanitizeDescription(result.highlights?.[0] || result.text || ''),
           startDate: this.extractEventDate(result.text || '') || new Date().toISOString(),
           location: {
             name: this.extractVenueName(result.text || '') || location,
@@ -527,8 +527,8 @@ class ExaUnifiedService {
 
         const travelSafetyAlerts: TravelSafetyAlert[] = (response.results || []).map((result: any) => ({
           id: this.generateId(result.url),
-          title: result.title || 'Travel Safety Alert',
-          description: result.highlights?.[0] || result.text?.substring(0, 300) + '...' || 'Safety advisory',
+          title: this.sanitizeText(result.title) || 'Travel Safety Alert',
+          description: this.sanitizeDescription(result.highlights?.[0] || result.text || ''),
           severity: this.determineTravelSafetySeverity(result.title || '', result.text || ''),
           alertType: this.categorizeTravelAlert(result.title || '', result.text || ''),
           location,
@@ -989,6 +989,69 @@ class ExaUnifiedService {
       affectedRegions: [location],
       recommendations: ['Stay informed', 'Follow local guidance', 'Keep emergency contacts handy']
     }];
+  }
+
+  // 🧹 TEXT SANITIZATION METHODS
+  private sanitizeText(text?: string): string {
+    if (!text) return '';
+    
+    // Remove HTML tags
+    let cleaned = text.replace(/<[^>]*>/g, '');
+    
+    // Remove base64 data URLs
+    cleaned = cleaned.replace(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/g, '');
+    
+    // Remove excessive whitespace and newlines
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    
+    // Remove weird characters and encoding artifacts
+    cleaned = cleaned.replace(/[^\x20-\x7E\u00A0-\uFFFF]/g, '');
+    
+    // Decode HTML entities
+    cleaned = cleaned
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, ' ');
+    
+    return cleaned;
+  }
+
+  private sanitizeDescription(text: string): string {
+    if (!text) return 'No description available';
+    
+    // First sanitize the text
+    let cleaned = this.sanitizeText(text);
+    
+    // If it's still too long or empty after cleaning, create a proper description
+    if (cleaned.length < 10) {
+      return 'Local news and safety information';
+    }
+    
+    // Truncate to reasonable length with proper word boundaries
+    if (cleaned.length > 150) {
+      cleaned = cleaned.substring(0, 150);
+      const lastSpace = cleaned.lastIndexOf(' ');
+      if (lastSpace > 100) {
+        cleaned = cleaned.substring(0, lastSpace);
+      }
+      cleaned += '...';
+    }
+    
+    return cleaned;
+  }
+
+  private getReliableImageUrl(type: 'news' | 'safety' | 'event' | 'scam'): string {
+    const imageMap = {
+      news: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&h=250&fit=crop&auto=format',
+      safety: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=400&h=250&fit=crop&auto=format',
+      event: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&h=250&fit=crop&auto=format',
+      scam: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=400&h=250&fit=crop&auto=format'
+    };
+    
+    return imageMap[type] || imageMap.news;
   }
 
   /**

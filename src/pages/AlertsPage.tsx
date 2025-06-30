@@ -122,7 +122,36 @@ const AlertsPage: React.FC = () => {
   const loadUnifiedData = useCallback(async () => {
     if (!userLocation) return;
 
-    const locationString = `${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}`;
+    // Convert coordinates to readable location name
+    let locationString = `${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}`;
+    
+    try {
+      // Use OpenStreetMap Nominatim for reverse geocoding (free, no API key needed)
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${userLocation.latitude}&lon=${userLocation.longitude}&zoom=10&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'GuardNomad-Travel-App/1.0'
+          }
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        const city = data.address?.city || data.address?.town || data.address?.village || data.address?.municipality;
+        const country = data.address?.country;
+        
+        if (city && country) {
+          locationString = `${city}, ${country}`;
+        } else if (country) {
+          locationString = country;
+        }
+        
+        console.log('🌍 AlertsPage location:', `${userLocation.latitude.toFixed(4)},${userLocation.longitude.toFixed(4)}`, '→', locationString);
+      }
+    } catch (geocodeError) {
+      console.warn('❌ Geocoding failed in AlertsPage, using coordinates:', geocodeError);
+    }
 
     setUnifiedLoading(true);
     try {

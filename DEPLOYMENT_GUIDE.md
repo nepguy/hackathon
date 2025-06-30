@@ -18,7 +18,7 @@ Create `.env.production` with your production URLs:
 # Production Environment
 VITE_SUPABASE_URL=https://rsbtzmqvgiuvmrocozpp.supabase.co
 VITE_SUPABASE_ANON_KEY=your_production_key
-VITE_GOOGLE_MAPS_API_KEY=AIzaSyBcnjNfH1nBeLWwFhAx6vBEfXvVWopAC3A
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
 ```
 
 ### **4. Configure Domain Restrictions**

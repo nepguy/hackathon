@@ -18,7 +18,7 @@ The "Login is taking longer than expected. Please try again." error when using t
 ### 1. Fixed Environment Configuration
 - Updated `.env` file with complete Supabase anon key:
 ```
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzYnR6bXF2Z2l1dm1yb2NvenBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg3OTMxMzYsImV4cCI6MjA2NDM2OTEzNn0.Ke71lgWs9SejtR3_Of-eJ2O8IDeM6iRBEw1lsVS3FVY
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 ```
 
 ### 2. Enhanced Error Handling in AuthPage.tsx

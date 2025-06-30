@@ -7,7 +7,7 @@ This document outlines the Google Maps integration for the Travel Alert Applicat
 
 ### Current Setup
 The Google Maps API key has been integrated into the application:
-- **API Key**: `AIzaSyBcnjNfH1nBeLWwFhAx6vBEfXvVWopAC3A`
+- **API Key**: `your_google_maps_api_key_here`
 - **Status**: Active and configured in the application
 
 ### Security Best Practices
@@ -17,7 +17,7 @@ To secure the API key properly, create a `.env` file in the project root:
 
 ```bash
 # Create .env file
-echo "VITE_GOOGLE_MAPS_API_KEY=AIzaSyBcnjNfH1nBeLWwFhAx6vBEfXvVWopAC3A" > .env
+echo "VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here" > .env
 ```
 
 #### 2. Gitignore Protection

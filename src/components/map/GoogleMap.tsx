@@ -27,7 +27,59 @@ const GOOGLE_MAPS_CONFIG = {
   version: 'weekly' // Use weekly for latest features
 };
 
-const mockAlerts: AlertMarker[] = [
+// Generate dynamic alerts based on user location
+const generateLocationBasedAlerts = (userLocation: google.maps.LatLngLiteral): AlertMarker[] => {
+  const alerts: AlertMarker[] = [];
+  
+  // Generate alerts around user location
+  const generateNearbyLocation = (baseLat: number, baseLng: number, radiusKm: number = 2) => {
+    const offsetLat = (Math.random() - 0.5) * (radiusKm / 111); // 1 degree ≈ 111km
+    const offsetLng = (Math.random() - 0.5) * (radiusKm / (111 * Math.cos(baseLat * Math.PI / 180)));
+    return {
+      lat: baseLat + offsetLat,
+      lng: baseLng + offsetLng
+    };
+  };
+
+  // Safety alerts
+  alerts.push({
+    id: 'safety-1',
+    position: generateNearbyLocation(userLocation.lat, userLocation.lng, 1),
+    type: 'danger',
+    title: 'High Crime Area',
+    description: 'Increased theft reports. Stay alert and avoid walking alone after dark.'
+  });
+
+  alerts.push({
+    id: 'safety-2',
+    position: generateNearbyLocation(userLocation.lat, userLocation.lng, 1.5),
+    type: 'warning',
+    title: 'Construction Zone',
+    description: 'Road construction causing traffic delays. Plan alternate routes.'
+  });
+
+  // Weather alerts
+  alerts.push({
+    id: 'weather-1',
+    position: generateNearbyLocation(userLocation.lat, userLocation.lng, 0.8),
+    type: 'weather',
+    title: 'Weather Advisory',
+    description: 'Rain expected this afternoon. Carry an umbrella.'
+  });
+
+  alerts.push({
+    id: 'weather-2',
+    position: generateNearbyLocation(userLocation.lat, userLocation.lng, 2),
+    type: 'weather',
+    title: 'Wind Warning',
+    description: 'Strong winds expected. Secure loose objects.'
+  });
+
+  return alerts;
+};
+
+// Default alerts for fallback
+const defaultAlerts: AlertMarker[] = [
   {
     id: '1',
     position: { lat: 40.7128, lng: -74.0060 },
@@ -305,8 +357,13 @@ const Map: React.FC<GoogleMapProps & { map: google.maps.Map | null; setMap: (map
     }
 
     try {
+      // Get dynamic alerts based on map center or user location
+      const alertsToShow = userLocation 
+        ? generateLocationBasedAlerts({ lat: userLocation.latitude, lng: userLocation.longitude })
+        : defaultAlerts;
+        
       // Create markers using AdvancedMarkerElement
-      for (const alert of mockAlerts) {
+      for (const alert of alertsToShow) {
         const markerElement = createAdvancedMarkerElement(alert);
         
         const marker = new google.maps.marker.AdvancedMarkerElement({

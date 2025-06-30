@@ -120,12 +120,41 @@ const HomePage: React.FC = () => {
     setIsLoadingNews(true);
     
     try {
-      // Use location if available, otherwise use a default
-      const locationString = userLocation 
-        ? `${userLocation.latitude.toFixed(4)},${userLocation.longitude.toFixed(4)}` 
-        : 'Global Travel News';
+      // Convert coordinates to readable location name
+      let locationString = 'Global Travel News';
       
-      console.log('🌍 Using location for news:', locationString);
+      if (userLocation) {
+        try {
+          // Use OpenStreetMap Nominatim for reverse geocoding (free, no API key needed)
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${userLocation.latitude}&lon=${userLocation.longitude}&zoom=10&addressdetails=1`,
+            {
+              headers: {
+                'User-Agent': 'GuardNomad-Travel-App/1.0'
+              }
+            }
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            const city = data.address?.city || data.address?.town || data.address?.village || data.address?.municipality;
+            const country = data.address?.country;
+            
+            if (city && country) {
+              locationString = `${city}, ${country}`;
+            } else if (country) {
+              locationString = country;
+            }
+            
+            console.log('🌍 Converted location:', `${userLocation.latitude.toFixed(4)},${userLocation.longitude.toFixed(4)}`, '→', locationString);
+          }
+        } catch (geocodeError) {
+          console.warn('❌ Geocoding failed, using coordinates:', geocodeError);
+          locationString = `${userLocation.latitude.toFixed(4)},${userLocation.longitude.toFixed(4)}`;
+        }
+      }
+      
+      console.log('📰 Fetching news for location:', locationString);
       
       // Use Exa.ai service for travel news
       try {
