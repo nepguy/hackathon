@@ -7,6 +7,7 @@ import {
 import { useTravelStories } from '../lib/travelStoriesService';
 import type { TravelStory } from '../lib/travelStoriesService';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import ShareStoryModal from '../components/explore/ShareStoryModal';
 import { useStoryComments, StoryComment } from '../lib/storyCommentsService';
 
@@ -57,8 +58,6 @@ const ExplorePage: React.FC = () => {
   const loadTravelStories = async () => {
     setLoading(true);
     try {
-      const { supabase } = await import('../lib/supabase');
-      
       console.log('📚 Loading travel stories with user profiles...');
       
       // Try multiple approaches to get user data

@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import { userDataService } from './userDataService';
+import { notificationsService } from './notificationsService';
 
 export interface StoryComment {
   id: string;
@@ -102,7 +104,6 @@ class StoryCommentsService {
         .single();
 
       // Get user name for better comment display
-      const { userDataService } = await import('./userDataService');
       const userInfo = await userDataService.getUserDisplayInfo(userId);
       const authorName = userInfo?.name || `Traveler ${userId.substring(0, 8)}`;
 
@@ -128,7 +129,6 @@ class StoryCommentsService {
       // Create notification for comment (if not commenting on own story)
       if (story?.user_id && story.user_id !== userId) {
         try {
-          const { notificationsService } = await import('./notificationsService');
           await notificationsService.createCommentNotification(commentData.story_id, story.user_id, userId);
         } catch (notifError) {
           console.warn('Failed to create comment notification:', notifError);

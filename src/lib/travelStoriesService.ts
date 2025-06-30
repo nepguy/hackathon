@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { notificationsService } from './notificationsService';
 
 export interface TravelStory {
   id: string;
@@ -322,7 +323,6 @@ class TravelStoriesService {
       const newIsLiked = data.action === 'liked';
       if (newIsLiked && story?.user_id && story.user_id !== userId) {
         try {
-          const { notificationsService } = await import('./notificationsService');
           await notificationsService.createLikeNotification(storyId, story.user_id, userId);
         } catch (notifError) {
           console.warn('Failed to create like notification:', notifError);
