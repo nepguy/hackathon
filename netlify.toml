@@ -66,13 +66,13 @@
 
 # Environment-specific settings
 [context.production]
-  command = "npm ci && npm run build"
+  command = "npm ci --no-optional --prefer-offline && npm run build"
   
 [context.production.environment]
   NODE_ENV = "production"
 
 [context.deploy-preview]
-  command = "npm ci && npm run build"
+  command = "npm ci --no-optional --prefer-offline && npm run build"
   
 [context.deploy-preview.environment]
   NODE_ENV = "production" 
