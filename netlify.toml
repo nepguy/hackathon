@@ -1,6 +1,6 @@
 [build]
-  # Build command
-  command = "npm run build"
+  # Build command with proper dependency installation
+  command = "npm ci && npm run build"
   
   # Directory to publish (Vite builds to 'dist' by default)
   publish = "dist"
@@ -68,13 +68,13 @@
 
 # Environment-specific settings
 [context.production]
-  command = "npm run build"
+  command = "npm ci && npm run build"
   
 [context.production.environment]
   NODE_ENV = "production"
 
 [context.deploy-preview]
-  command = "npm run build"
+  command = "npm ci && npm run build"
   
 [context.deploy-preview.environment]
   NODE_ENV = "production" 
