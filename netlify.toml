@@ -1,6 +1,6 @@
 [build]
-  # Build command with proper dependency installation
-  command = "npm ci && npm run build"
+  # Build command with proper dependency installation and forced clean install
+  command = "npm ci --no-optional --prefer-offline && npm run build"
   
   # Directory to publish (Vite builds to 'dist' by default)
   publish = "dist"
