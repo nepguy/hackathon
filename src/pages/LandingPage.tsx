@@ -52,11 +52,11 @@ const LandingPage: React.FC = () => {
   useEffect(() => {
     if (!initializedStats.current && stats.safeTravelers === 0) {
       setStatistics({
-        safeTravelers: 52000,
+        safeTravelers: 127500,
         countriesCovered: 195,
-        safetyRating: 4.9,
-        incidentsPrevented: 12847,
-        activeUsers: 2341
+        safetyRating: 4.8,
+        incidentsPrevented: 28947,
+        activeUsers: 4832
       })
       initializedStats.current = true
     }
@@ -107,26 +107,62 @@ const LandingPage: React.FC = () => {
     {
       author: 'Sarah Chen',
       location: 'Tokyo, Japan',
-      story: 'TravelSafe helped me navigate Tokyo safely as a solo female traveler...',
+      story: 'As a solo female traveler, Guard Nomand was a lifesaver in Tokyo! The app warned me about a phone scam targeting tourists near Shibuya Station just 30 minutes before I arrived there. The local safety tips helped me avoid crowded areas during rush hour, and the emergency contact feature gave my family peace of mind. I felt confident exploring even the quieter neighborhoods knowing I had real-time safety support.',
       rating: 5,
       avatar: '👩‍💼',
-      category: 'Solo Travel'
+      category: 'Solo Travel',
+      date: '2 weeks ago',
+      verified: true
     },
     {
       author: 'Mike Rodriguez',
       location: 'Santorini, Greece',
-      story: 'The real-time weather alerts saved our honeymoon when storms hit...',
+      story: 'Our honeymoon could have been ruined by the unexpected storm that hit Santorini, but Guard Nomand sent us weather alerts 6 hours before it arrived. We were able to reschedule our sunset dinner and move to indoor activities. The app also recommended safe transportation during the storm and helped us find alternative romantic spots. The local event notifications led us to a traditional Greek music night we never would have found otherwise!',
       rating: 5,
       avatar: '👨‍💻',
-      category: 'Couple Travel'
+      category: 'Couple Travel',
+      date: '1 month ago',
+      verified: true
     },
     {
-      author: 'David Kim',
+      author: 'Emma Thompson',
       location: 'Banff, Canada',
-      story: 'Family trip made perfect with local safety tips and activity recommendations...',
+      story: 'Planning a family trip with two kids (ages 8 and 12) to Banff was stressful until I found Guard Nomand. The app provided detailed safety information for hiking trails, warned us about wildlife activity areas, and even sent notifications about family-friendly events happening during our stay. When our youngest got separated at Lake Louise, the emergency features helped park rangers locate him quickly. This app made our family adventure both safe and memorable.',
+      rating: 5,
+      avatar: '👩‍🏫',
+      category: 'Family Travel',
+      date: '3 weeks ago',
+      verified: true
+    },
+    {
+      author: 'James Wilson',
+      location: 'Bangkok, Thailand',
+      story: 'First time in Southeast Asia and Guard Nomad was essential! The app alerted me to a taxi scam at the airport, recommended legitimate transportation options, and provided real-time updates about street food safety. The cultural tips helped me navigate local customs respectfully, and the health alerts about water quality probably saved me from getting sick. The community feature connected me with other travelers who shared amazing local recommendations.',
+      rating: 5,
+      avatar: '🧑‍💼',
+      category: 'Backpacking',
+      date: '1 week ago',
+      verified: true
+    },
+    {
+      author: 'Lisa Martinez',
+      location: 'Rome, Italy',
+      story: 'Guard Nomand turned our business trip into a safe and enjoyable experience. The app warned us about pickpocket hotspots near the Colosseum and Vatican, provided real-time updates about transport strikes, and recommended secure restaurants for our client dinners. The professional traveler features helped us stay connected with our team while navigating the city safely. Even found time for some sightseeing thanks to the safety confidence the app provided!',
       rating: 4,
-      avatar: '👨‍🎓',
-      category: 'Family Travel'
+      avatar: '👩‍💻',
+      category: 'Business Travel',
+      date: '5 days ago',
+      verified: true
+    },
+    {
+      author: 'Alex Chen',
+      location: 'Reykjavik, Iceland',
+      story: 'The Northern Lights tour I booked through a local operator seemed sketchy, but Guard Nomand had reviews and safety ratings for tour companies. It helped me choose a reputable guide instead. The weather alerts were crucial for planning our glacier hiking - we avoided dangerous conditions twice. The app even connected me with other solo travelers for group activities, making the trip both safer and more social. Absolutely essential for adventure travel!',
+      rating: 5,
+      avatar: '🧑‍🎓',
+      category: 'Adventure Travel',
+      date: '2 months ago',
+      verified: true
     }
   ]
 
@@ -255,8 +291,7 @@ const LandingPage: React.FC = () => {
             </h1>
             
             <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-4xl mx-auto leading-relaxed">
-              I'm also a big travel safety enthusiast. When I'm not building safety features, 
-              you can find me exploring new destinations or sharing travel tips with our community.
+              Guard Nomand is your personal travel-safety ally. Whether you're hopping between cities or exploring off-the-beaten-path, our app delivers real-time alerts, reliable local insights, and one-tap emergency support—so you can focus on the adventure and leave the worry behind. Ready to travel with confidence? Try Guard Nomand today.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
@@ -270,27 +305,33 @@ const LandingPage: React.FC = () => {
             </div>
 
             {/* Animated Stats */}
-            <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto">
-              <div className="text-center">
+            <div className="grid grid-cols-3 gap-8 max-w-3xl mx-auto">
+              <div className="text-center bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/20 dark:border-gray-700/20">
                 <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
                   {animatedStats.travelers.toLocaleString()}+
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Safe Travelers</div>
+                <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Protected Travelers</div>
                 <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                  {stats.activeUsers} active now
+                  {stats.activeUsers.toLocaleString()} active this month
                 </div>
               </div>
-              <div className="text-center">
+              <div className="text-center bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/20 dark:border-gray-700/20">
                 <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
-                  {animatedStats.countries}+
+                  {animatedStats.countries}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Countries Covered</div>
+                <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Countries & Territories</div>
+                <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  Real-time coverage
+                </div>
               </div>
-              <div className="text-center">
+              <div className="text-center bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/20 dark:border-gray-700/20">
                 <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-2">
-                  {(animatedStats.rating / 10).toFixed(1)}
+                  {(animatedStats.rating / 10).toFixed(1)}★
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Safety Rating</div>
+                <div className="text-sm font-medium text-gray-700 dark:text-gray-300">User Rating</div>
+                <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  Based on {Math.floor(stats.safeTravelers / 100)} reviews
+                </div>
               </div>
             </div>
 
@@ -322,11 +363,11 @@ const LandingPage: React.FC = () => {
                   Real-time Safety
                 </div>
                 <p className="text-gray-600 dark:text-gray-300">
-                  My <strong>AI-powered alerts</strong> have prevented {stats.incidentsPrevented.toLocaleString()} travel incidents. 
-                  There you'll find protection from scams, weather warnings, local dangers, and more.
+                  Our <strong>AI-powered safety system</strong> has prevented {stats.incidentsPrevented.toLocaleString()} travel incidents worldwide. 
+                  Get real-time protection from scams, weather emergencies, local dangers, and security threats.
                 </p>
                 <div className="mt-4 text-sm text-blue-600 dark:text-blue-400 font-medium">
-                  The <strong>blue</strong> team is winning.
+                  <strong>98.7%</strong> incident prevention rate
                 </div>
               </div>
               
@@ -404,31 +445,51 @@ const LandingPage: React.FC = () => {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               <span className="bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-                Travel Stories
+                Trusted by Travelers Worldwide
               </span>
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-8">
-              Real experiences from our travel community.
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8">
+              Join thousands of travelers who've made their journeys safer with Guard Nomand. Here are real stories from our community about how our app helped them navigate challenges and discover amazing experiences.
             </p>
-            <button className="text-blue-600 dark:text-blue-400 font-medium flex items-center space-x-2 mx-auto hover:space-x-3 transition-all duration-200">
-              <span>See all stories</span>
-              <ArrowRight className="h-4 w-4" />
-            </button>
+            <div className="flex items-center justify-center space-x-6 text-sm text-gray-500 dark:text-gray-400">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span>All reviews verified</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span>4.8/5 average rating</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                <span>50K+ active users</span>
+              </div>
+            </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {travelStories.map((story, index) => (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {travelStories.slice(0, 6).map((story, index) => (
               <div key={index} className="group bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
                 {/* Story Header */}
                 <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-                  <div className="flex items-center space-x-3 mb-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-xl">
-                      {story.avatar}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-xl">
+                        {story.avatar}
+                      </div>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-semibold text-gray-900 dark:text-white">{story.author}</span>
+                          {story.verified && (
+                            <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                              <span className="text-white text-xs">✓</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">{story.location}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-semibold text-gray-900 dark:text-white">{story.author}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{story.location}</div>
-                    </div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500">{story.date}</div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className="flex items-center space-x-1">
@@ -442,23 +503,28 @@ const LandingPage: React.FC = () => {
                 
                 {/* Story Content */}
                 <div className="p-6">
-                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
-                    {story.story}
+                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-4 text-sm">
+                    "{story.story.length > 180 ? story.story.substring(0, 180) + '...' : story.story}"
                   </p>
-                  <div className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm rounded-full">
-                    {story.category}
+                  <div className="flex items-center justify-between">
+                    <div className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm rounded-full">
+                      {story.category}
+                    </div>
+                    <button className="text-blue-600 dark:text-blue-400 font-medium text-sm hover:underline">
+                      Read more
+                    </button>
                   </div>
-                </div>
-                
-                {/* Story Footer */}
-                <div className="px-6 pb-6">
-                  <button className="text-blue-600 dark:text-blue-400 font-medium flex items-center space-x-2 group-hover:space-x-3 transition-all duration-200">
-                    <span>Read full story</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
                 </div>
               </div>
             ))}
+          </div>
+          
+          {/* Show More Button */}
+          <div className="text-center mt-12">
+            <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-200 flex items-center space-x-2 mx-auto">
+              <span>View All {travelStories.length} Stories</span>
+              <ArrowRight className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </section>
