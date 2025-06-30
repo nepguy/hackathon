@@ -1,0 +1,52 @@
+{
+  "mcpServers": {
+    "exa": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.exa.ai/mcp?exaApiKey=832fa316-4876-4c3a-b7d7-4d4666e5e411"
+      ],
+      "description": "Exa.ai MCP server for GuardNomad travel intelligence",
+      "capabilities": [
+        "real_time_search",
+        "location_aware_content",
+        "travel_safety_data",
+        "local_news_events",
+        "scam_alerts"
+      ],
+      "tags": [
+        "search",
+        "travel",
+        "safety",
+        "real-time"
+      ]
+    },
+    "magic": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@21st-dev/magic@latest"
+      ],
+      "env": {
+        "API_KEY": "43924b7c3e4da76300f6386522e379b4331c6d1d94f624aba8713196424e8b5b"
+      },
+      "description": "21st.dev Magic MCP server for UI components"
+    },
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server@latest"
+      ],
+      "env": {
+        "SUPABASE_URL": "https://kkkucfyckvcilpsgijfs.supabase.co",
+        "SUPABASE_SERVICE_ROLE_KEY": "your_service_role_key_here"
+      },
+      "description": "Supabase MCP server for database operations"
+    }
+  },
+  "projectName": "GuardNomad",
+  "version": "1.0.0",
+  "environment": "development"
+} 
