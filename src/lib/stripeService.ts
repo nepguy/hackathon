@@ -45,12 +45,18 @@ class StripeService {
         throw new Error('User must be logged in to create a checkout session');
       }
 
+      // Ensure we have a valid access token
+      if (!session.access_token) {
+        throw new Error('No valid access token found');
+      }
+
       // Call the Supabase Edge Function to create a checkout session
-      const response = await fetch(`${this.supabaseUrl}/functions/v1/stripe-checkout`, {
+      const response = await fetch(`${this.supabaseUrl}/functions/v1/create-checkout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
         },
         body: JSON.stringify({
           price_id: priceId,
@@ -61,7 +67,12 @@ class StripeService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
+        }
         throw new Error(errorData.error || 'Failed to create checkout session');
       }
 
@@ -69,7 +80,7 @@ class StripeService {
       return data;
     } catch (error) {
       console.error('Error creating checkout session:', error);
-      return null;
+      throw error;
     }
   }
 

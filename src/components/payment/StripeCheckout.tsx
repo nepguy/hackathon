@@ -51,6 +51,7 @@ const StripeCheckout: React.FC<StripeCheckoutProps> = ({
     } catch (err) {
       console.error('Checkout error:', err);
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+    } finally {
       setIsLoading(false);
     }
   };
