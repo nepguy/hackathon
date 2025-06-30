@@ -1,3 +1,7 @@
+[build.environment]
+  # Force Node.js 20 for consistent builds
+  NODE_VERSION = "20"
+
 [build]
   # Build command with proper dependency installation and forced clean install
   command = "npm ci --no-optional --prefer-offline && npm run build"
