@@ -3,31 +3,31 @@
 ## Overview
 This document outlines the Google Maps integration for the Travel Alert Application.
 
+## ⚠️ Security Warning
+- Never commit API keys to version control
+- Store real API keys only in `.env` file
+- Keep `.env` in `.gitignore`
+
 ## API Key Configuration
 
-### Current Setup
-The Google Maps API key has been integrated into the application:
-- **API Key**: `your_google_maps_api_key_here`
-- **Status**: Active and configured in the application
+The Google Maps API key should be configured securely:
+- Use environment variables for the API key
+- Set proper API key restrictions in Google Cloud Console
+- Regularly rotate the key for security
 
-### Security Best Practices
+### Environment Setup
 
-#### 1. Environment Variables
-To secure the API key properly, create a `.env` file in the project root:
+Create a `.env` file in the project root:
 
-```bash
-# Create .env file
-echo "VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here" > .env
+```env
+VITE_GOOGLE_MAPS_API_KEY=<your-google-maps-api-key>
 ```
 
-#### 2. Gitignore Protection
-The `.env` file is already included in `.gitignore` to prevent committing sensitive data.
-
-#### 3. API Key Restrictions
-Recommend adding the following restrictions to the Google Cloud Console:
-- **Application restrictions**: HTTP referrers (web sites)
-- **Allowed domains**: Your production domain
-- **API restrictions**: Maps JavaScript API, Places API, Geocoding API
+### API Key Security
+1. Set HTTP referrer restrictions in Google Cloud Console
+2. Enable only necessary Google Maps services
+3. Monitor API usage regularly
+4. Set up billing alerts
 
 ## Features Implemented
 

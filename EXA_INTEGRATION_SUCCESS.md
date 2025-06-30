@@ -129,7 +129,7 @@ export interface LocationSafetyData {
 # VITE_GEMINI_API_KEY=your_gemini_api_key
 
 # NEW: Exa.ai API (required)
-VITE_EXA_API_KEY=your_exa_api_key
+VITE_EXA_API_KEY=<your-exa-api-key>
 ```
 
 ## ✅ **VERIFICATION CHECKLIST**
@@ -181,4 +181,24 @@ The GuardNomad travel app now runs entirely on **Exa.ai intelligence**, providin
 **Migration Status**: ✅ **COMPLETE**  
 **API Dependency**: ✅ **Exa.ai Only**  
 
-This represents a **major architectural improvement** that enhances user safety while reducing operational costs. 
+This represents a **major architectural improvement** that enhances user safety while reducing operational costs.
+
+## ⚠️ Security Warning
+- Never commit API keys to version control
+- Store real API keys only in `.env` file
+- Keep `.env` in `.gitignore`
+
+## Environment Configuration
+
+Add to your `.env` file:
+
+```env
+VITE_EXA_API_KEY=<your-exa-api-key>
+```
+
+## Implementation Steps
+
+1. **API Key Setup**: 
+   - Add the Exa.ai API key to your `.env` file
+   - Never share or expose your API key
+   - Set up usage monitoring and alerts 

@@ -22,7 +22,7 @@ Follow these exact steps to configure SMTP for your GuardNomad application:
    SMTP Host: smtp.resend.com
    SMTP Port: 587
    SMTP User: resend
-   SMTP Password: [YOUR_RESEND_API_KEY]
+   SMTP Password: <your-resend-api-key>
    SMTP Sender Name: Guard Nomand
    SMTP Sender Email: noreply@guardnomand.com
    ```
@@ -200,7 +200,7 @@ In **Settings** → **Authentication** → **Email Templates**:
 Add to your `.env` file:
 ```env
 # Resend Configuration
-VITE_RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxx
+VITE_RESEND_API_KEY=<your-resend-api-key>
 
 # Update these with your actual domain
 VITE_APP_URL=https://yourdomain.com
@@ -279,15 +279,15 @@ VITE_SUPPORT_EMAIL=support@guardnomad.com
 **Debug Commands**:
 ```bash
 # Test Resend API directly
-curl -X POST https://api.resend.com/emails \
-  -H "Authorization: Bearer YOUR_RESEND_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "from": "GuardNomad <noreply@yourdomain.com>",
-    "to": ["test@example.com"],
-    "subject": "Test Email",
-    "html": "<p>Test email from GuardNomad SMTP setup</p>"
-  }'
+curl -X POST 'https://api.resend.com/v1/email' \
+-H 'Content-Type: application/json' \
+-H 'Authorization: Bearer <your-resend-api-key>' \
+-d '{
+  "from": "onboarding@resend.dev",
+  "to": "test@example.com",
+  "subject": "Test Email",
+  "text": "This is a test email"
+}'
 ```
 
 ### **Success Indicators**
