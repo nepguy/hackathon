@@ -4,7 +4,7 @@ import { useSubscription } from '../contexts/SubscriptionContext';
 import { useAuth } from '../contexts/AuthContext';
 import PageContainer from '../components/layout/PageContainer';
 import StripeCheckout from '../components/payment/StripeCheckout';
-import { Check, Star, Zap, Shield, Globe, Crown } from 'lucide-react';
+import { Check, Star, Zap, Shield, Globe, Crown, CreditCard, ArrowRight } from 'lucide-react';
 import { useStatistics } from '../lib/userDataService';
 import { STRIPE_CONFIG } from '../config/stripe';
 
