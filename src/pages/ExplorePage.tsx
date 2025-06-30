@@ -62,19 +62,17 @@ const ExplorePage: React.FC = () => {
       
       console.log('📚 Loading travel stories with user profiles...');
       
-      // Get stories with user profiles joined using proper Supabase syntax
-      const storiesResult = await supabase
-        .from('travel_stories')
-        .select(`
-          *,
-          user_profiles:user_id (
-            id,
-            full_name,
-            email
-          )
-        `)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      // Get stories and profiles separately, then merge them (no foreign key needed)
+      const [storiesResult, profilesResult] = await Promise.all([
+        supabase
+          .from('travel_stories')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50),
+        supabase
+          .from('user_profiles')
+          .select('id, full_name, email')
+      ]);
 
       let stories: TravelStory[] = [];
       
@@ -84,11 +82,18 @@ const ExplorePage: React.FC = () => {
         stories = await getTravelStories({ limit: 50 });
       } else {
         const storiesData = storiesResult.data || [];
+        const profilesData = profilesResult.data || [];
         
-        console.log(`📚 Found ${storiesData.length} stories with joined user profiles`);
+        console.log(`📚 Found ${storiesData.length} stories and ${profilesData.length} user profiles`);
         
-        // Data already includes user_profiles from the join
-        stories = storiesData;
+        // Create a map of user profiles for quick lookup
+        const profilesMap = new Map(profilesData.map((p: any) => [p.id, p]));
+        
+        // Merge stories with profile data manually
+        stories = storiesData.map((story: any) => ({
+          ...story,
+          user_profiles: profilesMap.get(story.user_id) || null
+        }));
       }
 
       const stats = await getStoriesStats();
