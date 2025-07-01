@@ -94,7 +94,7 @@ class LocationSafetyService {
             severity: (news.category === 'breaking' ? 'high' : 'medium') as SafetyAlert['severity'],
             type: 'news',
             location: locationString,
-            isLocationSpecific: true,
+        isLocationSpecific: true,
             distanceFromUser: 0
           });
         });

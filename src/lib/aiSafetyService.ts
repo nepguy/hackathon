@@ -219,16 +219,16 @@ class AISafetyService {
                 severity: alert.severity || 'high',
                 title: alert.title || 'Scam Alert',
                 message: alert.description || alert.message || 'Be aware of local scam activities',
-                location: context.destination,
-                coordinates: context.coordinates,
-                source: 'ai' as const,
-                timestamp: new Date().toISOString(),
-                actionable_advice: alert.actionRequired ? [alert.actionRequired] : [
+              location: context.destination,
+              coordinates: context.coordinates,
+              source: 'ai' as const,
+              timestamp: new Date().toISOString(),
+              actionable_advice: alert.actionRequired ? [alert.actionRequired] : [
                   'Verify legitimacy of unsolicited offers',
                   'Keep personal information private',
                   'Use official services and vendors'
-                ],
-                expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+              ],
+              expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
               });
             });
           }
@@ -252,20 +252,20 @@ class AISafetyService {
                 severity: news.category === 'breaking' ? 'high' : 'medium',
                 title: news.title,
                 message: news.description || news.content,
-                location: context.destination,
-                coordinates: context.coordinates,
-                source: 'ai' as const,
+              location: context.destination,
+              coordinates: context.coordinates,
+              source: 'ai' as const,
                 timestamp: news.publishedAt || new Date().toISOString(),
                 actionable_advice: [
                   'Stay informed about local developments',
                   'Follow official guidance',
                   'Monitor reliable news sources'
-                ],
-                expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+              ],
+              expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
               });
             });
           }
-          
+            
           if (alerts.length > 0) {
             console.log(`✅ Generated ${alerts.length} alerts from backend data`);
             return alerts;

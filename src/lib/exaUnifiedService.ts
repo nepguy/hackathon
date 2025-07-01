@@ -23,7 +23,7 @@ const API_BASE_URL = 'https://travelagentdata.onrender.com';
 // Enhanced Backend API service with production integration
 class BackendUnifiedService {
   private readonly baseUrl = API_BASE_URL;
-  
+
   constructor() {
     console.log('✅ Production Backend Unified Service initialized');
     console.log('🔗 Connected to:', this.baseUrl);
@@ -164,7 +164,7 @@ class BackendUnifiedService {
         url: `${this.baseUrl}/alerts/security/${encodeURIComponent(location.toLowerCase().replace(/\s+/g, '-'))}`,
         imageUrl: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&q=80',
         publishedAt: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
-        source: { 
+          source: {
           name: 'Travel Security Network', 
           url: `${this.baseUrl}/sources/security`, 
           type: 'local' as const 
@@ -180,7 +180,7 @@ class BackendUnifiedService {
         url: `${this.baseUrl}/alerts/weather/${encodeURIComponent(location.toLowerCase().replace(/\s+/g, '-'))}`,
         imageUrl: 'https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?w=400&q=80',
         publishedAt: new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString(),
-        source: { 
+          source: {
           name: 'Regional Weather Service', 
           url: `${this.baseUrl}/sources/weather`, 
           type: 'regional' as const 
@@ -196,7 +196,7 @@ class BackendUnifiedService {
         url: `${this.baseUrl}/alerts/transport/${encodeURIComponent(location.toLowerCase().replace(/\s+/g, '-'))}`,
         imageUrl: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=400&q=80',
         publishedAt: new Date(now.getTime() - 30 * 60 * 1000).toISOString(),
-        source: { 
+          source: {
           name: 'Public Transport Authority', 
           url: `${this.baseUrl}/sources/transport`, 
           type: 'local' as const 

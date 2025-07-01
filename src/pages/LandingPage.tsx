@@ -474,10 +474,10 @@ const LandingPage: React.FC = () => {
                 <div className="p-6 border-b border-gray-100 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-xl">
-                        {story.avatar}
-                      </div>
-                      <div>
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-xl">
+                      {story.avatar}
+                    </div>
+                    <div>
                         <div className="flex items-center space-x-2">
                           <span className="font-semibold text-gray-900 dark:text-white">{story.author}</span>
                           {story.verified && (
@@ -486,7 +486,7 @@ const LandingPage: React.FC = () => {
                             </div>
                           )}
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">{story.location}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{story.location}</div>
                       </div>
                     </div>
                     <div className="text-xs text-gray-400 dark:text-gray-500">{story.date}</div>
@@ -507,8 +507,8 @@ const LandingPage: React.FC = () => {
                     "{story.story.length > 180 ? story.story.substring(0, 180) + '...' : story.story}"
                   </p>
                   <div className="flex items-center justify-between">
-                    <div className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm rounded-full">
-                      {story.category}
+                  <div className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm rounded-full">
+                    {story.category}
                     </div>
                     <button className="text-blue-600 dark:text-blue-400 font-medium text-sm hover:underline">
                       Read more

@@ -71,7 +71,7 @@ const ExplorePage: React.FC = () => {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
-
+      
       if (storiesResult.error) {
         console.error('Error fetching stories:', storiesResult.error);
         stories = await getTravelStories({ limit: 50 });
