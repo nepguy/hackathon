@@ -222,11 +222,10 @@ class NewsService {
     try {
       console.log('🔍 Generating AI-powered news for', location, 'using Exa.ai');
       
-      // Use Exa.ai to get real local news and safety alerts
-      const [localNews, scamAlerts, safetyAlerts] = await Promise.all([
+      // Use backend to get real local news and safety alerts
+      const [localNews, scamAlerts] = await Promise.all([
         exaUnifiedService.getLocalNews(location),
-        exaUnifiedService.getScamAlerts(location),
-        exaUnifiedService.getTravelSafetyAlerts(location)
+        exaUnifiedService.getScamAlerts(location)
       ]);
 
       // Combine all sources into news articles
@@ -265,22 +264,7 @@ class NewsService {
           location: alert.location || location
         })),
         
-        // Convert safety alerts to news format
-        ...safetyAlerts.map(alert => ({
-          title: alert.title,
-          description: alert.description,
-          content: `${alert.description} Recommendations: ${alert.recommendations.join(', ')}`,
-          url: alert.source.url,
-          image: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400',
-          publishedAt: alert.issuedDate,
-          source: {
-            name: alert.source.name,
-            url: alert.source.url
-          },
-          category: 'safety' as const,
-          severity: alert.severity,
-          location: alert.location
-        }))
+
       ];
 
       console.log('🤖 Generated', articles.length, 'AI-powered news articles for', location);

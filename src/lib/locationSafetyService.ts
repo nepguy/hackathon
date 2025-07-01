@@ -5,7 +5,6 @@
  */
 
 import { exaUnifiedService } from './exaUnifiedService';
-import type { LocationAlert, LocationSafetyData } from './exaUnifiedService';
 
 interface UserLocation {
   lat: number;
@@ -15,7 +14,13 @@ interface UserLocation {
   region?: string;
 }
 
-interface SafetyAlert extends LocationAlert {
+interface SafetyAlert {
+  id: string;
+  title: string;
+  description: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  type: string;
+  location: string;
   isLocationSpecific: boolean;
   distanceFromUser?: number; // in km
 }
@@ -50,18 +55,50 @@ class LocationSafetyService {
     const { location } = userLocationData;
     
     try {
-      const alerts = await exaUnifiedService.getLocationSpecificAlerts(
-        { lat: location.lat, lng: location.lng },
-        location.country,
-        location.city
-      );
+      const locationString = location.city ? `${location.city}, ${location.country}` : location.country;
+      
+      const [scamAlerts, localNews] = await Promise.allSettled([
+        exaUnifiedService.getScamAlerts(locationString),
+        exaUnifiedService.getLocalNews(locationString)
+      ]);
 
-      // Convert to SafetyAlert format with location-specific flag
-      const safetyAlerts: SafetyAlert[] = alerts.map(alert => ({
-        ...alert,
-        isLocationSpecific: true,
-        distanceFromUser: 0 // User is at this location
-      }));
+      const safetyAlerts: SafetyAlert[] = [];
+
+      // Process scam alerts
+      if (scamAlerts.status === 'fulfilled' && scamAlerts.value.length > 0) {
+        scamAlerts.value.forEach((alert: any) => {
+          safetyAlerts.push({
+            id: alert.id || `scam-${Date.now()}`,
+            title: alert.title || 'Scam Alert',
+            description: alert.description || 'Be aware of local scam activities',
+            severity: (alert.severity || 'high') as SafetyAlert['severity'],
+            type: 'scam',
+            location: locationString,
+            isLocationSpecific: true,
+            distanceFromUser: 0
+          });
+        });
+      }
+
+      // Process news for safety alerts
+      if (localNews.status === 'fulfilled' && localNews.value.length > 0) {
+        const safetyNews = localNews.value.filter((news: any) => 
+          ['crime', 'breaking'].includes(news.category)
+        );
+        
+        safetyNews.forEach((news: any) => {
+          safetyAlerts.push({
+            id: news.id || `news-${Date.now()}`,
+            title: news.title,
+            description: news.description || news.content,
+            severity: (news.category === 'breaking' ? 'high' : 'medium') as SafetyAlert['severity'],
+            type: 'news',
+            location: locationString,
+            isLocationSpecific: true,
+            distanceFromUser: 0
+          });
+        });
+      }
 
       console.log(`🚨 Found ${safetyAlerts.length} location-specific alerts for user ${userId}`);
       return safetyAlerts;
@@ -91,20 +128,50 @@ class LocationSafetyService {
     const { location } = userLocationData;
     
     try {
-      const safetyScore = await exaUnifiedService.getLocationSafetyScore(
-        { lat: location.lat, lng: location.lng },
-        location.country,
-        location.city
-      );
-
       const locationString = location.city 
         ? `${location.city}, ${location.country}` 
         : location.country;
 
-      console.log(`🛡️ Safety score for user ${userId} at ${locationString}: ${safetyScore.score}/100`);
+      // Use available backend methods to calculate safety score
+      const [scamAlerts, localNews] = await Promise.allSettled([
+        exaUnifiedService.getScamAlerts(locationString),
+        exaUnifiedService.getLocalNews(locationString)
+      ]);
+
+      let score = 80; // Base score
+      let riskLevel = 'medium';
+      let summary = 'Moderate safety conditions';
+
+      // Adjust score based on scam alerts
+      if (scamAlerts.status === 'fulfilled' && scamAlerts.value.length > 0) {
+        score -= scamAlerts.value.length * 15;
+        riskLevel = 'high';
+        summary = 'Elevated risk due to reported scam activities';
+      }
+
+      // Adjust score based on news
+      if (localNews.status === 'fulfilled' && localNews.value.length > 0) {
+        const crimeNews = localNews.value.filter((news: any) => 
+          ['crime', 'breaking'].includes(news.category)
+        );
+        if (crimeNews.length > 0) {
+          score -= crimeNews.length * 10;
+          if (riskLevel === 'medium') {
+            riskLevel = 'elevated';
+            summary = 'Some safety concerns based on recent news';
+          }
+        }
+      }
+
+      // Ensure score doesn't go below 0
+      score = Math.max(0, score);
+
+      console.log(`🛡️ Safety score for user ${userId} at ${locationString}: ${score}/100`);
 
       return {
-        ...safetyScore,
+        score,
+        riskLevel,
+        summary,
         location: locationString
       };
 
@@ -117,7 +184,7 @@ class LocationSafetyService {
   /**
    * Get comprehensive safety data for user's location
    */
-  async getUserLocationSafetyData(userId: string): Promise<LocationSafetyData | null> {
+  async getUserLocationSafetyData(userId: string): Promise<any | null> {
     const userLocationData = this.userLocationCache.get(userId);
     
     if (!userLocationData) {
@@ -128,12 +195,45 @@ class LocationSafetyService {
     const { location } = userLocationData;
     
     try {
-      const safetyData = await exaUnifiedService.getLocationSafetyData({
-        country: location.country,
-        city: location.city,
-        region: location.region,
-        coordinates: { lat: location.lat, lng: location.lng }
-      });
+      // Use available backend methods to get safety data
+      const locationString = location.city ? `${location.city}, ${location.country}` : location.country;
+      
+      const [scamAlerts, localNews] = await Promise.allSettled([
+        exaUnifiedService.getScamAlerts(locationString),
+        exaUnifiedService.getLocalNews(locationString)
+      ]);
+
+      // Build comprehensive safety data from available sources
+      const safetyData: any = {
+        safetyScore: 75,
+        riskLevel: 'medium',
+        activeAlerts: [],
+        commonScams: [],
+        emergencyNumbers: ['112', '911'], // Generic emergency numbers
+        location: locationString
+      };
+
+      // Process scam alerts
+      if (scamAlerts.status === 'fulfilled' && scamAlerts.value.length > 0) {
+        safetyData.activeAlerts.push(...scamAlerts.value);
+        safetyData.commonScams.push(...scamAlerts.value.map((alert: any) => alert.title || 'Unknown scam'));
+        safetyData.riskLevel = 'high';
+        safetyData.safetyScore = 60;
+      }
+
+      // Process news for safety context
+      if (localNews.status === 'fulfilled' && localNews.value.length > 0) {
+        const safetyRelatedNews = localNews.value.filter((news: any) => 
+          ['crime', 'breaking'].includes(news.category)
+        );
+        if (safetyRelatedNews.length > 0) {
+          safetyData.activeAlerts.push(...safetyRelatedNews);
+          if (safetyData.riskLevel === 'medium') {
+            safetyData.riskLevel = 'elevated';
+            safetyData.safetyScore = 65;
+          }
+        }
+      }
 
       console.log(`📊 Comprehensive safety data retrieved for user ${userId}`);
       return safetyData;
@@ -166,11 +266,9 @@ class LocationSafetyService {
     const alerts = await this.getUserLocationAlerts(userId);
     
     return alerts.filter(alert => {
-      // Check if alert affects areas within the radius
-      return alert.affectedAreas.some((area: string) => 
-        area.toLowerCase().includes(location.city?.toLowerCase() || '') ||
-        area.toLowerCase().includes(location.country.toLowerCase())
-      );
+      // Check if alert location matches user location
+      return alert.location.toLowerCase().includes(location.city?.toLowerCase() || '') ||
+        alert.location.toLowerCase().includes(location.country.toLowerCase());
     });
   }
 

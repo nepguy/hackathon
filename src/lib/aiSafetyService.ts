@@ -117,14 +117,35 @@ class AISafetyService {
     };
 
     try {
-      // Get location safety information
+      // Get location safety information using available backend methods
       if (context.coordinates) {
         try {
-          const safetyInfo = await exaUnifiedService.getLocationSafetyData({
-            country: context.country,
-            city: context.city,
-            coordinates: context.coordinates
-          });
+          const [scamAlerts, localNews] = await Promise.allSettled([
+            exaUnifiedService.getScamAlerts(context.destination),
+            exaUnifiedService.getLocalNews(context.destination)
+          ]);
+          
+          const safetyInfo: any = {
+            activeAlerts: [],
+            riskLevel: 'medium',
+            safetyScore: 75
+          };
+          
+          if (scamAlerts.status === 'fulfilled' && scamAlerts.value.length > 0) {
+            safetyInfo.activeAlerts.push(...scamAlerts.value);
+            safetyInfo.riskLevel = 'high';
+            safetyInfo.safetyScore = 60;
+          }
+          
+          if (localNews.status === 'fulfilled' && localNews.value.length > 0) {
+            const safetyRelatedNews = localNews.value.filter((news: any) => 
+              ['crime', 'breaking'].includes(news.category)
+            );
+            if (safetyRelatedNews.length > 0) {
+              safetyInfo.activeAlerts.push(...safetyRelatedNews);
+            }
+          }
+          
           data.safety_stats = safetyInfo;
         } catch (error) {
           console.warn('Could not fetch safety stats:', error);
@@ -178,67 +199,80 @@ class AISafetyService {
       // First, try to get safety data from Exa.ai service
       if (context.coordinates || context.country) {
         try {
-          const locationContext = {
-            country: context.country,
-            city: context.city,
-            coordinates: context.coordinates
-          };
+          // Use available methods from exaUnifiedService to gather safety data
+          const [scamAlerts, localNews, localEvents] = await Promise.allSettled([
+            exaUnifiedService.getScamAlerts(context.destination),
+            exaUnifiedService.getLocalNews(context.destination),
+            exaUnifiedService.getLocalEvents(context.destination)
+          ]);
           
-          const safetyData = await exaUnifiedService.getLocationSafetyData(locationContext);
+          const alerts: AISafetyAlert[] = [];
           
-          if (safetyData && safetyData.activeAlerts && safetyData.activeAlerts.length > 0) {
-            console.log(`✅ Got ${safetyData.activeAlerts.length} alerts from Exa.ai`);
+          // Process scam alerts
+          if (scamAlerts.status === 'fulfilled' && scamAlerts.value.length > 0) {
+            console.log(`✅ Got ${scamAlerts.value.length} scam alerts from backend`);
             
-            return safetyData.activeAlerts.map((alert: any, index: number) => ({
-              id: `gemini-${Date.now()}-${index}`,
-              type: this.mapAlertType(alert.type),
-              severity: alert.severity || 'medium',
-              title: alert.title || 'Safety Alert',
-              message: alert.description || alert.message || '',
-              location: context.destination,
-              coordinates: context.coordinates,
-              source: 'ai' as const,
-              timestamp: new Date().toISOString(),
-              actionable_advice: alert.actionRequired ? [alert.actionRequired] : [
-                'Stay alert and aware of your surroundings',
-                'Follow local safety guidelines',
-                'Keep emergency contacts handy'
-              ],
-              expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-            }));
+            scamAlerts.value.forEach((alert: any, index: number) => {
+              alerts.push({
+                id: `scam-${Date.now()}-${index}`,
+                type: 'security',
+                severity: alert.severity || 'high',
+                title: alert.title || 'Scam Alert',
+                message: alert.description || alert.message || 'Be aware of local scam activities',
+                location: context.destination,
+                coordinates: context.coordinates,
+                source: 'ai' as const,
+                timestamp: new Date().toISOString(),
+                actionable_advice: alert.actionRequired ? [alert.actionRequired] : [
+                  'Verify legitimacy of unsolicited offers',
+                  'Keep personal information private',
+                  'Use official services and vendors'
+                ],
+                expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+              });
+            });
           }
           
-          // If no active alerts but we have safety data, create a general safety alert
-          if (safetyData && safetyData.safetyScore) {
-            const generalAlert: AISafetyAlert = {
-              id: `safety-score-${Date.now()}`,
-              type: 'safety',
-              severity: safetyData.riskLevel === 'critical' ? 'critical' : 
-                        safetyData.riskLevel === 'high' ? 'high' : 'medium',
-              title: `${context.destination} Safety Update`,
-              message: `Current safety score: ${safetyData.safetyScore}/100. ${this.getSafetyMessage(safetyData.safetyScore, context.destination)}`,
-              location: context.destination,
-              coordinates: context.coordinates,
-              source: 'ai' as const,
-              timestamp: new Date().toISOString(),
-              actionable_advice: safetyData.commonScams.length > 0 ? [
-                `Be aware of common scams: ${safetyData.commonScams.slice(0, 2).join(', ')}`,
-                'Keep valuables secure',
-                'Stay in well-lit, populated areas',
-                `Emergency numbers: ${safetyData.emergencyNumbers[0] || 'Local emergency services'}`
-              ] : [
-                'Stay alert and aware of your surroundings',
-                'Follow local safety guidelines',
-                'Keep emergency contacts handy'
-              ],
-              expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-            };
+          // Process news for safety-related content
+          if (localNews.status === 'fulfilled' && localNews.value.length > 0) {
+            console.log(`✅ Got ${localNews.value.length} news items from backend`);
             
-            console.log('✅ Generated safety score-based alert');
-            return [generalAlert];
+            // Filter for safety-related news
+            const safetyNews = localNews.value.filter((news: any) => 
+              ['crime', 'breaking', 'weather'].includes(news.category) ||
+              news.title.toLowerCase().includes('safety') ||
+              news.title.toLowerCase().includes('security') ||
+              news.title.toLowerCase().includes('alert')
+            );
+            
+            safetyNews.slice(0, 2).forEach((news: any, index: number) => {
+              alerts.push({
+                id: `news-safety-${Date.now()}-${index}`,
+                type: this.mapAlertType(news.category),
+                severity: news.category === 'breaking' ? 'high' : 'medium',
+                title: news.title,
+                message: news.description || news.content,
+                location: context.destination,
+                coordinates: context.coordinates,
+                source: 'ai' as const,
+                timestamp: news.publishedAt || new Date().toISOString(),
+                actionable_advice: [
+                  'Stay informed about local developments',
+                  'Follow official guidance',
+                  'Monitor reliable news sources'
+                ],
+                expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+              });
+            });
           }
+          
+          if (alerts.length > 0) {
+            console.log(`✅ Generated ${alerts.length} alerts from backend data`);
+            return alerts;
+          }
+          
         } catch (exaError) {
-          console.warn('Exa.ai service unavailable, falling back to basic alerts:', exaError);
+          console.warn('Backend service unavailable, falling back to basic alerts:', exaError);
         }
       }
       
@@ -569,36 +603,77 @@ class AISafetyService {
     
     try {
       try {
-        // Get travel safety alerts from Exa
-        const safetyAlerts = await exaUnifiedService.getTravelSafetyAlerts(locationString);
+        // Use available backend methods to get safety data
+        const [scamAlerts, localNews] = await Promise.allSettled([
+          exaUnifiedService.getScamAlerts(locationString),
+          exaUnifiedService.getLocalNews(locationString)
+        ]);
 
-        // Convert to AISafetyAlert format
-        if (safetyAlerts && safetyAlerts.length > 0) {
-          const convertedAlerts = safetyAlerts.map(alert => ({
-            id: `exa-${alert.id}`,
-            type: this.mapExaAlertType(alert.alertType),
-            severity: alert.severity,
-            title: alert.title,
-            message: alert.description,
-            location: alert.location,
+        // Process scam alerts
+        if (scamAlerts.status === 'fulfilled' && scamAlerts.value.length > 0) {
+          const convertedScamAlerts = scamAlerts.value.map((alert: any) => ({
+            id: `backend-scam-${alert.id || Date.now()}`,
+            type: 'security' as const,
+            severity: (alert.severity || 'high') as AISafetyAlert['severity'],
+            title: alert.title || 'Scam Alert',
+            message: alert.description || alert.message || 'Be aware of local scam activities',
+            location: alert.location || locationString,
             coordinates: context.coordinates,
             source: 'ai' as const,
-            timestamp: alert.issuedDate,
-            actionable_advice: alert.recommendations || [],
-            relevant_links: [alert.source?.url].filter(url => url && url !== '#'),
-            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
+            timestamp: alert.issuedDate || new Date().toISOString(),
+            actionable_advice: alert.recommendations || [
+              'Verify legitimacy of unsolicited offers',
+              'Keep personal information private',
+              'Use official services and vendors'
+            ],
+            relevant_links: alert.source?.url ? [alert.source.url] : [],
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
           }));
           
-          alerts.push(...convertedAlerts);
-          console.log(`✅ Added ${convertedAlerts.length} Exa-based alerts`);
-        } else {
-          console.log('ℹ️ No safety alerts returned from Exa.ai');
+          alerts.push(...convertedScamAlerts);
+          console.log(`✅ Added ${convertedScamAlerts.length} scam alerts from backend`);
         }
-      } catch (exaError) {
-        console.warn('❌ Error generating Exa-based alerts:', exaError);
+
+        // Process news for safety-related content
+        if (localNews.status === 'fulfilled' && localNews.value.length > 0) {
+          const safetyNews = localNews.value.filter((news: any) => 
+            ['crime', 'breaking', 'weather'].includes(news.category) ||
+            news.title.toLowerCase().includes('safety') ||
+            news.title.toLowerCase().includes('security') ||
+            news.title.toLowerCase().includes('alert')
+          );
+          
+          const convertedNewsAlerts = safetyNews.slice(0, 3).map((news: any) => ({
+            id: `backend-news-${news.id || Date.now()}`,
+            type: this.mapExaAlertType(news.category),
+            severity: (news.category === 'breaking' ? 'high' : 'medium') as AISafetyAlert['severity'],
+            title: news.title,
+            message: news.description || news.content,
+            location: news.location || locationString,
+            coordinates: context.coordinates,
+            source: 'ai' as const,
+            timestamp: news.publishedAt || new Date().toISOString(),
+            actionable_advice: [
+              'Stay informed about local developments',
+              'Follow official guidance',
+              'Monitor reliable news sources'
+            ],
+            relevant_links: news.url ? [news.url] : [],
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+          }));
+          
+          alerts.push(...convertedNewsAlerts);
+          console.log(`✅ Added ${convertedNewsAlerts.length} news-based alerts from backend`);
+        }
+        
+        if (alerts.length === 0) {
+          console.log('ℹ️ No safety alerts returned from backend');
+        }
+      } catch (backendError) {
+        console.warn('❌ Error generating backend-based alerts:', backendError);
       }
     } catch (error) {
-      console.warn('❌ Error generating Exa-based alerts:', error);
+      console.warn('❌ Error generating backend-based alerts:', error);
     }
 
     return alerts;
